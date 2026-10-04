@@ -165,7 +165,7 @@
     var test = /[?&]env=test\b/.test(location.search);
     function rid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
     var v, s; try { v = localStorage.getItem('gw.v') || rid(); localStorage.setItem('gw.v', v); s = sessionStorage.getItem('gw.s') || rid(); sessionStorage.setItem('gw.s', s); } catch (e) { v = v || rid(); s = s || rid(); }
-    var w = Math.min(screen.width, screen.height), d = w < 600 ? 'phone' : w < 1024 ? 'tablet' : 'desktop';
+    var w = Math.min(screen.width, screen.height), touch = matchMedia('(pointer: coarse)').matches, d = !touch ? 'desktop' : w < 600 ? 'phone' : 'tablet';
     var r = ''; try { r = document.referrer ? new URL(document.referrer).hostname : ''; } catch (e) {}
     window.gwTrack = function (e, sp, h) {
       var body = JSON.stringify({ fn: 'track', args: [{ e: e, sp: sp || '', h: h || '', v: v, s: s, d: d, r: r, w: screen.width + 'x' + screen.height }], env: test ? 'test' : 'prod' });
