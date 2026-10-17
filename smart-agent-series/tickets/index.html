@@ -83,7 +83,7 @@
   <main>
     <p class="eyebrow">KW Edge · Smart Agent Series</p>
     <h1>Log a tech support ticket</h1>
-    <p class="lede">Answer a few quick questions. You'll get fixes to try straight away, and if you still need help, the ticket form opens already filled in, so all you add is a screenshot.</p>
+    <p class="lede">Answer a few quick questions. You'll get fixes to try straight away, and if you still need help, the ticket form opens already filled in, ready to submit.</p>
 
     <ol class="steps" id="steps" aria-label="Progress">
       <li>You</li><li>Problem</li><li>Urgency</li><li>Details</li><li>Send</li>
@@ -127,6 +127,7 @@
       <label class="f" for="happened">What happened instead? <small>(copy any error message word for word)</small></label><textarea id="happened" rows="3"></textarea>
       <label class="f" for="expected">What did you expect to happen?</label><textarea id="expected" rows="2"></textarea>
       <label class="f" for="repro">Steps to recreate it <small>(one step per line)</small></label><textarea id="repro" rows="4" placeholder="Login&#10;Listings&#10;Edit&#10;Save Draft&#10;Error appears"></textarea>
+      <label class="f" for="shot">Screenshot or screen recording link <small>(optional: share it from Google Drive, Google Photos or OneDrive and paste the link)</small></label><input type="text" id="shot" inputmode="url" placeholder="https://">
       <div class="row2">
         <div><label class="f" for="when">When did it start?</label><input type="datetime-local" id="when"></div>
         <div><label class="f" for="device">Device</label><select id="device"><option>Laptop (Windows)</option><option>Laptop (Mac)</option><option>Phone (Android)</option><option>Phone (iPhone)</option><option>Other</option></select></div>
@@ -150,8 +151,8 @@
       <p class="err" id="err4" aria-live="polite"></p>
       <a class="btn primary go" id="go" href="#" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path opacity=".45" d="M5 4h9l5 5v10.5A1.5 1.5 0 0 1 17.5 21h-12A1.5 1.5 0 0 1 4 19.5v-14A1.5 1.5 0 0 1 5 4Z"/><path d="M14 4v4a1 1 0 0 0 1 1h4ZM7.5 12h9v1.6h-9Zm0 3.4h6v1.6h-6Z"/></svg>
-        Open my ticket, add a screenshot and submit</a>
-      <p class="note">The form opens in a new tab. Google asks you to sign in with your KW account because the form accepts screenshots. Your answers are already filled in: check them, add your screenshot or screen recording, and press Submit.</p>
+        Open my filled-in ticket and submit</a>
+      <p class="note">The form opens in a new tab with your answers already filled in. Check them and press Submit. You don't need to sign in.</p>
       <div class="nav"><button class="btn" type="button" data-back>Back</button><button class="btn" type="button" id="copy">Copy summary</button></div>
       <div class="nav"><button class="btn" type="button" id="startOver">Start a new ticket</button></div>
     </section>
@@ -253,6 +254,7 @@
     if (v('tried')) parts.push('Trying to: ' + v('tried'));
     if (v('happened')) parts.push('What happened: ' + v('happened'));
     if (v('expected')) parts.push('Expected: ' + v('expected'));
+    if (v('shot')) parts.push('Screenshot: ' + v('shot'));
     return parts.join('\n');
   }
   function reproText() { return $('repro').value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean).join(' > '); }
@@ -335,7 +337,7 @@
   $('notFixed').onclick = function () { $('fixed').hidden = true; $('steps').hidden = false; show(2); };
 
   // ---------- keep a draft on this device ----------
-  var FIELDS = ['name', 'email', 'phone', 'role', 'kwl', 'tried', 'happened', 'expected', 'repro', 'when', 'device', 'browser', 'anyAddr'];
+  var FIELDS = ['name', 'email', 'phone', 'role', 'kwl', 'tried', 'happened', 'expected', 'repro', 'when', 'device', 'browser', 'anyAddr', 'shot'];
   function save() {
     var d = { S: S }; FIELDS.forEach(function (f) { d[f] = $(f).value; }); store.set(KEY, d);
     if ($('remember').checked) store.set(ME, { name: $('name').value, email: $('email').value, phone: $('phone').value, role: $('role').value }); else store.del(ME);
