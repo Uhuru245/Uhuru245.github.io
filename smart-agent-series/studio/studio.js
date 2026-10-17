@@ -51,9 +51,10 @@
     show('vLogin'); $('pin').value = '';
     var note = $('setupNote');
     if (!API) { note.hidden = false; note.textContent = 'The studio backend is not connected yet. It will work once the studio web app is deployed.'; return; }
+    $('setupForm').hidden = true; $('loginForm').hidden = false;
     post('status').then(function (s) {
       keySet = s.keySet;
-      if (!s.pinSet) { note.hidden = false; note.textContent = 'Set your PIN first: in the studio Apps Script project, add a Script Property named STUDIO_PIN with the PIN you want. It is stored as a hash after your first sign-in.'; }
+      if (!s.pinSet) { $('loginForm').hidden = true; $('setupForm').hidden = false; $('newPin').focus(); }
     }).catch(function () {});
   }
   $('loginForm').addEventListener('submit', function (e) {
@@ -61,6 +62,23 @@
     post('login', { pin: $('pin').value }).then(function (j) {
       token = j.token; keySet = j.keySet; ss.set('studio.token', token); $('pin').value = ''; openLibrary();
     }).catch(function (err) { $('loginErr').textContent = err.message; }).then(function () { $('loginBtn').disabled = false; });
+  });
+  $('setupForm').addEventListener('submit', function (e) {
+    e.preventDefault(); var a = $('newPin').value.trim(), b = $('newPin2').value.trim(), err = $('setupErr'); err.textContent = '';
+    if (!/^\d{4,12}$/.test(a)) { err.textContent = 'Use 4 to 12 digits.'; return; }
+    if (a !== b) { err.textContent = 'The two PINs do not match.'; return; }
+    $('setupBtn').disabled = true;
+    post('setup', { pin: a }).then(function (j) {
+      token = j.token; keySet = j.keySet; ss.set('studio.token', token); $('newPin').value = ''; $('newPin2').value = ''; openLibrary();
+    }).catch(function (er) { err.textContent = er.message; if (/already set/.test(er.message)) { $('setupForm').hidden = true; $('loginForm').hidden = false; } })
+      .then(function () { $('setupBtn').disabled = false; });
+  });
+  $('keyWarn').addEventListener('submit', function (e) {
+    e.preventDefault(); var k = $('apiKey').value.trim(), err = $('keyErr'); err.textContent = '';
+    if (!/^sk-ant-/.test(k)) { err.textContent = 'An Anthropic key starts with sk-ant-.'; return; }
+    $('keyBtn').disabled = true; $('keyBtn').textContent = 'Testing the key...';
+    post('setkey', { key: k }).then(function () { keySet = true; $('apiKey').value = ''; $('keyWarn').hidden = true; })
+      .catch(function (er) { err.textContent = er.message; }).then(function () { $('keyBtn').disabled = false; $('keyBtn').textContent = 'Test and save the key'; });
   });
   $('signOut').onclick = function () {
     if (dirty && !confirm('You have unsaved changes on this training. Sign out anyway? They stay on this device as a draft.')) return;
@@ -70,6 +88,7 @@
   // ---------- library ----------
   function openLibrary() {
     show('vLib'); $('keyWarn').hidden = keySet !== false;
+    post('status').then(function (s) { keySet = s.keySet; $('keyWarn').hidden = keySet !== false; }).catch(function () {});
     var list = $('libList'); list.innerHTML = ''; list.appendChild(h('p', { class: 'empty', text: 'Loading your trainings...' }));
     var draft = ls.get('studio.draft');
     post('list').then(function (j) {
@@ -207,7 +226,7 @@
   $('genBtn').onclick = function () {
     readBrief();
     if (!T.brief.topic) { $('feedErr').textContent = 'Give the training a topic or title first.'; $('bTopic').focus(); return; }
-    if (keySet === false) { $('feedErr').textContent = 'Claude is not connected yet. Add CLAUDE_API_KEY in the studio Script Properties, then sign in again.'; return; }
+    if (keySet === false) { $('feedErr').textContent = 'Claude is not connected yet. Go back to Your trainings and use Connect Claude first.'; return; }
     if (T.plan && !confirm('This rewrites the plan, slides, demonstration and practice from your content. Any edits you made will be replaced. Continue?')) return;
     genFrom = 0; runGen();
   };
