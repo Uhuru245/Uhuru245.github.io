@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Training Studio · Smart Agent Series</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0E0F0D">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Literata:opsz,wght@7..72,500;7..72,600&display=swap">
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<div class="wrap" id="app">
+  <header class="top">
+    <a class="home" href="/smart-agent-series/"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14.7 5.3 8 12l6.7 6.7 1.6-1.6L11.2 12l5.1-5.1Z"/></svg>Smart Agent Series</a>
+    <div class="topr"><span class="saved" id="savedState" aria-live="polite"></span><button class="btn ghost small" id="signOut" type="button" hidden>Sign out</button></div>
+  </header>
+
+  <!-- sign in -->
+  <section id="vLogin" class="view" hidden>
+    <p class="eyebrow">Private · Trainer only</p>
+    <h1>Training Studio</h1>
+    <p class="lede">Feed it your notes, documents, slides and video links. It writes the session plan, slides, live demonstration script, hands-on activities, quiz and handout, ready to present.</p>
+    <form class="card narrow" id="loginForm" autocomplete="off">
+      <label class="f" for="pin">Studio PIN</label>
+      <input type="password" id="pin" inputmode="numeric" autocomplete="current-password" required>
+      <p class="err" id="loginErr" aria-live="polite"></p>
+      <button class="btn primary" type="submit" id="loginBtn">Sign in</button>
+      <p class="note" id="setupNote" hidden></p>
+    </form>
+  </section>
+
+  <!-- library -->
+  <section id="vLib" class="view" hidden>
+    <p class="eyebrow">Training Studio</p>
+    <div class="row-between"><h1>Your trainings</h1><button class="btn primary" type="button" id="newBtn">New training</button></div>
+    <p class="warn" id="keyWarn" hidden>Claude is not connected yet, so new trainings can't be generated. Add <b>CLAUDE_API_KEY</b> in the studio's Script Properties. Saved trainings still open and present.</p>
+    <div id="libList" class="lib"></div>
+  </section>
+
+  <!-- feed -->
+  <section id="vFeed" class="view" hidden>
+    <p class="eyebrow">New training</p>
+    <h1>What are we teaching?</h1>
+    <div class="card">
+      <h2>The brief</h2>
+      <label class="f" for="bTopic">Topic or session title</label>
+      <input type="text" id="bTopic" placeholder="e.g. Uploading a listing in MAPP, start to finish">
+      <div class="grid3">
+        <div><label class="f" for="bPlatform">Platform</label><select id="bPlatform"><option>MAPP</option><option>KW Command</option><option>Property24</option><option>Private Property</option><option>Loom</option><option>AI tools (Claude, ChatGPT)</option><option>ManyChat / WhatsApp</option><option>Google Workspace</option><option>Other</option></select></div>
+        <div><label class="f" for="bLevel">Agents are</label><select id="bLevel"><option>New to it</option><option selected>Mixed</option><option>Experienced</option></select></div>
+        <div><label class="f" for="bMinutes">Length</label><select id="bMinutes"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60" selected>1 hour</option><option value="90">1.5 hours</option><option value="120">2 hours</option></select></div>
+      </div>
+      <label class="f" for="bFormat">Format</label>
+      <select id="bFormat"><option>In person, agents on their laptops</option><option>Online (Google Meet or Zoom), screen share</option><option>One-on-one</option><option>Recorded video (Loom)</option></select>
+      <label class="f" for="bNotes">Anything else it should know? <small>(optional)</small></label>
+      <textarea id="bNotes" rows="2" placeholder="e.g. Include an MREA tip. Agents must leave with one listing uploaded."></textarea>
+    </div>
+
+    <div class="card">
+      <h2>Feed it content</h2>
+      <p class="sub">The more real material you give it, the more accurate the demonstration. It only uses facts and button names from what you add here.</p>
+      <div class="feedtabs" role="tablist">
+        <button type="button" role="tab" class="ft" data-ft="notes" aria-selected="true">Notes or steps</button>
+        <button type="button" role="tab" class="ft" data-ft="files" aria-selected="false">Documents or slides</button>
+        <button type="button" role="tab" class="ft" data-ft="video" aria-selected="false">Video link</button>
+      </div>
+      <div class="ftp" data-ftp="notes">
+        <label class="f" for="nTitle">Label <small>(optional)</small></label><input type="text" id="nTitle" placeholder="e.g. My MAPP listing steps">
+        <label class="f" for="nText">Paste your notes, steps or a how-to</label><textarea id="nText" rows="6" placeholder="Login&#10;Listings > Add listing&#10;Fill in the address ..."></textarea>
+        <button class="btn" type="button" id="addNotes">Add notes</button>
+      </div>
+      <div class="ftp" data-ftp="files" hidden>
+        <label class="drop" id="drop" for="fileIn">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11 15V6.8L8.1 9.7 6.7 8.3 12 3l5.3 5.3-1.4 1.4L13 6.8V15Zm-6 2h14v3H5Z"/></svg>
+          <b>Choose files</b><span>PDF, Word (.docx), PowerPoint (.pptx) or text. The text is read on this device.</span>
+        </label>
+        <input type="file" id="fileIn" multiple accept=".pdf,.docx,.pptx,.txt,.md,.csv" hidden>
+        <p class="note">Google Slides or Docs: use File, Download, then PDF or PowerPoint, and add that file.</p>
+      </div>
+      <div class="ftp" data-ftp="video" hidden>
+        <label class="f" for="vUrl">YouTube or Loom link</label><input type="text" id="vUrl" inputmode="url" placeholder="https://www.loom.com/share/...">
+        <label class="f" for="vText">What happens in the video? <small>(Claude can't watch it, so describe the steps or paste its transcript)</small></label>
+        <textarea id="vText" rows="4"></textarea>
+        <button class="btn" type="button" id="addVideo">Add video</button>
+      </div>
+      <p class="err" id="feedErr" aria-live="polite"></p>
+      <h3 class="srch">Added content <span id="srcCount"></span></h3>
+      <ul class="sources" id="sources"></ul>
+    </div>
+
+    <div class="nav"><button class="btn" type="button" data-go="lib">Cancel</button><button class="btn primary" type="button" id="genBtn">Generate the training</button></div>
+  </section>
+
+  <!-- generating -->
+  <section id="vGen" class="view" hidden>
+    <p class="eyebrow">Generating</p>
+    <h1 id="genTitle">Building your training</h1>
+    <p class="lede">This takes two to four minutes. Keep this page open.</p>
+    <ol class="prog" id="prog"></ol>
+    <p class="err" id="genErr" aria-live="polite"></p>
+    <div class="nav" id="genNav" hidden><button class="btn" type="button" data-go="feed">Back to the content</button><button class="btn primary" type="button" id="genRetry">Try again</button></div>
+  </section>
+
+  <!-- workspace -->
+  <section id="vWork" class="view" hidden>
+    <div class="workhead">
+      <div><p class="eyebrow" id="wMeta"></p><h1 id="wTitle"></h1><p class="lede" id="wSub"></p></div>
+      <div class="workact">
+        <button class="btn primary" type="button" id="presentBtn"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7Z"/></svg>Present</button>
+        <button class="btn" type="button" id="saveBtn">Save</button>
+        <div class="menu"><button class="btn" type="button" id="moreBtn" aria-expanded="false" aria-haspopup="true">More</button>
+          <div class="menupop" id="morePop" hidden>
+            <button type="button" data-print="trainer">Print the trainer pack</button>
+            <button type="button" data-print="handout">Print the agent handout</button>
+            <button type="button" id="dlBtn">Download as a file</button>
+            <button type="button" id="delBtn" class="danger">Move to Drive bin</button>
+          </div></div>
+      </div>
+    </div>
+    <p class="note">Tap any text to edit it. Changes are kept on this device until you press Save.</p>
+    <div class="tabs" role="tablist" id="wTabs">
+      <button type="button" role="tab" data-tab="plan">Plan</button>
+      <button type="button" role="tab" data-tab="slides">Slides</button>
+      <button type="button" role="tab" data-tab="demo">Demonstration</button>
+      <button type="button" role="tab" data-tab="practice">Practice</button>
+      <button type="button" role="tab" data-tab="sources">Sources</button>
+    </div>
+    <div id="wBody"></div>
+    <div class="card redo" id="redo">
+      <h2>Change this part</h2>
+      <p class="sub">Tell Claude what to change, and it rewrites only this tab.</p>
+      <textarea id="redoText" rows="2" placeholder="e.g. Make the demo shorter and add a step for adding photos"></textarea>
+      <p class="err" id="redoErr" aria-live="polite"></p>
+      <button class="btn" type="button" id="redoBtn">Rewrite this part</button>
+    </div>
+  </section>
+</div>
+
+<!-- presenter -->
+<div class="present" id="present" hidden role="dialog" aria-label="Presenting">
+  <div class="pbar">
+    <span class="pseg" id="pSeg"></span>
+    <span class="ptime" id="pTime">00:00</span>
+    <button type="button" class="pbtn" id="pNotes" aria-pressed="true">Notes</button>
+    <button type="button" class="pbtn" id="pVideo" hidden>Video</button>
+    <button type="button" class="pbtn" id="pClose">Close</button>
+  </div>
+  <div class="pstage" id="pStage"></div>
+  <div class="pnotes" id="pNotesBox"></div>
+  <div class="pfoot">
+    <button type="button" class="pbtn big" id="pPrev" aria-label="Previous">Back</button>
+    <div class="pdots"><span id="pCount"></span><div class="pline"><span id="pFill"></span></div></div>
+    <button type="button" class="pbtn big primary" id="pNext" aria-label="Next">Next</button>
+  </div>
+  <div class="pvideo" id="pVideoBox" hidden><div class="pvinner"><div class="pvhead"><select id="pVideoSel"></select><button type="button" class="pbtn" id="pVideoClose">Close video</button></div><div class="pvframe" id="pVideoFrame"></div></div></div>
+</div>
+
+<div id="printArea" class="printarea" aria-hidden="true"></div>
+<script src="studio.js"></script>
+</body>
+</html>
