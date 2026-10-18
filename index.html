@@ -202,7 +202,9 @@
     var v, s; try { v = localStorage.getItem('gw.v') || rid(); localStorage.setItem('gw.v', v); s = sessionStorage.getItem('gw.s') || rid(); sessionStorage.setItem('gw.s', s); } catch (e) { v = v || rid(); s = s || rid(); }
     var w = Math.min(screen.width, screen.height), touch = matchMedia('(pointer: coarse)').matches, d = !touch ? 'desktop' : w < 600 ? 'phone' : 'tablet';
     var r = ''; try { r = document.referrer ? new URL(document.referrer).hostname : ''; } catch (e) {}
+    var mine = false; try { mine = localStorage.getItem('gw.ignore') === '1'; } catch (e) {}
     window.gwTrack = function (e, sp, h) {
+      if (mine) return; // the owner's own device, switched off on the visitors page
       var body = JSON.stringify({ fn: 'track', args: [{ e: e, sp: sp || '', h: h || '', v: v, s: s, d: d, r: r, w: screen.width + 'x' + screen.height }], env: test ? 'test' : 'prod' });
       try { fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: body, keepalive: true, credentials: 'omit' }).catch(function () {}); } catch (x) {}
     };
