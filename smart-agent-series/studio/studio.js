@@ -401,8 +401,126 @@
       .catch(function (err) { $('savedState').textContent = 'Not saved'; if (!quiet) alert('Could not save: ' + err.message); else $('savedState').textContent = 'Not saved yet: press Save'; });
   }
   $('saveBtn').onclick = function () { save(false); };
-  $('moreBtn').onclick = function (e) { e.stopPropagation(); var p = $('morePop'); p.hidden = !p.hidden; this.setAttribute('aria-expanded', String(!p.hidden)); };
-  document.addEventListener('click', function (e) { if (!e.target.closest('.menu')) { $('morePop').hidden = true; $('moreBtn').setAttribute('aria-expanded', 'false'); } });
+  $('moreBtn').onclick = function (e) { e.stopPropagation(); $('pdfPop').hidden = true; var p = $('morePop'); p.hidden = !p.hidden; this.setAttribute('aria-expanded', String(!p.hidden)); };
+  $('pdfBtn').onclick = function (e) { e.stopPropagation(); $('morePop').hidden = true; var p = $('pdfPop'); p.hidden = !p.hidden; this.setAttribute('aria-expanded', String(!p.hidden)); };
+  document.addEventListener('click', function (e) { if (!e.target.closest('.menu')) { ['morePop', 'pdfPop'].forEach(function (id) { $(id).hidden = true; }); $('moreBtn').setAttribute('aria-expanded', 'false'); $('pdfBtn').setAttribute('aria-expanded', 'false'); } });
+  document.querySelectorAll('[data-pdf]').forEach(function (b) {
+    b.onclick = function () {
+      $('pdfPop').hidden = true; var btn = $('pdfBtn'), was = btn.lastChild.textContent;
+      btn.disabled = true; btn.lastChild.textContent = 'Making PDF...';
+      makePdf(b.dataset.pdf).catch(function (err) { alert('The PDF could not be made: ' + err.message); }).then(function () { btn.disabled = false; btn.lastChild.textContent = was; });
+    };
+  });
+
+  // ---------- PDF downloads (made on this device with jsPDF) ----------
+  function clean(t) {
+    // jsPDF's built-in fonts cover Western European text; swap or drop anything else so nothing prints as gibberish.
+    return String(t == null ? '' : t).replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/[\u2010-\u2015\u2212]/g, '-').replace(/\u2026/g, '...')
+      .replace(/[\u2022\u25CF]/g, '-').replace(/\u00A0/g, ' ').replace(/[^\x09\x0A\x0D\x20-\x7E\u00A0-\u00FF]/g, '');
+  }
+  function makePdf(kind) {
+    return lib(CDN + 'jspdf/2.5.1/jspdf.umd.min.js').then(function () {
+      var J = window.jspdf.jsPDF, p = T.plan || {}, pr = T.practice || {}, ho = pr.handout || {};
+      var title = clean(p.title || (T.brief && T.brief.topic) || 'Training');
+      var RED = [194, 39, 45], INK = [22, 24, 27], MUTED = [95, 99, 106], LINE = [222, 219, 212];
+      var doc = new J({ unit: 'pt', format: 'a4', orientation: kind === 'slides' ? 'landscape' : 'portrait' });
+      var W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 50, y = M, part = '';
+      function newPage() { doc.addPage('a4', 'portrait'); y = M; }
+      function room(h) { if (y + h > H - M) newPage(); }
+      function text(t, size, style, color, gap, indent) {
+        indent = indent || 0; doc.setFont('helvetica', style || 'normal'); doc.setFontSize(size); doc.setTextColor.apply(doc, color || INK);
+        var lines = doc.splitTextToSize(clean(t), W - 2 * M - indent), lh = size * 1.38;
+        lines.forEach(function (ln) { room(lh); doc.text(ln, M + indent, y + size); y += lh; });
+        y += gap == null ? 4 : gap;
+      }
+      function h1(t) { room(60); text(t, 22, 'bold', INK, 2); }
+      function h2(t) { room(46); y += 10; doc.setDrawColor.apply(doc, RED); doc.setLineWidth(2); doc.line(M, y, M + 26, y); y += 8; text(t, 14.5, 'bold', INK, 4); }
+      function h3(t) { room(30); y += 4; text(t, 11.5, 'bold', INK, 2); }
+      function para(t, muted) { if (t) text(t, 10.5, 'normal', muted ? MUTED : INK, 6); }
+      function list(items, numbered, box) {
+        (items || []).filter(Boolean).forEach(function (it, i) {
+          var mark = box ? '' : numbered ? (i + 1) + '.' : '-';
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5);
+          var lines = doc.splitTextToSize(clean(it), W - 2 * M - 18), lh = 14.5; room(lh * Math.min(lines.length, 2));
+          if (box) { doc.setDrawColor.apply(doc, MUTED); doc.setLineWidth(.8); doc.rect(M + 1, y + 2.5, 9, 9); }
+          else { doc.setTextColor.apply(doc, RED); doc.text(mark, M, y + 10.5); }
+          doc.setTextColor.apply(doc, INK);
+          lines.forEach(function (ln) { room(lh); doc.text(ln, M + 18, y + 10.5); y += lh; });
+          y += 3;
+        });
+        y += 4;
+      }
+      function rule() { room(14); doc.setDrawColor.apply(doc, LINE); doc.setLineWidth(.6); doc.line(M, y + 4, W - M, y + 4); y += 12; }
+      function cover(sub) {
+        doc.setFillColor.apply(doc, RED); doc.rect(0, 0, W, 6, 'F');
+        text('KW EDGE  -  SMART AGENT SERIES', 9, 'bold', RED, 8);
+        h1(title); if (p.subtitle) para(p.subtitle, true);
+        para([T.brief && T.brief.platform, (p.minutes || (T.brief && T.brief.minutes) || '') + ' minutes', p.audience, sub].filter(Boolean).join('  |  '), true);
+        rule();
+      }
+      function trainer() {
+        part = 'Trainer pack'; cover('Trainer pack');
+        if ((p.checkWithSource || []).filter(Boolean).length) { h2('Check before you present'); list(p.checkWithSource); }
+        h2('By the end, agents can'); list(p.objectives);
+        h2('Running order');
+        (p.outline || []).forEach(function (s) { h3((s.minutes || '?') + ' min  -  ' + (s.title || '') + '  (' + (s.type || '') + ')'); para(s.summary, true); });
+        if ((p.prerequisites || []).length || (p.materials || []).length) { h2('Before the session'); list((p.prerequisites || []).concat(p.materials || [])); }
+        var sl = (T.slides && T.slides.slides) || [];
+        if (sl.length) { h2('Slides and talk track'); sl.forEach(function (s, i) { h3((i + 1) + '. ' + (s.heading || '')); list(s.bullets); if (s.notes) para('Say: ' + s.notes, true); }); }
+        ((T.demo && T.demo.demos) || []).forEach(function (d) {
+          h2('Live demonstration: ' + (d.title || '')); para(d.goal);
+          if ((d.setup || []).length) { h3('Have open before you start'); list(d.setup); }
+          h3('Steps');
+          (d.steps || []).forEach(function (st, i) { room(40); text((i + 1) + '.  ' + (st.do || ''), 10.5, 'bold', INK, 1, 0); if (st.say) text('Say: ' + st.say, 10, 'normal', MUTED, 1, 16); if (st.look) text('They should notice: ' + st.look, 10, 'normal', MUTED, 1, 16); if (st.tip) text('Tip: ' + st.tip, 10, 'normal', MUTED, 1, 16); y += 4; });
+          if ((d.ifItGoesWrong || []).length) { h3('If it goes wrong'); list(d.ifItGoesWrong.map(function (w) { return w.problem + ': ' + w.fix; })); }
+          if (d.checkpoint) para('Checkpoint: ' + d.checkpoint);
+        });
+        (pr.activities || []).forEach(function (a) { h2('Activity: ' + (a.title || '') + ' (' + (a.minutes || '?') + ' min)'); list(a.instructions, true); if (a.success) para('Done right when: ' + a.success); if (a.helper) para('While they work, you: ' + a.helper, true); });
+        if ((pr.quiz || []).length) { h2('Quiz with answers'); pr.quiz.forEach(function (q, i) { h3((i + 1) + '. ' + q.q); list((q.options || []).map(function (o, j) { return String.fromCharCode(65 + j) + ') ' + o + (j === q.answer ? '   (correct)' : ''); })); if (q.why) para(q.why, true); }); }
+      }
+      function handout() {
+        part = 'Agent handout'; cover('Agent handout');
+        if (ho.summary) para(ho.summary);
+        h2('What you can now do'); list(p.objectives);
+        if ((ho.checklist || []).length) { h2('Checklist'); list(ho.checklist, false, true); }
+        (pr.activities || []).forEach(function (a) { h2('Practice: ' + (a.title || '')); list(a.instructions, true); });
+        if ((ho.nextSteps || []).length) { h2('Your next steps'); list(ho.nextSteps, true); }
+        if ((ho.resources || []).length) { h2('Resources'); list(ho.resources); }
+        if ((pr.quiz || []).length) { h2('Test yourself'); pr.quiz.forEach(function (q, i) { h3((i + 1) + '. ' + q.q); list((q.options || []).map(function (o, j) { return String.fromCharCode(65 + j) + ') ' + o; })); }); }
+        rule(); para('Need help with your tech? Log a ticket at www.mret.co.za/smart-agent-series/tickets', true);
+      }
+      function slides(first) {
+        var sl = (T.slides && T.slides.slides) || [];
+        var pages = [{ k: 'KW EDGE  -  SMART AGENT SERIES', h: title, b: [p.subtitle].concat((p.objectives || []).map(function (o) { return 'By the end: ' + o; })).filter(Boolean) }]
+          .concat(sl.map(function (s) { return { k: '', h: s.heading, b: s.bullets || [], n: s.notes }; }));
+        pages.forEach(function (pg, i) {
+          if (i > 0 || !first) doc.addPage('a4', 'landscape');
+          var w = doc.internal.pageSize.getWidth(), hgt = doc.internal.pageSize.getHeight();
+          doc.setFillColor(14, 15, 13); doc.rect(0, 0, w, hgt, 'F'); doc.setFillColor.apply(doc, RED); doc.rect(0, 0, w, 8, 'F');
+          var yy = 80;
+          if (pg.k || i) { doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(240, 140, 143); doc.text(clean(pg.k || title).toUpperCase(), 60, yy); yy += 34; }
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(i ? 32 : 40); doc.setTextColor(243, 239, 230);
+          doc.splitTextToSize(clean(pg.h || ''), w - 120).forEach(function (ln) { doc.text(ln, 60, yy); yy += i ? 40 : 48; });
+          yy += 14; doc.setFont('helvetica', 'normal'); doc.setFontSize(19); doc.setTextColor(207, 203, 193);
+          (pg.b || []).slice(0, 6).forEach(function (bl) { doc.splitTextToSize(clean(bl), w - 150).forEach(function (ln, k) { if (yy > hgt - 70) return; doc.text((k ? '   ' : '-  ') + ln, 70, yy); yy += 27; }); yy += 6; });
+          doc.setFontSize(9); doc.setTextColor(140, 138, 130); doc.text('www.mret.co.za  |  ' + (i + 1) + ' / ' + pages.length, w - 60, hgt - 26, { align: 'right' });
+        });
+      }
+      if (kind === 'slides') slides(true);
+      else if (kind === 'handout') handout();
+      else if (kind === 'trainer') trainer();
+      else { trainer(); newPage(); handout(); slides(false); }
+      // footer on portrait pages
+      var n = doc.getNumberOfPages();
+      for (var i = 1; i <= n; i++) {
+        doc.setPage(i); var ps = doc.internal.pageSize; if (ps.getWidth() > ps.getHeight()) continue;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor.apply(doc, MUTED);
+        doc.text(title + '  |  KW Edge Smart Agent Series', M, ps.getHeight() - 24); doc.text('Page ' + i + ' of ' + n, ps.getWidth() - M, ps.getHeight() - 24, { align: 'right' });
+      }
+      var name = title.replace(/[^\w -]+/g, '').trim().replace(/\s+/g, ' ') || 'Training';
+      doc.save(name + ' - ' + { trainer: 'Trainer pack', handout: 'Agent handout', slides: 'Slides', all: 'Complete' }[kind] + '.pdf');
+    });
+  }
   $('delBtn').onclick = function () {
     if (!T.id || !confirm('Move "' + ((T.plan && T.plan.title) || 'this training') + '" to your Google Drive bin? You can restore it from the bin for 30 days.')) return;
     post('remove', { id: T.id }).then(function () { T = null; dirty = false; ls.del('studio.draft'); $('savedState').textContent = ''; openLibrary(); }).catch(function (err) { alert(err.message); });

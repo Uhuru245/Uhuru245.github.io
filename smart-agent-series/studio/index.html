@@ -129,6 +129,13 @@
       <div class="workact">
         <button class="btn primary" type="button" id="presentBtn"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7Z"/></svg>Present</button>
         <button class="btn" type="button" id="saveBtn">Save</button>
+        <div class="menu"><button class="btn" type="button" id="pdfBtn" aria-expanded="false" aria-haspopup="true"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11 4h2v8.2l3.1-3.1 1.4 1.4L12 16l-5.5-5.5 1.4-1.4 3.1 3.1Zm-6 13h14v3H5Z"/></svg>Download PDF</button>
+          <div class="menupop" id="pdfPop" hidden>
+            <button type="button" data-pdf="trainer">Trainer pack: plan, talk track, demo script, activities and quiz answers</button>
+            <button type="button" data-pdf="slides">Slides: one slide per page, to present or share</button>
+            <button type="button" data-pdf="handout">Agent handout: checklist, practice and next steps</button>
+            <button type="button" data-pdf="all">Everything in one PDF</button>
+          </div></div>
         <div class="menu"><button class="btn" type="button" id="moreBtn" aria-expanded="false" aria-haspopup="true">More</button>
           <div class="menupop" id="morePop" hidden>
             <button type="button" data-print="trainer">Print the trainer pack</button>
