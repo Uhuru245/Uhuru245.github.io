@@ -34,11 +34,13 @@
   function markSaved(when) { dirty = false; var d = when ? new Date(when) : null; $('savedState').textContent = 'Saved' + (d ? ' ' + (d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' }) : stamp(when)) : ''); ls.del('studio.draft'); }
 
   // ---------- talking to the backend ----------
-  function post(action, data) {
+  function post(action, data, waitSecs) {
     if (!API) return Promise.reject(new Error('The studio backend is not connected yet.'));
     var body = Object.assign({}, data || {}, { action: action, token: token });
-    return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
-      .then(function (r) { if (!r.ok) throw new Error('The studio could not be reached (' + r.status + ').'); return r.json(); })
+    var ctl = window.AbortController ? new AbortController() : null, timer = ctl && setTimeout(function () { ctl.abort(); }, (waitSecs || 60) * 1000);
+    return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined })
+      .catch(function (e) { throw new Error(e && e.name === 'AbortError' ? 'Claude took too long to answer.' : 'The studio could not be reached. Check your connection.'); })
+      .then(function (r) { clearTimeout(timer); if (!r.ok) throw new Error('The studio could not be reached (' + r.status + ').'); return r.json(); })
       .then(function (j) {
         if (j && j.error === 'signin') { token = null; ss.del('studio.token'); showLogin(); throw new Error('Please sign in again.'); }
         if (!j || !j.ok) throw new Error((j && (j.message || j.error)) || 'Something went wrong.');
@@ -231,17 +233,28 @@
     genFrom = 0; runGen();
   };
   $('genRetry').onclick = runGen;
+  // Builds each part in turn. Each part gets two tries; if the demonstration or the practice still fails,
+  // the training opens anyway with what was made, and that tab offers to generate the missing part.
+  function genPart(part, src, tries) {
+    return post('generate', { part: part, brief: T.brief, source: src, plan: part === 'plan' ? null : T.plan }, 170)
+      .catch(function (err) { if (tries > 1 && !/sign in/i.test(err.message)) return genPart(part, src, tries - 1); throw err; });
+  }
   function runGen() {
     show('vGen'); $('genErr').textContent = ''; $('genNav').hidden = true; $('genTitle').textContent = 'Building: ' + T.brief.topic;
     var ol = $('prog'); ol.innerHTML = '';
     var lis = PARTS.map(function (p, i) { var li = h('li', { class: i < genFrom ? 'ok' : '' }, [h('i'), h('span', { text: p[1] })]); ol.appendChild(li); return li; });
-    var src = sourceText();
+    var src = sourceText(), failed = [];
     var step = function (i) {
-      if (i >= PARTS.length) return done();
+      if (i >= PARTS.length) return done(failed);
       genFrom = i; lis[i].className = 'run';
       var part = PARTS[i][0];
-      return post('generate', { part: part, brief: T.brief, source: src, plan: part === 'plan' ? null : T.plan }).then(function (j) {
-        T[part] = j.data; lis[i].className = 'ok'; ls.set('studio.draft', T); return step(i + 1);
+      return genPart(part, src, 2).then(function (j) {
+        T[part] = j.data; if (j.cut) failed.push(part + ':cut');
+        lis[i].className = 'ok'; ls.set('studio.draft', T); return step(i + 1);
+      }, function (err) {
+        if (part === 'plan') throw err;           // nothing can be built without a plan
+        lis[i].className = 'bad'; lis[i].lastChild.textContent = PARTS[i][1] + ': skipped for now, you can generate it later';
+        failed.push(part); return step(i + 1);
       });
     };
     step(genFrom).catch(function (err) {
@@ -249,9 +262,23 @@
       $('genErr').textContent = err.message + ' Your progress is kept: press Try again to carry on from this step.'; $('genNav').hidden = false;
     });
   }
-  function done() {
-    genFrom = 0; markDirty(); tab = 'plan'; openWork();
+  function done(failed) {
+    genFrom = 0; markDirty();
+    var missing = (failed || []).filter(function (f) { return f.indexOf(':') < 0; });
+    tab = missing[0] || 'plan'; openWork();
+    if (missing.length) $('redoErr').textContent = '';
     return save(true);
+  }
+  function missingPart(b, part, label) {
+    var box = h('div', { class: 'blk check' }, [h('h3', { text: label + ' did not generate yet' }),
+      h('p', { class: 'sub', text: 'Claude took too long or its answer was cut off. The rest of your training is ready. Press the button to try just this part again.' })]);
+    var err = h('p', { class: 'err' });
+    var btn = h('button', { type: 'button', class: 'btn primary', style: 'margin-top:10px', text: 'Generate ' + label.toLowerCase() + ' now', onclick: function () {
+      btn.disabled = true; btn.textContent = 'Generating... (up to two minutes)'; err.textContent = '';
+      genPart(part, sourceText(), 2).then(function (j) { T[part] = j.data; markDirty(); renderTab(); save(true); })
+        .catch(function (e) { err.textContent = e.message + ' Try again in a minute.'; btn.disabled = false; btn.textContent = 'Generate ' + label.toLowerCase() + ' now'; });
+    } });
+    box.appendChild(btn); box.appendChild(err); b.appendChild(box);
   }
 
   // ---------- workspace ----------
@@ -304,7 +331,7 @@
   }
   function tSlides(b) {
     var s = arr(T.slides && T.slides.slides);
-    if (!s.length) { b.appendChild(h('p', { class: 'empty', text: 'No slides yet.' })); return; }
+    if (!s.length) { missingPart(b, 'slides', 'The slides'); return; }
     s.forEach(function (sl, i) {
       var P = ['slides', 'slides', i];
       b.appendChild(h('div', { class: 'blk' }, [delBtn(P, 'slide'), h('span', { class: 'lab', text: 'Slide ' + (i + 1) + (segName(sl.segment) ? ' · ' + segName(sl.segment) : '') }), ed('h3', P.concat('heading')), list(P.concat('bullets')),
@@ -313,7 +340,7 @@
   }
   function tDemo(b) {
     var d = arr(T.demo && T.demo.demos);
-    if (!d.length) { b.appendChild(h('p', { class: 'empty', text: 'No demonstration yet.' })); return; }
+    if (!d.length) { missingPart(b, 'demo', 'The demonstration'); return; }
     d.forEach(function (dm, i) {
       var P = ['demo', 'demos', i];
       var steps = h('ol', { class: 'steps' });
@@ -328,7 +355,7 @@
     });
   }
   function tPractice(b) {
-    var pr = T.practice; if (!pr) { b.appendChild(h('p', { class: 'empty', text: 'No practice yet.' })); return; }
+    var pr = T.practice; if (!pr) { missingPart(b, 'practice', 'The practice'); return; }
     arr(pr.activities).forEach(function (a, i) {
       var P = ['practice', 'activities', i];
       b.appendChild(h('div', { class: 'blk' }, [delBtn(P, 'activity'), h('span', { class: 'tag activity', text: 'Activity · ' + (a.minutes || '?') + ' min' }), ed('h3', P.concat('title')), list(P.concat('instructions'), true),
@@ -363,7 +390,7 @@
     var part = tab, txt = $('redoText').value.trim();
     if (!txt) { $('redoErr').textContent = 'Say what you would like changed.'; return; }
     var btn = this; btn.disabled = true; btn.textContent = 'Rewriting... (up to a minute)'; $('redoErr').textContent = '';
-    post('generate', { part: part, brief: T.brief, source: sourceText(), plan: part === 'plan' ? null : T.plan, current: T[part], adjust: txt }).then(function (j) {
+    post('generate', { part: part, brief: T.brief, source: sourceText(), plan: part === 'plan' ? null : T.plan, current: T[part], adjust: txt }, 170).then(function (j) {
       T[part] = j.data; $('redoText').value = ''; markDirty(); if (part === 'plan') openWork(); else renderTab();
     }).catch(function (err) { $('redoErr').textContent = err.message; }).then(function () { btn.disabled = false; btn.textContent = 'Rewrite this part'; });
   };
