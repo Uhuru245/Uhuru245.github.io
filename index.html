@@ -27,32 +27,47 @@
   .who{font-size:13.5px;color:var(--ink-3);font-weight:500;line-height:1.35}
   .who b{display:block;color:var(--ink);font-size:15.5px;font-weight:600}
 
-  .intro{text-align:center;margin:clamp(18px,4vh,44px) 0 0}
+  .intro{text-align:center;margin:clamp(6px,3vh,44px) 0 0}
+  @media (max-width:520px){.gift.seal{width:46px;height:46px}h1{margin-top:6px}.lede{margin-top:4px}}
   .gift{width:30px;height:30px;color:var(--gold);filter:drop-shadow(0 0 14px var(--glow));animation:bob 3.2s ease-in-out infinite}
   .gift.seal{width:58px;height:58px;filter:drop-shadow(0 0 16px rgba(232,200,115,.35))}
   h1{font:600 clamp(27px,6.6vw,40px)/1.12 Literata,Georgia,serif;margin:10px auto 0;color:var(--gold);text-shadow:0 0 28px rgba(232,200,115,.25);max-width:14ch}
   .lede{color:var(--ink-2);margin:8px auto 0;max-width:40ch;font-size:15px}
 
-  /* ---------- the fan of cards ---------- */
-  .stage{position:relative;overflow-x:clip;height:clamp(290px,40vh,330px);margin-top:12px;perspective:1200px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
-  .card{--accent:#2C664E;--deep:#123426;position:absolute;left:50%;top:14px;width:min(206px,55vw);aspect-ratio:3/4;margin-left:calc(min(206px,55vw) / -2);border-radius:22px;border:0;padding:0;cursor:grab;color:#fff;text-align:left;font:inherit;
-    background:linear-gradient(160deg,var(--accent),var(--deep));box-shadow:0 18px 40px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.12);
-    transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .45s,filter .45s,box-shadow .3s;will-change:transform;touch-action:none;overflow:hidden}
-  .card::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.16),transparent 38%);pointer-events:none}
-  .card .in{position:absolute;inset:0;display:flex;flex-direction:column;padding:18px}
-  .card .tag{align-self:flex-start;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(0,0,0,.28);padding:5px 9px;border-radius:999px}
-  .card .ic{width:58px;height:58px;margin:auto 0 14px;border-radius:17px;background:rgba(255,255,255,.14);display:grid;place-items:center}
-  .card .ic svg{width:32px;height:32px}
-  .card h2{font:600 21px/1.15 Literata,Georgia,serif;margin:0}
-  .card p{margin:6px 0 0;font-size:13.5px;line-height:1.45;color:rgba(255,255,255,.86)}
+  /* ---------- the fan of cards: white travel-style cards over an old map ---------- */
+  .atlas{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;
+    background:radial-gradient(60% 45% at 50% 52%,rgba(201,146,72,.20),transparent 70%),radial-gradient(120% 80% at 50% 50%,#1B140C 0%,#0D0A07 70%,#070605 100%)}
+  .atlas svg{position:absolute;inset:-5%;width:110%;height:110%;opacity:.38}
+  .stage{--cw:min(232px,60vw);position:relative;overflow-x:clip;height:calc(var(--cw) / .6 + 44px);margin:14px -16px 0;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+  .card{--accent:#2C664E;position:absolute;left:50%;top:10px;width:var(--cw);aspect-ratio:.6;margin-left:calc(var(--cw) / -2);border-radius:24px;border:0;padding:0;cursor:grab;color:#16181B;text-align:left;font:inherit;
+    background:#F7F6F3;box-shadow:0 24px 50px rgba(0,0,0,.55),0 2px 0 rgba(255,255,255,.6) inset;
+    transition:transform .5s cubic-bezier(.2,.8,.2,1),opacity .5s,filter .5s,box-shadow .3s;will-change:transform;touch-action:none;overflow:hidden}
+  .card .in{position:absolute;inset:0;display:flex;flex-direction:column}
+  .card .art{position:relative;flex:none;height:41%;margin:7px 7px 0;border-radius:18px 18px 26px 26px;overflow:hidden;background:var(--accent)}
+  .card .art svg{display:block;width:100%;height:100%}
+  .card .tag{position:absolute;left:9px;top:9px;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:rgba(10,10,10,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:4px 8px;border-radius:999px}
+  .card .body{flex:1;display:flex;flex-direction:column;padding:11px 14px 13px;min-height:0}
+  .card h2{font:700 17px/1.2 Inter,system-ui,sans-serif;margin:0;letter-spacing:-.01em}
+  .card .loc{display:flex;align-items:center;gap:4px;margin-top:3px;font-size:11px;color:#5D6168;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card .loc svg{flex:none;width:11px;height:11px;color:#16181B}
+  .card .dl{margin-top:9px;font-size:11.5px;font-weight:700}
+  .card p{margin:2px 0 0;font-size:11px;line-height:1.42;color:#4A4E55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;flex:none}
+  .card h2,.card .loc,.card .dl,.card .stats,.card .foot{flex:none}
+  @media (max-width:520px){.card p{-webkit-line-clamp:2}}
+  .card .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:auto;padding-top:8px;text-align:center}
+  .card .stats small,.card .foot small{display:block;font-size:10px;color:#6B6F76;font-weight:500}
+  .card .stats b{display:block;margin-top:1px;font-size:13px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .card .foot{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin-top:9px}
+  .card .foot b{display:block;font-size:16px;font-weight:700;line-height:1.15}
+  .card .go{flex:none;width:38px;height:38px;border-radius:50%;background:#16181B;color:#fff;display:grid;place-items:center;box-shadow:0 6px 14px rgba(0,0,0,.25)}
+  .card .go svg{width:18px;height:18px}
   .card:focus-visible{outline:3px solid var(--gold);outline-offset:4px}
-  .card.dragging{transition:none;cursor:grabbing;box-shadow:0 30px 60px rgba(0,0,0,.6),0 0 0 2px var(--gold),0 0 40px var(--glow)}
-  .c-faith{--accent:#2F7457;--deep:#0F2E21}
-  .c-train{--accent:#C2272D;--deep:#4A0B0E}
-  .c-support{--accent:#2F6A9E;--deep:#0F2840}
-  .c-coach{--accent:#9C7A2E;--deep:#3A2A0B}
-  .c-desk{--accent:#4A5E78;--deep:#131B26}
-  .c-coach .soon-tag{color:#1A1405;background:var(--gold-2)}
+  .card.dragging{transition:none;cursor:grabbing;box-shadow:0 30px 60px rgba(0,0,0,.6),0 0 0 3px var(--gold),0 0 40px var(--glow)}
+  .c-faith{--accent:#2A7C5C}
+  .c-train{--accent:#C2272D}
+  .c-support{--accent:#1D669E}
+  .c-coach{--accent:#7E5B12}
+  .c-desk{--accent:#4A5E78}
 
   .nav-row{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:2px}
   .arrow{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);display:grid;place-items:center;cursor:pointer}
@@ -64,7 +79,7 @@
 
   /* ---------- the slot you drop a card into ---------- */
   .slot-wrap{display:flex;flex-direction:column;align-items:center;margin-top:14px}
-  .slot{position:relative;width:min(112px,30vw);aspect-ratio:3/4;border-radius:20px;border:2px dashed rgba(232,200,115,.45);display:grid;place-items:center;transition:all .25s ease}
+  .slot{position:relative;width:min(220px,58vw);height:60px;border-radius:18px;border:2px dashed rgba(232,200,115,.45);display:grid;place-items:center;transition:all .25s ease}
   .slot svg{width:28px;height:28px;color:var(--gold);opacity:.8;animation:nudge 1.8s ease-in-out infinite}
   .slot.hot{border-style:solid;border-color:var(--gold);box-shadow:0 0 0 6px rgba(232,200,115,.12),0 0 50px var(--glow);transform:scale(1.04)}
   .hint{margin:12px 0 0;font-size:14px;color:var(--ink-3);min-height:1.5em;text-align:center}
@@ -102,10 +117,12 @@
   @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.12);opacity:.75}}
   @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-  @media (min-width:900px){.stage{height:400px}.card{width:250px;margin-left:-125px}.slot{width:140px}}
+  @media (min-width:900px){h1{max-width:none}.lede{max-width:none}.stage{--cw:250px;margin-inline:-120px}.card h2{font-size:19px}.card p{font-size:12px}.card .loc{font-size:12px}}
+  body{background:transparent}
 </style>
 </head>
 <body>
+<div class="atlas" aria-hidden="true"><svg viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice"><defs><pattern id="dots" width="14" height="14" patternUnits="userSpaceOnUse"><circle cx="7" cy="7" r="1.6" fill="#C9924A" opacity=".55"/></pattern><clipPath id="land"><path d="M80 140c40-40 140-60 210-40 40 12 60 50 40 80-20 30-70 30-90 60-20 34 10 70-20 96-30 26-80 0-100-36-22-40-80-60-60-110 6-16 10-36 20-50Z"/><path d="M250 330c40-10 80 10 90 50 12 48-10 120-40 150-24 24-50-10-56-50-8-50-34-130 6-150Z"/><path d="M450 120c50-30 150-40 230-20 90 22 200 10 250 60 30 30 10 70-40 80-60 12-80 50-130 60-40 8-60-30-100-20-30 8-30 50-70 50-50 0-50-60-90-80-40-20-90-90-50-130Z"/><path d="M470 300c40-20 100-10 120 30 20 40 0 90-20 130-16 32-50 50-74 20-26-32-20-80-40-110-14-22-6-60 14-70Z"/><path d="M780 400c30-14 90-10 110 20 18 28-10 60-50 66-40 6-80-10-80-40 0-20 4-38 20-46Z"/></clipPath></defs><rect width="1000" height="600" fill="url(#dots)" clip-path="url(#land)"/><g fill="none" stroke="#C9924A" stroke-opacity=".18"><ellipse cx="500" cy="300" rx="480" ry="290"/><path d="M20 300h960M500 10v580M100 120c260 60 540 60 800 0M100 480c260-60 540-60 800 0"/></g><g transform="translate(90 500)" fill="none" stroke="#C9924A" stroke-opacity=".5"><circle r="34"/><circle r="22" stroke-opacity=".3"/><path d="M0-48 6-6 0 48-6 6Z M-48 0 -6-6 48 0-6 6Z" fill="#C9924A" fill-opacity=".35"/></g></svg></div>
 <div class="wrap">
 
   <main>
@@ -123,29 +140,29 @@
 
   <div class="stage" id="stage" role="group" aria-roledescription="carousel" aria-label="Spaces">
     <button class="card c-faith" data-i="0" data-sp="new-creation" data-href="/new-creation/" data-name="New Creation">
-      <span class="in"><span class="tag">Faith</span>
-        <span class="ic"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path opacity=".45" d="M7 3h11a2 2 0 0 1 2 2v13H7.5A2.5 2.5 0 0 0 5 20.5V5a2 2 0 0 1 2-2Z"/><path d="M7.5 18H20v1.5a1.5 1.5 0 0 1-1.5 1.5h-11a1.5 1.5 0 0 1 0-3Z"/><path d="M11.6 6h1.8v2.6H16v1.8h-2.6V15h-1.8v-4.6H9V8.6h2.6Z"/></svg></span>
-        <h2>New Creation</h2><p>Our Bible reading circle, with narrated audio and the original languages.</p></span>
+      <span class="in"><span class="art"><svg viewBox="0 0 240 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="fa1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0F3D2C"/><stop offset=".55" stop-color="#3F8A63"/><stop offset="1" stop-color="#F2C46B"/></linearGradient><radialGradient id="fa2" cx=".5" cy=".78" r=".5"><stop offset="0" stop-color="#FFF4D0"/><stop offset=".35" stop-color="#F7D58A" stop-opacity=".8"/><stop offset="1" stop-color="#F7D58A" stop-opacity="0"/></radialGradient></defs><rect width="240" height="150" fill="url(#fa1)"/><circle cx="120" cy="118" r="80" fill="url(#fa2)"/><g stroke="#FFF2C9" stroke-opacity=".35" stroke-width="2"><path d="M120 108 64 18M120 108 92 8M120 108l28-100M120 108l56-90M120 108l84-60M120 108 36 48"/></g><circle cx="120" cy="108" r="17" fill="#FFF6DA"/><path d="M0 122c40-14 80-14 120-6s80 6 120-8v42H0Z" fill="#1E5A40"/><path d="M0 134c50-10 100-6 140 0s70 2 100-6v22H0Z" fill="#123C2A"/><g transform="translate(120 128)"><path d="M-46 4c16-8 32-8 46-2 14-6 30-6 46 2v14c-16-7-32-7-46-1-14-6-30-6-46 1Z" fill="#F7F1E1"/><path d="M0 6v13" stroke="#C9B98E" stroke-width="1.4"/><path d="M-38 7c10-4 22-4 31 0M-38 11c10-4 22-4 31 0M7 7c9-4 21-4 31 0M7 11c9-4 21-4 31 0" stroke="#B9A879" stroke-width=".9" fill="none"/></g></svg><span class="tag">Faith</span></span>
+        <span class="body"><h2>New Creation</h2><span class="loc"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2Z"/></svg>Bible reading circle &middot; Online</span><span class="dl">Description</span><p>Read the whole Bible together, Genesis to Revelation, with narrated audio, daily check-ins and the original Hebrew and Greek words.</p>
+          <span class="stats"><span><small>Days</small><b>93</b></span><span><small>Ends</small><b>24 Dec</b></span><span><small>Audio</small><b>Narrated</b></span></span><span class="foot"><span><small>Open to</small><b>Everyone</b></span><span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 11h10.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H5Z"/></svg></span></span></span></span>
     </button>
     <button class="card c-train" data-i="1" data-sp="smart-agent" data-href="/smart-agent-series/" data-name="the Smart Agent Series">
-      <span class="in"><span class="tag">KW Edge training</span>
-        <span class="ic"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path opacity=".45" d="M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 15.5Z"/><path d="M10 8.2v5.6a.6.6 0 0 0 .9.5l4.6-2.8a.6.6 0 0 0 0-1l-4.6-2.8a.6.6 0 0 0-.9.5ZM8 19h8v2H8z"/></svg></span>
-        <h2>Smart Agent Series</h2><p>Practical technology and AI sessions for estate agents.</p></span>
+      <span class="in"><span class="art"><svg viewBox="0 0 240 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="tr1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2A0608"/><stop offset=".6" stop-color="#9E1E24"/><stop offset="1" stop-color="#F08A5D"/></linearGradient></defs><rect width="240" height="150" fill="url(#tr1)"/><circle cx="182" cy="44" r="16" fill="#FFD9B5" opacity=".9"/><g fill="#3A0B0D"><rect x="6" y="70" width="26" height="80"/><rect x="34" y="52" width="22" height="98"/><rect x="58" y="80" width="30" height="70"/><rect x="150" y="60" width="24" height="90"/><rect x="176" y="76" width="28" height="74"/><rect x="206" y="48" width="30" height="102"/></g><g fill="#FFD27A" opacity=".85"><rect x="38" y="60" width="4" height="5"/><rect x="47" y="60" width="4" height="5"/><rect x="38" y="72" width="4" height="5"/><rect x="47" y="84" width="4" height="5"/><rect x="11" y="80" width="4" height="5"/><rect x="21" y="92" width="4" height="5"/><rect x="211" y="58" width="4" height="5"/><rect x="221" y="58" width="4" height="5"/><rect x="211" y="72" width="4" height="5"/><rect x="226" y="86" width="4" height="5"/><rect x="155" y="70" width="4" height="5"/><rect x="164" y="84" width="4" height="5"/><rect x="182" y="86" width="4" height="5"/><rect x="192" y="98" width="4" height="5"/></g><path d="M86 150V104l34-28 34 28v46Z" fill="#1A0405"/><path d="M78 108l42-36 42 36" fill="none" stroke="#FFE3B8" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><rect x="100" y="112" width="40" height="27" rx="3" fill="#2B2E35"/><rect x="103" y="115" width="34" height="21" rx="1.5" fill="#7FD3E6"/><path d="M110 132l7-8 5 5 4-4 7 7" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><rect x="96" y="139" width="48" height="4" rx="2" fill="#D9DCE2"/></svg><span class="tag">KW Edge training</span></span>
+        <span class="body"><h2>Smart Agent Series</h2><span class="loc"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2Z"/></svg>KW Edge &middot; Pretoria</span><span class="dl">Description</span><p>Hands-on technology and AI sessions for estate agents: smarter listings, a database that makes deals, and lead capture.</p>
+          <span class="stats"><span><small>Sessions</small><b>3</b></span><span><small>Each</small><b>2 hrs</b></span><span><small>Style</small><b>Hands-on</b></span></span><span class="foot"><span><small>Built for</small><b>Estate agents</b></span><span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 11h10.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H5Z"/></svg></span></span></span></span>
     </button>
     <button class="card c-support" data-i="2" data-sp="support" data-href="/smart-agent-series/tickets/" data-name="a support ticket">
-      <span class="in"><span class="tag">KW Edge agents</span>
-        <span class="ic"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path opacity=".45" d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2.2a2.8 2.8 0 0 0 0 5.6V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2.2a2.8 2.8 0 0 0 0-5.6Z"/><path d="M9 9h6v1.6H9Zm0 4.4h6V15H9Z"/></svg></span>
-        <h2>Tech support ticket</h2><p>Log an issue with MAPP, Command, listings or email. Sign in with your KW email.</p></span>
+      <span class="in"><span class="art"><svg viewBox="0 0 240 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="su1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0B2742"/><stop offset=".6" stop-color="#2678B5"/><stop offset="1" stop-color="#8ED0F0"/></linearGradient></defs><rect width="240" height="150" fill="url(#su1)"/><g fill="#fff" opacity=".08"><circle cx="30" cy="30" r="40"/><circle cx="214" cy="126" r="54"/></g><rect x="62" y="44" width="116" height="74" rx="7" fill="#11161F"/><rect x="68" y="50" width="104" height="62" rx="3" fill="#EAF4FB"/><rect x="74" y="58" width="48" height="12" rx="6" fill="#2678B5"/><rect x="118" y="76" width="48" height="12" rx="6" fill="#C7D7E4"/><rect x="74" y="94" width="34" height="12" rx="6" fill="#2678B5"/><path d="M48 118h144l8 12H40Z" fill="#C9D3DD"/><rect x="104" y="120" width="32" height="4" rx="2" fill="#8C98A6"/><g transform="translate(186 36)"><circle r="18" fill="#FFFFFF"/><path d="M-8 1l6 6 11-12" fill="none" stroke="#2A9D6E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g><g transform="translate(46 34) rotate(-30)" fill="#F4C25B"><rect x="-3" y="-2" width="6" height="26" rx="3"/><path d="M-9-10a9 9 0 1 0 18 0l-5 2-4-5-4 5Z"/></g></svg><span class="tag">KW Edge agents</span></span>
+        <span class="body"><h2>Tech support ticket</h2><span class="loc"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2Z"/></svg>MAPP &middot; Command &middot; Listings &middot; Email</span><span class="dl">Description</span><p>Answer a few quick questions, try the fixes it suggests, and log a ticket that is already filled in. No sign-in needed.</p>
+          <span class="stats"><span><small>Days</small><b>Mon&ndash;Fri</b></span><span><small>Hours</small><b>08&ndash;17</b></span><span><small>Critical</small><b>Same day</b></span></span><span class="foot"><span><small>For</small><b>KW Edge agents</b></span><span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 11h10.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H5Z"/></svg></span></span></span></span>
     </button>
     <button class="card c-coach" data-i="3" data-sp="coaching" data-href="https://claude.ai/artifact/8T1oAP86yK85vG9b9u2r61" data-name="the Cap Planner">
-      <span class="in"><span class="tag">KW Edge coaching</span>
-        <span class="ic"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle opacity=".45" cx="16.5" cy="8" r="3"/><path opacity=".45" d="M12.6 19.6c.5-3 2-4.9 3.9-4.9 2.3 0 4 1.9 4.5 4.9.1.5-.3.9-.8.9H13.4c-.5 0-.9-.4-.8-.9Z"/><circle cx="8.5" cy="7.5" r="3.6"/><path d="M2.4 20c.6-3.8 3-6.2 6.1-6.2s5.5 2.4 6.1 6.2c.1.5-.3 1-.8 1H3.2c-.5 0-.9-.5-.8-1Z"/></svg></span>
-        <h2>Cap Planner</h2><p>Cap tracking, productivity coaching and OP reports for KW Edge associates. Sign in with claude.ai.</p></span>
+      <span class="in"><span class="art"><svg viewBox="0 0 240 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="co1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2C1F06"/><stop offset=".6" stop-color="#8A6418"/><stop offset="1" stop-color="#F3D27D"/></linearGradient><linearGradient id="co2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF1C2"/><stop offset="1" stop-color="#E6B94A"/></linearGradient></defs><rect width="240" height="150" fill="url(#co1)"/><g stroke="#fff" stroke-opacity=".12"><path d="M0 40h240M0 70h240M0 100h240"/></g><path d="M30 150l60-74 26 30 40-62 54 106Z" fill="#3A2A0B"/><path d="M156 44l12 18-12-6-10 8Z" fill="#F7F1E1" opacity=".8"/><path d="M156 44V18" stroke="#FFF1C2" stroke-width="2"/><path d="M156 18h20l-5 6 5 6h-20Z" fill="#C2272D"/><g fill="url(#co2)"><rect x="40" y="112" width="18" height="38" rx="3"/><rect x="64" y="98" width="18" height="52" rx="3"/><rect x="88" y="82" width="18" height="68" rx="3"/><rect x="112" y="68" width="18" height="82" rx="3"/></g><path d="M38 108l26-14 24-16 26-14" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="1 6"/><circle cx="196" cy="34" r="12" fill="#FFF1C2" opacity=".85"/></svg><span class="tag">KW Edge coaching</span></span>
+        <span class="body"><h2>Cap Planner</h2><span class="loc"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2Z"/></svg>KW Edge associates</span><span class="dl">Description</span><p>Track your progress to cap, plan your production and prepare OP reports. Opens on claude.ai.</p>
+          <span class="stats"><span><small>Tracks</small><b>Cap</b></span><span><small>Plans</small><b>Deals</b></span><span><small>Reports</small><b>OP</b></span></span><span class="foot"><span><small>For</small><b>Associates</b></span><span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 11h10.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H5Z"/></svg></span></span></span></span>
     </button>
     <button class="card c-desk" data-i="4" data-sp="my-desk" data-href="https://claude.ai/artifact/RG3efsKgsGfmLXg7CF5NLL" data-name="My Desk">
-      <span class="in"><span class="tag">Private &middot; Uhuru only</span>
-        <span class="ic"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect opacity=".45" x="3" y="3" width="8" height="10" rx="1.5"/><rect x="13" y="3" width="8" height="6" rx="1.5"/><rect x="3" y="15" width="8" height="6" rx="1.5"/><rect opacity=".45" x="13" y="11" width="8" height="10" rx="1.5"/></svg></span>
-        <h2>My Desk</h2><p>Today&rsquo;s calendar, inbox and open support tickets, live. Opens only for Uhuru.</p></span>
+      <span class="in"><span class="art"><svg viewBox="0 0 240 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="de1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#141B26"/><stop offset="1" stop-color="#5A7090"/></linearGradient><radialGradient id="de2" cx=".3" cy=".55" r=".5"><stop offset="0" stop-color="#FFE7A8" stop-opacity=".55"/><stop offset="1" stop-color="#FFE7A8" stop-opacity="0"/></radialGradient></defs><rect width="240" height="150" fill="url(#de1)"/><rect width="240" height="150" fill="url(#de2)"/><path d="M0 118h240v32H0Z" fill="#2A3445"/><g transform="translate(46 118)"><path d="M0 0h24l-4-4H4Z" fill="#11161F"/><path d="M12-4V-44l22-18" stroke="#11161F" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M28-70l16 10-10 14-16-10Z" fill="#11161F"/><path d="M34-46l-26 34h40Z" fill="#FFE7A8" opacity=".25"/></g><rect x="104" y="36" width="96" height="74" rx="6" fill="#F7F6F3"/><rect x="104" y="36" width="96" height="16" rx="6" fill="#C2272D"/><rect x="104" y="46" width="96" height="6" fill="#C2272D"/><g fill="#C9CFD8"><rect x="112" y="58" width="12" height="10" rx="2"/><rect x="128" y="58" width="12" height="10" rx="2"/><rect x="144" y="58" width="12" height="10" rx="2"/><rect x="160" y="58" width="12" height="10" rx="2"/><rect x="176" y="58" width="12" height="10" rx="2"/><rect x="112" y="72" width="12" height="10" rx="2"/><rect x="128" y="72" width="12" height="10" rx="2"/><rect x="160" y="72" width="12" height="10" rx="2"/><rect x="176" y="72" width="12" height="10" rx="2"/><rect x="112" y="86" width="12" height="10" rx="2"/><rect x="128" y="86" width="12" height="10" rx="2"/><rect x="144" y="86" width="12" height="10" rx="2"/><rect x="160" y="86" width="12" height="10" rx="2"/></g><rect x="144" y="72" width="12" height="10" rx="2" fill="#4A5E78"/><rect x="176" y="86" width="12" height="10" rx="2" fill="#E8C873"/><rect x="124" y="114" width="56" height="5" rx="2.5" fill="#11161F" opacity=".5"/></svg><span class="tag">Private &middot; Uhuru only</span></span>
+        <span class="body"><h2>My Desk</h2><span class="loc"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2Z"/></svg>Uhuru&rsquo;s workspace</span><span class="dl">Description</span><p>Today&rsquo;s calendar, inbox and open support tickets, live in one place. Opens only for Uhuru.</p>
+          <span class="stats"><span><small>Calendar</small><b>Live</b></span><span><small>Inbox</small><b>Live</b></span><span><small>Tickets</small><b>Live</b></span></span><span class="foot"><span><small>Access</small><b>Uhuru only</b></span><span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 11h10.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H5Z"/></svg></span></span></span></span>
     </button>
   </div>
 
@@ -174,7 +191,7 @@
   <footer><span>www.mret.co.za</span><span>Visits are counted anonymously to improve this page.</span><a class="trainer" href="https://script.google.com/a/macros/kwsa.co.za/s/AKfycbzMLw7l-h1eZrf1_2ZWOBleNu1hw1Jcoq9Xytbg72xx0O6X3dNUhorQ3TfSJPln_zHfMg/exec" target="_blank" rel="nofollow noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.5 10V7.5a4.5 4.5 0 0 1 9 0V10H18a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1Zm2 0h5V7.5a2.5 2.5 0 0 0-5 0Z"/></svg>Trainer tools</a></footer>
 </div>
 
-<div class="veil" id="veil" aria-hidden="true"><div class="msg"><svg viewBox="0 0 24 24" fill="currentColor"><path opacity=".45" d="M4 11h16v8.5A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5Z"/><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h15A1.5 1.5 0 0 1 21 7.5V10H3ZM11 6h2v15h-2Z"/></svg><p id="veilMsg">Opening…</p></div></div>
+<div class="veil" id="veil" aria-hidden="true"><div class="msg"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 26.5 32 15.5l13 11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><text x="32" y="44" text-anchor="middle" fill="currentColor" font-family="Literata, Georgia, serif" font-weight="600" font-size="17">UM</text></svg><p id="veilMsg">Opening…</p></div></div>
 
 <script>
   // Anonymous activity for the site owner: page views and which space is opened, nothing personal.
@@ -202,10 +219,10 @@
   function layout() {
     cards.forEach(function (c, i) {
       var d = i - cur; if (d > n / 2) d -= n; if (d < -n / 2) d += n;
-      var a = Math.abs(d), x = d * 58, rot = d * 9, s = a === 0 ? 1 : 0.84 - (a - 1) * 0.08, y = a * 16;
-      c.style.transform = 'translateX(' + x + '%) translateY(' + y + 'px) rotate(' + rot + 'deg) scale(' + s + ')';
-      c.style.zIndex = String(10 - a); c.style.opacity = a > 1 ? '0' : a === 1 ? '.55' : '1'; c.style.filter = a ? 'saturate(.7) brightness(.8)' : 'none';
-      c.tabIndex = a === 0 ? 0 : -1; c.setAttribute('aria-hidden', a > 1 ? 'true' : 'false');
+      var a = Math.abs(d), x = (d < 0 ? -1 : 1) * (a === 0 ? 0 : a === 1 ? 62 : 108), s = a === 0 ? 1 : a === 1 ? 0.88 : 0.76, y = a === 0 ? 0 : a === 1 ? 18 : 34;
+      c.style.transform = 'translateX(' + x + '%) translateY(' + y + 'px) scale(' + s + ')';
+      c.style.zIndex = String(10 - a); c.style.opacity = a > 2 ? '0' : '1'; c.style.filter = a === 0 ? 'none' : a === 1 ? 'brightness(.82)' : 'brightness(.6)';
+      c.tabIndex = a === 0 ? 0 : -1; c.setAttribute('aria-hidden', a > 2 ? 'true' : 'false'); c.style.pointerEvents = a > 2 ? 'none' : '';
       c.setAttribute('aria-label', (c.dataset.soon ? c.dataset.name + ', coming soon' : 'Open ' + c.dataset.name) + ' (' + (i + 1) + ' of ' + n + ')');
     });
     dots.forEach(function (d, i) { d.className = i === cur ? 'on' : ''; });
