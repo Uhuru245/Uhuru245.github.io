@@ -29,6 +29,7 @@
 
   .intro{text-align:center;margin:clamp(18px,4vh,44px) 0 0}
   .gift{width:30px;height:30px;color:var(--gold);filter:drop-shadow(0 0 14px var(--glow));animation:bob 3.2s ease-in-out infinite}
+  .gift.seal{width:58px;height:58px;filter:drop-shadow(0 0 16px rgba(232,200,115,.35))}
   h1{font:600 clamp(27px,6.6vw,40px)/1.12 Literata,Georgia,serif;margin:10px auto 0;color:var(--gold);text-shadow:0 0 28px rgba(232,200,115,.25);max-width:14ch}
   .lede{color:var(--ink-2);margin:8px auto 0;max-width:40ch;font-size:15px}
 
@@ -109,7 +110,13 @@
 
   <main>
   <section class="intro" aria-labelledby="t">
-    <svg class="gift" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path opacity=".45" d="M4 11h16v8.5A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5Z"/><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h15A1.5 1.5 0 0 1 21 7.5V10H3ZM11 6h2v15h-2Z"/><path d="M12 6c-1-2.6-4.6-3.6-5.4-1.7C5.9 6 9 6.2 12 6Zm0 0c1-2.6 4.6-3.6 5.4-1.7C18.1 6 15 6.2 12 6Z"/></svg>
+    <svg class="gift seal" viewBox="0 0 64 64" role="img" aria-label="Uhuru Matlhaji">
+      <circle cx="32" cy="32" r="29.5" fill="rgba(232,200,115,.08)" stroke="currentColor" stroke-width="1.6"/>
+      <circle cx="32" cy="32" r="25.5" fill="none" stroke="currentColor" stroke-width=".6" opacity=".55"/>
+      <path d="M19 26.5 32 15.5l13 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M38.5 18.6v-2.8h3v5.3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>
+      <text x="32" y="44" text-anchor="middle" fill="currentColor" font-family="Literata, Georgia, serif" font-weight="600" font-size="17" letter-spacing=".5">UM</text>
+    </svg>
     <h1 id="t">Where would you like to go?</h1>
     <p class="lede">Swipe to choose a space, then drag it down to open it.</p>
   </section>
