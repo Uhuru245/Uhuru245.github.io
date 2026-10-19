@@ -1,0 +1,1304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cap Planner · www.mret.co.za</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1b1f27">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+html{-webkit-text-size-adjust:100%;overflow-x:clip}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+/* Layout: dark product bar with tabs -> overview KPIs -> pipeline chart beside the selected associate's plan -> roster -> coaching email -> commission model and data settings */
+:root{
+  --chrome:#1b1f27; --chrome-2:#262b35; --chrome-ink:#f2f3f5; --chrome-muted:#a3a9b4;
+  --bg:#f3f4f6; --surface:#ffffff; --surface-2:#f8f9fa; --ink:#1d232c; --muted:#626b78; --line:#e1e4e9; --line-2:#d3d7de;
+  --accent:#b3121d; --accent-ink:#ffffff; --accent-soft:#fbeaeb;
+  --good:#1d7a4c; --good-soft:#e3f3ea; --warn:#93600a; --warn-soft:#fbf0db; --bad:#b3261e; --bad-soft:#fbe4e2; --done:#33478f; --done-soft:#e6eaf7;
+  --bar:#cdd2da; --shadow:0 1px 2px rgba(20,24,31,.06),0 1px 1px rgba(20,24,31,.04);
+  --f-display:"Archivo",system-ui,sans-serif; --f-body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --chrome:#0b0d11; --chrome-2:#161a21; --chrome-ink:#eef0f3; --chrome-muted:#98a0ad;
+  --bg:#101318; --surface:#181c23; --surface-2:#1d222a; --ink:#e6e9ee; --muted:#9aa3b0; --line:#2a303a; --line-2:#363d48;
+  --accent:#ef5a62; --accent-ink:#1a0d0e; --accent-soft:#3a1b1e;
+  --good:#5cc690; --good-soft:#163024; --warn:#e3b05a; --warn-soft:#382b14; --bad:#f08a82; --bad-soft:#3b1d1b; --done:#a2b2f2; --done-soft:#222a47;
+  --bar:#3b4351; --shadow:none; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --chrome:#0b0d11; --chrome-2:#161a21; --chrome-ink:#eef0f3; --chrome-muted:#98a0ad;
+  --bg:#101318; --surface:#181c23; --surface-2:#1d222a; --ink:#e6e9ee; --muted:#9aa3b0; --line:#2a303a; --line-2:#363d48;
+  --accent:#ef5a62; --accent-ink:#1a0d0e; --accent-soft:#3a1b1e;
+  --good:#5cc690; --good-soft:#163024; --warn:#e3b05a; --warn-soft:#382b14; --bad:#f08a82; --bad-soft:#3b1d1b; --done:#a2b2f2; --done-soft:#222a47;
+  --bar:#3b4351; --shadow:none; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.005em}
+h1{font-size:1.65rem;font-weight:700}
+h2{font-size:1.05rem;font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+
+/* product bar */
+.appbar{background:var(--chrome);color:var(--chrome-ink);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.appbar-in{max-width:1240px;margin:0 auto}
+.brandrow{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;padding-block:14px 10px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.mark{font-family:var(--f-display);font-weight:800;font-size:.8rem;letter-spacing:.08em;background:var(--accent);color:#fff;padding:6px 8px;border-radius:3px;line-height:1}
+.brand .org{font-family:var(--f-display);font-weight:600;font-size:.95rem;letter-spacing:.01em}
+.brand .sep{width:1px;height:18px;background:var(--chrome-muted);opacity:.5}
+.brand .prod{font-size:.95rem;color:var(--chrome-muted)}
+.appbar .sync{font-size:.82rem;color:var(--chrome-muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--chrome-muted);flex:none}
+.dot.ok{background:#4cc38a}.dot.old{background:#e3b05a}.dot.bad{background:#f0736a}
+.tabs{display:flex;gap:2px;overflow-x:auto}
+.tabs button{font:inherit;font-weight:600;font-size:.92rem;background:none;border:none;border-bottom:3px solid transparent;color:var(--chrome-muted);padding:10px 14px 9px;cursor:pointer;white-space:nowrap;border-radius:0}
+.tabs button:hover{color:var(--chrome-ink)}
+.tabs button[aria-selected="true"]{color:var(--chrome-ink);border-bottom-color:var(--accent)}
+
+/* page */
+.wrap{max-width:1240px;margin:0 auto;padding-block:24px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.pagehead{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+.pagehead .sub{color:var(--muted);max-width:72ch;margin:4px 0 0;font-size:.95rem}
+.tabpane{display:grid;gap:20px;grid-template-columns:minmax(0,1fr)}
+.tabpane>*{min-width:0}
+.eyebrow{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700}
+.note{font-size:.84rem;color:var(--muted);margin:10px 0 0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px;box-shadow:var(--shadow);min-width:0}
+.panel-h{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:space-between;align-items:baseline;padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+.panel-h p{margin:2px 0 0;font-size:.84rem;color:var(--muted);max-width:70ch}
+.grid2{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+
+/* controls */
+label{display:grid;gap:5px;font-size:.78rem;color:var(--muted);font-weight:600;letter-spacing:.01em}
+input,select,textarea{font:inherit;font-size:.92rem;color:var(--ink);background:var(--surface);border:1px solid var(--line-2);border-radius:4px;padding:8px 10px;width:100%;min-width:0}
+input:hover,select:hover,textarea:hover{border-color:var(--muted)}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,tr:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button{font:inherit;font-size:.88rem;cursor:pointer;border-radius:4px;border:1px solid var(--line-2);background:var(--surface);color:var(--ink);padding:8px 14px;font-weight:600}
+button:hover{border-color:var(--ink)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.primary:hover{filter:brightness(1.08)}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.toolbar label{flex:1 1 200px}
+.assume{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;align-items:end}
+.derived{background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:8px 12px;display:grid;gap:1px}
+.derived b{font-family:var(--f-display);font-size:1.15rem;color:var(--ink);font-variant-numeric:tabular-nums}
+.derived span{font-size:.74rem;color:var(--muted)}
+.check{display:flex;align-items:center;gap:8px;color:var(--ink);font-size:.88rem;font-weight:500}
+.check input{width:auto;accent-color:var(--accent)}
+
+/* KPI strip */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));background:var(--surface);border:1px solid var(--line);border-radius:6px;box-shadow:var(--shadow);overflow:hidden}
+.tile{display:flex;flex-direction:column-reverse;justify-content:flex-end;gap:6px;padding:16px 18px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 -1px -1px 0}
+.tile b{font-family:var(--f-display);font-size:1.6rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.tile span{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+
+/* chart */
+.chart{overflow-x:auto}
+.chart svg{display:block;width:100%;min-width:520px;height:auto}
+.chart text{fill:var(--muted);font-family:var(--f-body);font-size:11.5px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.78rem;color:var(--muted);margin-top:8px}
+
+/* selected associate */
+.plan{display:grid;gap:14px;align-content:start}
+.plan-head{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:baseline}
+.plan-head h2{font-size:1.25rem}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;border-top:1px solid var(--line)}
+.kv div{border-bottom:1px solid var(--line);padding:9px 0;display:grid;gap:1px}
+.kv span{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.kv b{font-size:1.02rem;font-weight:600;font-variant-numeric:tabular-nums}
+.meter{height:8px;border-radius:4px;background:var(--line);position:relative;overflow:hidden}
+.meter i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:4px}
+.meter em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+.verdict{padding:12px 14px;border-radius:4px;font-size:.92rem;line-height:1.55}
+.pill{display:inline-block;padding:2px 9px;border-radius:3px;font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.s-capped{background:var(--done-soft);color:var(--done)}
+.s-pace{background:var(--good-soft);color:var(--good)}
+.s-stretch{background:var(--warn-soft);color:var(--warn)}
+.s-risk{background:var(--bad-soft);color:var(--bad)}
+.s-none{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+
+/* tables */
+.tablebox{overflow:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface);box-shadow:var(--shadow);max-height:640px}
+table{border-collapse:collapse;width:100%;min-width:1040px}
+th,td{padding:10px 14px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+th{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--surface-2);z-index:1;border-bottom:1px solid var(--line-2)}
+th[aria-sort="ascending"]::after{content:" \25B2";font-size:.6rem}
+th[aria-sort="descending"]::after{content:" \25BC";font-size:.6rem}
+td{font-variant-numeric:tabular-nums;font-size:.9rem}
+td:first-child{font-weight:600}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:var(--surface-2)}
+tbody tr.sel td{background:var(--accent-soft)}
+tbody tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+td.c{text-align:center}
+td.c input{width:auto;accent-color:var(--accent);cursor:pointer}
+.count{font-size:.8rem;color:var(--muted);margin:8px 2px 0}
+
+/* cost-of-sale breakdown */
+.wfbox{overflow-x:auto;margin-top:16px}
+.wf{display:grid;grid-template-columns:minmax(220px,1fr) auto auto auto;gap:0 20px;max-width:800px;min-width:540px;font-size:.9rem}
+.wf div{padding:7px 0;border-bottom:1px solid var(--line)}
+.wf .h{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700}
+.wf .r{text-align:right;font-variant-numeric:tabular-nums}
+.wf .m{color:var(--muted)}
+.wf .sum{font-weight:600}
+.wf .cap{color:var(--accent);font-weight:700}
+.wf .net{font-weight:700;border-bottom:2px solid var(--ink)}
+
+/* coaching email */
+.cgrid{display:grid;grid-template-columns:minmax(0,290px) minmax(0,1fr);gap:24px}
+@media (max-width:900px){.cgrid{grid-template-columns:1fr}}
+.cform{display:grid;gap:12px;min-width:0}
+.cform textarea{font-size:.9rem;line-height:1.6;min-height:340px;resize:vertical}
+.tpls{display:grid;gap:4px;align-content:start}
+.tpl{display:grid;grid-template-columns:auto 1fr;gap:1px 12px;text-align:left;padding:9px 12px;border-radius:4px;border-color:transparent;background:none;font-weight:400}
+.tpl:hover{background:var(--surface-2);border-color:var(--line)}
+.tpl .k{font-family:var(--f-mono);font-size:.72rem;color:var(--muted);grid-row:span 2;padding-top:3px}
+.tpl b{font-weight:600;font-size:.9rem}
+.tpl small{color:var(--muted);font-size:.76rem}
+.tpl[aria-checked="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.tpl .sug{color:var(--accent);font-weight:700}
+.chist{font-size:.8rem;color:var(--muted);display:grid;gap:4px;border-top:1px solid var(--line);padding-top:10px}
+.chist b{color:var(--ink);font-weight:600}
+
+/* recruitment */
+.edit input{min-width:90px;text-align:right}
+.edit td:first-child input{min-width:240px;text-align:left}
+#r-tbl tr.cur td{background:var(--surface-2)}
+#r-tbl tr.kw td{color:var(--accent);font-weight:700}
+#r-tbl tbody tr,#ag-tbl tbody tr{cursor:default}
+.up{color:var(--good)}.down{color:var(--bad)}
+.plist{display:grid}
+.prow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-block:12px}
+.prow:first-child{border-top:none}
+.prow .meta{font-size:.82rem;color:var(--muted)}
+.prow .acts{display:flex;gap:8px}
+
+/* settings */
+details.panel>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px}
+details.panel>summary::-webkit-details-marker{display:none}
+details.panel>summary::after{content:"Show";font-size:.8rem;font-weight:600;color:var(--accent)}
+details.panel[open]>summary::after{content:"Hide"}
+details.panel[open]>summary{padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+.import{display:grid;gap:10px}
+#paste{font:12px/1.4 var(--f-mono);min-height:90px}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;font-size:.84rem;color:var(--muted)}
+.rules div{display:grid;gap:4px;align-content:start}
+.agenda{margin:0;padding-left:20px;display:grid;gap:12px}
+.agenda li{padding-left:4px}
+.agenda li b{display:block;font-weight:600}
+.agenda li span{color:var(--muted);font-size:.88rem}
+.fs{border:1px solid var(--line);border-radius:4px;padding:10px 12px 12px;margin:0;min-width:0}
+.fs legend{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;padding:0 4px}
+.quad{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.paper{background:#ffffff;color:#1a2230;border:1px solid var(--line-2);border-radius:4px;padding:20px;max-height:560px;overflow:auto}
+.paper table{min-width:0}
+.paper th,.paper td{white-space:normal;cursor:default;position:static;text-align:left;font-weight:inherit;background:transparent}
+.paper tbody tr:hover td{background:transparent}
+footer.foot{border-top:1px solid var(--line);margin-top:28px;padding-top:14px;font-size:.78rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between}
+@media (prefers-reduced-motion:no-preference){.meter i{transition:width .4s ease}}
+/* mret.co.za additions */
+.toplinks{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.toplinks a,.toplinks button{font:600 .82rem var(--f-body);color:var(--chrome-muted);background:none;border:1px solid transparent;border-radius:999px;padding:6px 10px;text-decoration:none;cursor:pointer;min-height:34px;display:inline-flex;align-items:center;gap:6px}
+.toplinks a:hover,.toplinks button:hover{color:var(--chrome-ink);border-color:var(--chrome-2)}
+.seal{width:30px;height:30px;color:#E8C873;flex:none}
+.gate{min-height:100vh;display:grid;place-items:center;background:var(--chrome);padding:24px 16px}
+.gate form{background:var(--surface);color:var(--ink);border-radius:10px;padding:26px 22px;width:min(400px,100%);display:grid;gap:12px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.gate h1{font-size:1.4rem}.gate p{margin:0;color:var(--muted);font-size:.92rem}
+.gate input{font-size:16px;min-height:48px}
+.gate button{min-height:48px;font-size:1rem}
+.gate .back{color:var(--muted);font-size:.85rem;text-align:center;text-decoration:none}
+.err{color:var(--bad);font-size:.88rem;margin:0;min-height:1.2em}
+.pipe{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.pipe .row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;font-size:.88rem;padding:6px 0;border-bottom:1px dashed var(--line)}
+.pipe .row small{display:block;color:var(--muted);font-size:.76rem}
+.pipe .row b{font-variant-numeric:tabular-nums}
+.pipe .add{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;align-items:end}
+.pipe .add label{font-size:.72rem}
+.link{background:none;border:0;padding:4px 6px;color:var(--accent);font-weight:600;font-size:.8rem;cursor:pointer}
+.diary{display:grid;gap:0}
+.diary button{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;text-align:left;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;padding:10px 4px;font-weight:400}
+.diary button:hover{background:var(--surface-2)}
+.diary .d{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);white-space:nowrap}
+.diary .late{color:var(--bad);font-weight:700}
+.trend svg{display:block;width:100%;height:auto}
+.trend text{fill:var(--muted);font-family:var(--f-body);font-size:11.5px}
+.busy{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--chrome);color:var(--chrome-ink);padding:8px 14px;border-radius:999px;font-size:.85rem;z-index:20;box-shadow:0 8px 20px rgba(0,0,0,.25)}
+@media (max-width:640px){.brand .sep,.brand .prod{display:none}.brandrow{flex-wrap:nowrap}.toplinks{flex-wrap:nowrap;gap:0}.toplinks a,.toplinks button{padding:6px 7px;font-size:.78rem}.toplinks .hm{display:none}.tiles{grid-template-columns:1fr 1fr}.tile{padding:12px 14px}.tile b{font-size:1.15rem}.tile span{font-size:.64rem;letter-spacing:.05em}.panel{padding:16px}h1{font-size:1.4rem}}
+.appbar .sync{flex-wrap:nowrap;align-items:baseline}.appbar .sync .dot{position:relative;top:-1px}
+</style>
+</head>
+<body>
+<div class="gate" id="gate" hidden>
+  <form id="login" autocomplete="off">
+    <svg class="seal" style="width:52px;height:52px;color:var(--accent)" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="32" cy="32" r="25.5" fill="none" stroke="currentColor" stroke-width=".6" opacity=".55"/><path d="M19 26.5 32 15.5l13 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><text x="32" y="44" text-anchor="middle" fill="currentColor" font-family="Georgia, serif" font-weight="600" font-size="17">UM</text></svg>
+    <h1>KW Edge Cap Planner</h1>
+    <p>Private to Uhuru. Sign in with your studio PIN, the same one as the Training Studio.</p>
+    <input type="password" id="pin" inputmode="numeric" autocomplete="current-password" aria-label="Studio PIN" required>
+    <p class="err" id="loginErr" role="alert"></p>
+    <button type="submit" class="primary" id="loginBtn">Sign in</button>
+    <a class="back" href="/">Back to www.mret.co.za</a>
+  </form>
+</div>
+<div id="app" hidden>
+<header class="appbar">
+  <div class="appbar-in">
+    <div class="brandrow">
+      <div class="brand"><span class="mark">KW</span><span class="org">KW Edge</span><span class="sep" aria-hidden="true"></span><span class="prod">Cap Planner</span></div>
+      <div class="toplinks"><a href="/" aria-label="www.mret.co.za home"><svg class="seal" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 26.5 32 15.5l13 11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><text x="32" y="45" text-anchor="middle" fill="currentColor" font-family="Georgia, serif" font-weight="600" font-size="18">UM</text></svg><span class="hm">mret.co.za</span></a><button type="button" id="refresh">Refresh</button><a id="sheetLink" href="#" target="_blank" rel="noopener" hidden>Sheet</a><button type="button" id="signOut">Sign out</button></div>
+    </div>
+    <div class="sync" id="sync" aria-live="polite" style="padding-bottom:8px"></div>
+    <nav class="tabs" role="tablist" aria-label="Planner sections">
+      <button type="button" role="tab" id="t-cap" aria-controls="tab-cap" aria-selected="true">Cap tracking</button>
+      <button type="button" role="tab" id="t-recruit" aria-controls="tab-recruit" aria-selected="false">Recruitment comparison</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="tab-cap" class="tabpane" role="tabpanel" aria-labelledby="t-cap">
+    <div class="pagehead">
+      <div>
+        <div class="eyebrow">Market Centre performance</div>
+        <h1>Associate cap tracking</h1>
+        <p class="sub">Every associate pays up to R140 000 company dollar before their own cap date. Track what is still owed, who is on pace, and the minimum production each associate needs to cap in time.</p>
+      </div>
+      <div class="toolbar"><button type="button" id="go-coach">Coaching session</button><button type="button" class="primary" id="go-report">Report to OP</button></div>
+    </div>
+
+    <section class="tiles" id="tiles" aria-label="Office summary"></section>
+
+    <section class="grid2">
+      <div class="panel">
+        <div class="panel-h"><div><h2>Company dollar still to collect</h2><p>Grouped by the month each associate's cap resets. Early months are the most urgent.</p></div></div>
+        <div class="chart" id="chart"></div>
+      </div>
+      <div class="panel plan" id="plan" aria-live="polite"></div>
+    </section>
+
+    <section class="grid2">
+      <div class="panel">
+        <div class="panel-h"><div><h2>Collection trend</h2><p>Company dollar paid and still owed across the office, one point for every MAPP sync.</p></div></div>
+        <div class="trend" id="trend"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><div><h2>Coaching diary</h2><p>Next sessions you agreed, and associates who missed theirs. Select one to open their plan.</p></div></div>
+        <div class="diary" id="diary"></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="toolbar" style="margin-bottom:12px">
+        <label for="q">Search associate<input id="q" type="search" placeholder="Type a name"></label>
+        <label for="fs" style="flex:0 1 210px">Status
+          <select id="fs"><option value="all">All statuses</option><option value="risk">At risk</option><option value="stretch">Stretch</option><option value="pace">On pace</option><option value="capped">Capped</option><option value="none">No cap set</option><option value="cand">Candidates only</option><option value="stale">Not coached in 30 days</option></select></label>
+        <label for="fm" style="flex:0 1 210px">Cap date within
+          <select id="fm"><option value="99">Any time</option><option value="3">Next 3 months</option><option value="6">Next 6 months</option></select></label>
+      </div>
+      <div class="tablebox">
+        <table id="tbl">
+          <thead><tr>
+            <th data-k="name">Associate</th><th data-k="cand" title="Tick associates who are still candidates and pay the PC fee">Candidate</th><th data-k="status">Status</th><th data-k="capDate">Cap date</th><th data-k="monthsLeft">Months left</th>
+            <th data-k="achieved">Paid</th><th data-k="remaining">Still owed</th><th data-k="monthlyCD">Min. per month</th><th data-k="deals">Deals needed</th><th data-k="dpm">Deals / month</th><th data-k="volume">Sales volume</th><th data-k="pipeW" title="Pipeline deals you logged, weighted by how likely they are to register before the cap date">Pipeline</th><th data-k="lastCoach">Last coached</th><th data-k="lastMail">Last email</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="count" id="count"></p>
+    </section>
+
+    <section class="panel" id="coach" aria-labelledby="k-h">
+      <div class="panel-h">
+        <div><div class="eyebrow">Productivity coach</div><h2 id="k-h">Coaching session</h2><p>A ready agenda for the selected associate, built from their cap numbers and the MREA models. Record what they did since the last session and what they commit to next.</p></div>
+        <span class="note" id="k-who" style="margin:0"></span>
+      </div>
+      <div class="cgrid" style="grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)">
+        <div><div class="eyebrow" style="margin-bottom:8px">Session agenda</div><ol class="agenda" id="k-agenda"></ol></div>
+        <div class="cform">
+          <div class="assume" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+            <label for="k-date">Session date<input id="k-date" type="date"></label>
+            <label for="k-focus">MREA focus<select id="k-focus"><option>Lead generation</option><option>Database and 33 Touch</option><option>Conversion and appointments</option><option>Listings and pricing</option><option>Economic model and goals</option><option>Budget and leverage</option><option>Mindset and habits</option></select></label>
+            <label for="k-next">Next session<input id="k-next" type="date"></label>
+          </div>
+          <fieldset class="fs"><legend>Since the last session (actual)</legend>
+            <div class="quad">
+              <label for="k-a-conv">Conversations<input id="k-a-conv" type="number" min="0"></label>
+              <label for="k-a-appt">Appointments<input id="k-a-appt" type="number" min="0"></label>
+              <label for="k-a-list">Listings / mandates<input id="k-a-list" type="number" min="0"></label>
+              <label for="k-a-deal">Deals written<input id="k-a-deal" type="number" min="0"></label>
+            </div>
+          </fieldset>
+          <fieldset class="fs"><legend>Commitments until the next session</legend>
+            <div class="quad">
+              <label for="k-c-conv">Conversations<input id="k-c-conv" type="number" min="0"></label>
+              <label for="k-c-appt">Appointments<input id="k-c-appt" type="number" min="0"></label>
+              <label for="k-c-list">Listings / mandates<input id="k-c-list" type="number" min="0"></label>
+              <label for="k-c-deal">Deals written<input id="k-c-deal" type="number" min="0"></label>
+            </div>
+          </fieldset>
+          <label for="k-notes">Coaching notes<textarea id="k-notes" rows="4" placeholder="What was discussed, blockers, support promised"></textarea></label>
+          <div class="toolbar" style="align-items:center">
+            <button class="primary" id="k-save" type="button">Save session</button>
+            <button id="k-mail" type="button">Email summary to associate</button>
+            <span class="note" id="k-msg" role="status" style="margin:0"></span>
+          </div>
+          <div id="k-hist" class="chist"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel compose" id="compose" aria-labelledby="c-h">
+      <div class="panel-h">
+        <div><div class="eyebrow">Production coaching</div><h2 id="c-h">Send a plan</h2><p>Ten MREA journey templates, filled with the selected associate's own cap numbers. Edit before sending. Emails go from your own Gmail and are logged here.</p></div>
+        <span class="note" id="c-who" style="margin:0"></span>
+      </div>
+      <div class="cgrid">
+        <div class="tpls" id="c-tpls" role="radiogroup" aria-label="Email templates"></div>
+        <div class="cform">
+          <div class="assume" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+            <label for="c-to">To<input id="c-to" type="email" placeholder="name@kwsa.co.za"></label>
+            <label for="c-cc">Cc (optional)<input id="c-cc" type="text" placeholder="e.g. your OP"></label>
+          </div>
+          <label for="c-subj">Subject<input id="c-subj" type="text"></label>
+          <label for="c-body">Message<textarea id="c-body" rows="16"></textarea></label>
+          <div class="assume" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+            <label for="c-sname">Sign off as<input id="c-sname" type="text"></label>
+            <label for="c-srole">Title<input id="c-srole" type="text"></label>
+          </div>
+          <div class="toolbar" style="align-items:center">
+            <button class="primary" id="c-send" type="button">Send email</button>
+            <button id="c-draft" type="button">Save as Gmail draft</button>
+            <button id="c-reset" type="button">Reset text</button>
+            <span class="note" id="c-msg" role="status" style="margin:0"></span>
+          </div>
+          <div id="c-hist" class="chist"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="opreport" aria-labelledby="op-h">
+      <div class="panel-h">
+        <div><div class="eyebrow">Leadership reporting</div><h2 id="op-h">Report to OP</h2><p>A ready-made progress report for the Operating Principal: cap collection, who needs attention, coaching activity and recommended actions. Preview it, then send it from your Gmail or download it as a PDF.</p></div>
+      </div>
+      <div class="assume" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+        <label for="op-scope">Report on<select id="op-scope"><option value="office">Whole Market Centre</option><option value="agent">Selected associate</option></select></label>
+        <label for="op-to">To<input id="op-to" type="email" placeholder="OP email"></label>
+        <label for="op-cc">Cc (optional)<input id="op-cc" type="text"></label>
+      </div>
+      <label for="op-subj" style="margin-top:12px">Subject<input id="op-subj" type="text"></label>
+      <div class="eyebrow" style="margin:14px 0 6px">Preview</div>
+      <div class="paper" id="op-prev"></div>
+      <div class="toolbar" style="align-items:center;margin-top:12px">
+        <button class="primary" id="op-send" type="button">Send report</button>
+        <button id="op-draft" type="button">Save as Gmail draft</button>
+        <button id="op-copy" type="button">Copy report text</button>
+        <button id="op-pdf" type="button">Download PDF</button>
+        <span class="note" id="op-msg" role="status" style="margin:0"></span>
+      </div>
+    </section>
+
+    <details class="panel">
+      <summary><div><div class="eyebrow">Settings</div><h2 id="as-h">Commission model</h2></div></summary>
+      <p class="note" style="margin-top:0">These set what one average deal earns the Market Centre. Every figure on this page updates when you change them.</p>
+      <div class="assume" style="margin-top:14px">
+        <label for="price">Average sale price (R)<input id="price" type="number" step="50000" min="0"></label>
+        <label for="comm">Commission rate % (excl. VAT)<input id="comm" type="number" step="0.25" min="0"></label>
+        <label for="vat">VAT %<input id="vat" type="number" step="0.5" min="0"></label>
+        <label for="pc">Candidate PC fee %<input id="pc" type="number" step="0.5" min="0" max="99"></label>
+        <label for="roy">KW royalty %<input id="roy" type="number" step="0.5" min="0" max="99"></label>
+        <label for="split">Market Centre split %<input id="split" type="number" step="1" min="1" max="100"></label>
+        <label for="paye">PAYE %<input id="paye" type="number" step="1" min="0" max="99"></label>
+        <label for="maxpm">Realistic deals per month<input id="maxpm" type="number" step="0.25" min="0.1"></label>
+        <div class="derived"><span>Company dollar per deal</span><b id="cdpd">–</b><span id="cdpd-note"></span></div>
+      </div>
+      <div class="toolbar" style="margin-top:14px">
+        <button id="use-mapp" type="button">Use MAPP average deal (R11 950)</button>
+        <button id="reset-as" type="button">Reset to defaults</button>
+      </div>
+      <div class="wfbox"><div class="wf" id="wf" aria-label="Cost of sale per deal"></div></div>
+      <p class="note">Order of deductions: VAT first, then the PC fee for candidates, then the KW royalty, then the Market Centre split (the company dollar that counts toward the cap), then PAYE on the agent's share.</p>
+    </details>
+
+    <details class="panel">
+      <summary><div><div class="eyebrow">Data</div><h2>Update from MAPP exports</h2></div></summary>
+      <div class="import">
+        <p class="note" style="margin:0">The roster refreshes from MAPP every weekday morning. To update now, choose Refresh at the top, or export the Cappers Report CSV from MAPP and load it here. An Associate Report CSV also works: it updates the email addresses used for coaching emails, keeping only names, emails, start dates and roles.</p>
+        <input id="file" type="file" accept=".csv,text/csv">
+        <textarea id="paste" placeholder="Or paste CSV text here"></textarea>
+        <div class="toolbar"><button class="primary" id="load" type="button">Load pasted data</button></div>
+        <p class="note" id="imp-msg" style="margin:0"></p>
+      </div>
+    </details>
+
+    <section class="panel">
+      <div class="panel-h"><h2>How status is worked out</h2></div>
+      <div class="rules">
+        <div><span class="pill s-pace">On pace</span><span>The share of the cap paid is at least the share of the cap year that has passed.</span></div>
+        <div><span class="pill s-stretch">Stretch</span><span>Behind pace, but the deals needed per month are within the realistic rate.</span></div>
+        <div><span class="pill s-risk">At risk</span><span>Needs more deals per month than is realistic before the cap date.</span></div>
+        <div><span class="pill s-capped">Capped</span><span>The full cap is paid for this cycle. Team caps above R140 000 are planned on their own amount.</span></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="tab-recruit" class="tabpane" role="tabpanel" aria-labelledby="t-recruit" hidden>
+    <div class="pagehead">
+      <div>
+        <div class="eyebrow">Growth</div>
+        <h1>Recruitment comparison</h1>
+        <p class="sub">Show a prospect what their current production would earn them at KW Edge. Every agency runs through the same deductions: VAT, the PC fee for candidates (KW Edge only), royalty or franchise fees, the agency split, monthly fees, then PAYE.</p>
+      </div>
+    </div>
+
+    <section class="panel">
+      <div class="panel-h"><h2>Prospect's current production</h2></div>
+      <div class="assume">
+        <label for="p-name">Prospect name<input id="p-name" type="text" placeholder="e.g. Thandi M."></label>
+        <label for="p-agency">Current agency<select id="p-agency"></select></label>
+        <label for="p-deals">Deals per year<input id="p-deals" type="number" min="1" step="1" value="12"></label>
+        <label for="p-price">Average sale price (R)<input id="p-price" type="number" min="0" step="50000" value="1500000"></label>
+        <label for="p-comm">Commission % (excl. VAT)<input id="p-comm" type="number" min="0" step="0.25" value="5"></label>
+        <label for="p-gci">Or annual GCI excl. VAT (R)<input id="p-gci" type="number" min="0" step="10000" placeholder="Optional"></label>
+        <label class="check" for="p-cand"><input id="p-cand" type="checkbox"><span>Joins KW as a candidate (pays PC fee)</span></label>
+        <div class="derived"><span>Annual GCI excl. VAT</span><b id="p-gci-out">–</b><span id="p-gci-note"></span></div>
+      </div>
+      <div class="toolbar" style="margin-top:14px;align-items:center"><button class="primary" id="p-save" type="button">Save prospect</button><span class="note" id="p-msg" style="margin:0"></span></div>
+    </section>
+
+    <section class="tiles" id="r-tiles" aria-label="Comparison summary"></section>
+
+    <section class="grid2">
+      <div class="panel"><div class="panel-h"><h2>Take-home per year, same production</h2></div><div class="chart" id="r-chart"></div></div>
+      <div class="panel plan">
+        <div class="panel-h" style="margin-bottom:0"><h2>Recruitment pitch</h2></div>
+        <div class="verdict" id="r-pitch" style="background:var(--surface-2);border:1px solid var(--line)"></div>
+        <div class="toolbar" style="align-items:center"><button id="r-copy" type="button">Copy pitch</button><span class="note" id="r-copy-msg" style="margin:0"></span></div>
+        <p class="note" style="margin:0">Estimates only. Confirm the prospect's actual split, fees and caps before you quote figures.</p>
+      </div>
+    </section>
+
+    <div class="tablebox">
+      <table id="r-tbl">
+        <thead><tr><th>Agency</th><th>Fees &amp; royalty</th><th>Agency split paid</th><th>Monthly fees</th><th>Agent before PAYE</th><th>PAYE</th><th>Take-home</th><th>vs current</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <section class="panel">
+      <div class="panel-h"><div><h2>Agency models</h2><p>Rows starting with "Example" are placeholders, not real agencies. Rename them and enter the actual split, cap and fees of agencies you recruit from. Saved to your private Cap Planner sheet. KW Edge's split and royalty come from the Commission model settings.</p></div></div>
+      <div class="tablebox" style="box-shadow:none">
+        <table id="ag-tbl" class="edit">
+          <thead><tr><th>Agency</th><th>Agency share %</th><th>Cap on agency share (R, 0 = none)</th><th>Fees before split %</th><th>Monthly fees (R)</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="toolbar" style="margin-top:12px"><button id="ag-add" type="button">Add agency</button><button id="ag-reset" type="button">Reset to examples</button></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-h"><h2>Saved prospects</h2></div>
+      <div id="p-list" class="plist"></div>
+    </section>
+  </div>
+
+  <footer class="foot"><span>KW Edge Market Centre · Cap Planner</span><span>Data from MAPP Cappers and Associate Reports. Figures are planning estimates, not statements.</span></footer>
+</main>
+</div>
+<div class="busy" id="busy" hidden></div>
+
+<script>
+let API = "https://script.google.com/macros/s/AKfycbx9dEC3FRyHrjxsVoKG-SW230E_h2LaYEc8aPiu3ubkiLKv1F2HGuBO6H9Z2OHIgkb-/exec";
+try{ API = localStorage.getItem("studio.api") || API; }catch(e){}
+let token = null; try{ token = sessionStorage.getItem("studio.token"); }catch(e){}
+function setTok(t){ token=t; try{ t?sessionStorage.setItem("studio.token",t):sessionStorage.removeItem("studio.token"); }catch(e){} }
+async function api(action, extra){
+  let j;
+  try{ const r = await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({action,token},extra||{}))}); j = await r.json(); }
+  catch(e){ throw new Error("Could not reach your studio. Check your connection, or approve the new Google permissions in Apps Script."); }
+  if(j.error==="signin"){ setTok(null); showGate(); throw new Error("Please sign in again."); }
+  if(!j.ok) throw new Error(j.message||j.error||"Something went wrong.");
+  return j;
+}
+let busyT=null;
+function busy(msg){ clearTimeout(busyT); const b=document.getElementById("busy"); if(!msg){ b.hidden=true; return; } b.textContent=msg; b.hidden=false; busyT=setTimeout(()=>{b.hidden=true;},6000); }
+const SNAPSHOT_DATE = "2026-10-15";
+const DEF = {price:1300000, comm:5, vat:15, pc:10, roy:8, split:30, paye:20, maxpm:1, cdOverride:null};
+const store = {get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let A = Object.assign({}, DEF, store.get("cap.assume")||{});
+let roster = {date:null, rows:[]};
+let syncInfo = null, syncErr = null, db = null, dbTried = false, pipeline = [], history = [], sheetUrl = "";
+let selected = store.get("cap.sel") || "Uhuru Matlhaji";
+let cands = new Set(store.get("cap.cands") || []);
+let sortK = "monthsLeft", sortDir = 1;
+
+const R = v => "R " + Math.round(v).toLocaleString("en-ZA").replace(/,/g," ");
+const Rk = v => v>=1e6 ? "R"+(v/1e6).toFixed(2).replace(/\.?0+$/,"")+"m" : "R"+Math.round(v/1000)+"k";
+const $ = id => document.getElementById(id);
+const DAY = 864e5, MON = 30.4375*DAY;
+
+function today(){ const t=new Date(); t.setHours(0,0,0,0); return t; }
+function addMonths(d,n){ const x=new Date(d); x.setMonth(x.getMonth()+n); return x; }
+// Share of VAT-exclusive GCI that becomes company dollar: (less PC fee for candidates) x (less royalty) x split
+function factor(cand){ return (cand?1-A.pc/100:1)*(1-A.roy/100)*(A.split/100); }
+function cdPerDeal(cand){ return A.cdOverride ? A.cdOverride*(cand?1-A.pc/100:1) : A.price*(A.comm/100)*factor(cand); }
+// Per-deal waterfall, worked back from company dollar so it also holds when the MAPP average is used
+function waterfall(cd,cand){
+  const afterRoy = cd/(A.split/100), afterPC = afterRoy/(1-A.roy/100), excl = cand ? afterPC/(1-A.pc/100) : afterPC;
+  const vat = excl*A.vat/100, gross = excl+vat, pcFee = excl-afterPC, roy = afterPC-afterRoy;
+  const agentGross = afterRoy-cd, paye = agentGross*A.paye/100, net = agentGross-paye;
+  const postCapNet = afterRoy*(1-A.paye/100);
+  return {gross,vat,excl,pcFee,roy,afterRoy,cd,agentGross,paye,net,postCapNet};
+}
+
+function calc(r){
+  const [name,capDateS,cap,ach] = r;
+  const capDate = new Date(capDateS+"T00:00:00");
+  const start = addMonths(capDate,-12);
+  const t = today();
+  const monthsLeft = Math.max(0,(capDate - t)/MON);
+  const elapsed = Math.min(1,Math.max(0,(t-start)/(capDate-start)));
+  const remaining = Math.max(0,cap-ach);
+  const cand = cands.has(name);
+  const cd = cdPerDeal(cand);
+  const effMonths = Math.max(monthsLeft, 0.5);
+  const deals = cap>0 ? Math.ceil(remaining/cd - 1e-9) : 0;
+  const dpm = deals/effMonths;
+  const monthlyCD = remaining/effMonths;
+  const gci = remaining/factor(cand);
+  const volume = A.comm>0 ? gci/(A.comm/100) : 0;
+  const agentNet = deals*waterfall(cd,cand).net;
+  const paidShare = cap>0 ? ach/cap : 0;
+  const monthsElapsed = elapsed*12;
+  const runRate = monthsElapsed>0.5 ? ach/monthsElapsed : 0;
+  const projected = Math.min(cap, ach + runRate*monthsLeft);
+  const deals_ = pipeOf(name).filter(p=>!p.close || p.close<=capDateS);
+  const pipeW = deals_.reduce((s,p)=>s+(+p.cd||0)*(+p.prob||0)/100,0), pipeFull = deals_.reduce((s,p)=>s+(+p.cd||0),0);
+  let status;
+  if(cap<=0) status="none";
+  else if(remaining<=0) status="capped";
+  else if(paidShare>=elapsed) status="pace";
+  else if(dpm<=A.maxpm) status="stretch";
+  else status="risk";
+  return {pipeW,pipeFull,pipeN:deals_.length,name,cand,cdDeal:cd,capDate,capDateS,cap,ach,achieved:ach,remaining,agentNet,monthsLeft,elapsed,deals,dpm,monthlyCD,gci,volume,paidShare,projected,runRate,status,team:cap>140000};
+}
+const SLABEL={capped:"Capped",pace:"On pace",stretch:"Stretch",risk:"At risk",none:"No cap set"};
+const SORDER={risk:0,stretch:1,pace:2,capped:3,none:4};
+
+const INPUTS=["price","comm","vat","pc","roy","split","paye","maxpm"];
+function syncInputs(){ INPUTS.forEach(k=>$(k).value=A[k]); }
+function drawWF(){
+  const a=waterfall(cdPerDeal(false),false), b=waterfall(cdPerDeal(true),true);
+  const row=(l,k,c="",pct="",neg=false)=>`<div class="${c}">${l}</div><div class="r m ${c}">${pct}</div><div class="r ${c}">${a[k]?R(neg?-a[k]:a[k]):"–"}</div><div class="r ${c}">${R(neg?-b[k]:b[k])}</div>`;
+  $("wf").innerHTML =
+    `<div class="h">Per deal</div><div class="h r"></div><div class="h r">Associate</div><div class="h r">Candidate</div>`+
+    row("Gross commission incl. VAT","gross","sum",A.cdOverride?"":`${A.comm}% of ${R(A.price)}`)+
+    row("Less VAT","vat","m",A.vat+"%",true)+
+    row("GCI excl. VAT","excl","sum")+
+    row("Less PC fee (candidates only)","pcFee","m",A.pc+"%",true)+
+    row("Less KW royalty","roy","m",A.roy+"%",true)+
+    row("Market Centre split (company dollar, counts to cap)","cd","cap",A.split+"%")+
+    row("Agent share","agentGross","sum",(100-A.split)+"%")+
+    row("Less PAYE","paye","m",A.paye+"%",true)+
+    row("Agent net per deal before cap","net","net")+
+    row("Agent net per deal after capping","postCapNet","m","no split");
+}
+let aT=null;
+function saveA(){ store.set("cap.assume",A); clearTimeout(aT); aT=setTimeout(()=>{ if(db) api("capPut",{key:"assume",value:A}).catch(()=>{}); },900); }
+
+function render(){
+  $("cdpd").textContent = R(cdPerDeal(false));
+  $("cdpd-note").textContent = (A.cdOverride ? "Using MAPP average. " : "") + `Candidates: ${R(cdPerDeal(true))}`;
+  drawWF();
+  const all = roster.rows.map(calc);
+  const active = all.filter(x=>x.cap>0);
+  const open = active.filter(x=>x.remaining>0);
+  const owed = open.reduce((s,x)=>s+x.remaining,0);
+  const next3 = open.filter(x=>x.monthsLeft<=3).reduce((s,x)=>s+x.remaining,0);
+  const proj = open.reduce((s,x)=>s+(x.projected-x.ach),0);
+  const cnt = s=>active.filter(x=>x.status===s).length;
+  const capped = cnt("capped");
+  $("tiles").innerHTML = [
+    [R(owed),"Still to collect across "+open.length+" associates"],
+    [R(next3),"Due from caps resetting in the next 3 months"],
+    [R(proj),"Projected at current pace before each cap date"],
+    [capped+" / "+active.length,"Associates capped"],
+    [cnt("risk"),"At risk of not capping"],
+    [R(open.reduce((s,x)=>s+Math.min(x.remaining,x.pipeW),0)),"Weighted pipeline before cap dates"],
+  ].map(([b,s])=>`<div class="tile"><b>${b}</b><span>${s}</span></div>`).join("");
+  drawChart(open);
+  drawPlan(all);
+  drawCompose(all);
+  drawCoach(all);
+  drawReport(all);
+  drawTable(all);
+  drawTrend(); drawDiary(all);
+  renderRecruit();
+}
+
+function drawChart(open){
+  const t=today(); const months=[];
+  for(let i=0;i<12;i++){ const d=new Date(t.getFullYear(),t.getMonth()+1+i,1); months.push({d,key:d.toISOString().slice(0,7),owed:0,proj:0,n:0}); }
+  const map=Object.fromEntries(months.map(m=>[m.key,m]));
+  open.forEach(x=>{ const k=x.capDateS.slice(0,7); if(map[k]){map[k].owed+=x.remaining; map[k].proj+=x.projected-x.ach; map[k].n++;} });
+  const W=640,H=260,pl=54,pr=10,pt=14,pb=40; const max=Math.max(1,...months.map(m=>m.owed));
+  const step=niceStep(max/4); const top=Math.ceil(max/step)*step;
+  const bw=(W-pl-pr)/12; const y=v=>pt+(H-pt-pb)*(1-v/top);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Company dollar still owed by cap month">`;
+  for(let v=0;v<=top+1;v+=step){ s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl-6}" y="${y(v)+4}" text-anchor="end">${v?Rk(v):"0"}</text>`; }
+  months.forEach((m,i)=>{ const x=pl+i*bw+bw*0.18, w=bw*0.64;
+    if(m.owed>0){ s+=`<rect x="${x}" y="${y(m.owed)}" width="${w}" height="${y(0)-y(m.owed)}" fill="var(--bar)" rx="2"><title>${m.n} associates · owed ${R(m.owed)} · projected ${R(m.proj)}</title></rect>`;
+      s+=`<rect x="${x}" y="${y(m.proj)}" width="${w}" height="${y(0)-y(m.proj)}" fill="var(--accent)" rx="2"><title>Projected ${R(m.proj)}</title></rect>`;
+      s+=`<text x="${x+w/2}" y="${y(m.owed)-4}" text-anchor="middle">${m.n}</text>`; }
+    s+=`<text x="${x+w/2}" y="${H-pb+16}" text-anchor="middle">${m.d.toLocaleString("en-ZA",{month:"short"})}</text>`;
+    if(i===0||m.d.getMonth()===0) s+=`<text x="${x+w/2}" y="${H-pb+30}" text-anchor="middle">${m.d.getFullYear()}</text>`;
+  });
+  s+="</svg>";
+  $("chart").innerHTML = s + `<div class="legend"><span><svg width="10" height="10"><rect width="10" height="10" fill="var(--bar)"/></svg> Still owed</span><span><svg width="10" height="10"><rect width="10" height="10" fill="var(--accent)"/></svg> Projected at current pace</span><span>Number above bar = associates</span></div>`;
+}
+function niceStep(v){ const p=Math.pow(10,Math.floor(Math.log10(v))); const n=v/p; return (n<=1?1:n<=2?2:n<=5?5:10)*p; }
+
+function drawPlan(all){
+  let x = all.find(a=>a.name===selected) || all.find(a=>a.cap>0 && a.remaining>0) || all[0];
+  if(!x){ $("plan").innerHTML="<p>No associates loaded.</p>"; return; }
+  const dateTxt = x.capDate.toLocaleDateString("en-ZA",{day:"numeric",month:"long",year:"numeric"});
+  let verdict="";
+  if(x.status==="none") verdict="No cap amount is set for this associate in MAPP, so there is nothing to plan.";
+  else if(x.status==="capped") verdict=`Capped. Company dollar is complete for this cycle, which resets on ${dateTxt}.`;
+  else {
+    const gap = x.cap*x.elapsed - x.ach;
+    const perDeal = R(x.cdDeal);
+    verdict = `To cap by <b>${dateTxt}</b>, ${x.name.split(" ")[0]} needs at least <b>${x.deals} deal${x.deals===1?"":"s"}</b> at ${perDeal} each, roughly one every <b>${x.deals?(Math.max(x.monthsLeft,0.5)/x.deals).toFixed(1):"–"} months</b>.`;
+    if(gap>0) verdict += ` They are ${R(gap)} behind a straight-line pace.`;
+    if(x.status==="risk") verdict += ` That rate is above your realistic ${A.maxpm} deal${A.maxpm==1?"":"s"} per month, so the cap is unlikely without a bigger deal or extra pipeline.`;
+    if(x.monthsLeft<1) verdict += " Less than a month remains, so any deal must register before the cap date.";
+    if(x.pipeW>0){ const left=Math.max(0,x.remaining-x.pipeW); verdict += left<=0 ? ` The weighted pipeline of ${R(x.pipeW)} would close the gap if it registers in time.` : ` Counting the weighted pipeline of ${R(x.pipeW)}, ${R(left)} is still uncovered: about ${Math.ceil(left/x.cdDeal-1e-9)} more deal${Math.ceil(left/x.cdDeal-1e-9)===1?"":"s"} to find.`; }
+  }
+  const cls = {capped:"s-capped",pace:"s-pace",stretch:"s-stretch",risk:"s-risk",none:"s-none"}[x.status];
+  const vbg = {capped:"var(--done-soft)",pace:"var(--good-soft)",stretch:"var(--warn-soft)",risk:"var(--bad-soft)",none:"var(--bg)"}[x.status];
+  $("plan").innerHTML = `
+    <div class="plan-head"><div><div class="eyebrow">Selected associate${x.team?" · team cap":""}${x.cand?` · candidate, pays ${A.pc}% PC fee`:""}</div><h2>${esc(x.name)}</h2></div><span class="pill ${cls}">${SLABEL[x.status]}</span></div>
+    ${x.cap>0?`<div><div class="meter" aria-label="Paid ${Math.round(x.paidShare*100)} percent of cap"><i style="width:${Math.min(100,x.paidShare*100)}%"></i><em style="left:${x.elapsed*100}%"></em></div>
+    <div class="legend" style="margin-top:6px"><span>Paid ${Math.round(x.paidShare*100)}% of ${R(x.cap)}</span><span>Black mark = ${Math.round(x.elapsed*100)}% of cap year passed</span></div></div>`:""}
+    <div class="verdict" style="background:${vbg}">${verdict}</div>
+    ${x.cap>0&&x.remaining>0?`<div class="kv">
+      <div><span>Still owed</span><b>${R(x.remaining)}</b></div>
+      <div><span>Months to cap date</span><b>${x.monthsLeft.toFixed(1)}</b></div>
+      <div><span>Min. company dollar / month</span><b>${R(x.monthlyCD)}</b></div>
+      <div><span>Deals needed</span><b>${x.deals}</b></div>
+      <div><span>GCI needed (excl. VAT)</span><b>${R(x.gci)}</b></div>
+      <div><span>Gross commission incl. VAT</span><b>${R(x.gci*(1+A.vat/100))}</b></div>
+      <div><span>Agent takes home on the way</span><b>${R(x.agentNet)}</b></div>
+      <div><span>Sales volume needed</span><b>${R(x.volume)}</b></div>
+      <div><span>Current pace / month</span><b>${R(x.runRate)}</b></div>
+      <div><span>Projected by cap date</span><b>${R(x.projected)}</b></div>
+    </div>`:""}
+    ${x.cap>0&&x.remaining>0?pipeBlock(x):""}
+    <div class="toolbar" style="align-items:center"><button type="button" class="primary" id="to-compose">Email ${esc(x.name.split(" ")[0])} a plan</button><button type="button" id="to-coach">Coaching session</button><button type="button" id="to-report">Report to OP</button></div>
+    <p class="note" style="margin:0">Select any row in the roster to plan for that associate.</p>`;
+  const go=id=>$(id).scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
+  $("to-compose").onclick=()=>go("compose");
+  wirePipe(x);
+  $("to-coach").onclick=()=>go("coach");
+  $("to-report").onclick=()=>{ $("op-scope").value="agent"; opKey=""; render(); go("opreport"); };
+}
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function drawTable(all){
+  const q=$("q").value.trim().toLowerCase(), fs=$("fs").value, fm=+$("fm").value;
+  let rows = all.filter(x=>(!q||x.name.toLowerCase().includes(q)) && (fs==="all"||x.status===fs||(fs==="cand"&&x.cand)||(fs==="stale"&&x.cap>0&&x.remaining>0&&isStale(x.name))) && x.monthsLeft<=fm+0.01);
+  rows.sort((a,b)=>{ let va=a[sortK], vb=b[sortK];
+    if(sortK==="status"){va=SORDER[a.status];vb=SORDER[b.status];}
+    if(sortK==="capDate"){va=+a.capDate;vb=+b.capDate;}
+    if(sortK==="cand"){va=+a.cand;vb=+b.cand;}
+    if(sortK==="lastMail"){va=lastMailOf(a.name)||"";vb=lastMailOf(b.name)||"";}
+    if(sortK==="lastCoach"){va=lastCoachOf(a.name)||"";vb=lastCoachOf(b.name)||"";}
+    if(typeof va==="string") return va.localeCompare(vb)*sortDir;
+    return ((va-vb)||(b.remaining-a.remaining))*sortDir; });
+  const cls={capped:"s-capped",pace:"s-pace",stretch:"s-stretch",risk:"s-risk",none:"s-none"};
+  document.querySelector("#tbl tbody").innerHTML = rows.map(x=>{
+    const live = x.cap>0 && x.remaining>0;
+    return `<tr tabindex="0" data-n="${esc(x.name)}" class="${x.name===selected?"sel":""}">
+      <td>${esc(x.name)}${x.team?' <span class="pill s-none">Team</span>':""}</td>
+      <td class="c"><input type="checkbox" class="cand" ${x.cand?"checked":""} aria-label="${esc(x.name)} is a candidate"></td>
+      <td><span class="pill ${cls[x.status]}">${SLABEL[x.status]}</span></td>
+      <td>${x.capDateS}</td><td>${x.monthsLeft.toFixed(1)}</td>
+      <td>${R(x.ach)}</td><td>${R(x.remaining)}</td>
+      <td>${live?R(x.monthlyCD):"–"}</td><td>${live?x.deals:"–"}</td><td>${live?x.dpm.toFixed(2):"–"}</td><td>${live?R(x.volume):"–"}</td><td>${live&&x.pipeN?R(x.pipeW):"–"}</td><td>${lastCoachOf(x.name)||"–"}</td><td>${lastMailOf(x.name)||"–"}</td></tr>`;}).join("");
+  document.querySelectorAll("#tbl th").forEach(th=>th.setAttribute("aria-sort", th.dataset.k===sortK?(sortDir>0?"ascending":"descending"):"none"));
+  $("count").textContent = all.length ? `Showing ${rows.length} of ${all.length} associates · MAPP Cappers Report data from ${roster.date}. Months left counted from today.` : "No associates yet. The roster fills in after the next MAPP sync, or load a Cappers Report CSV below.";
+}
+
+// events
+INPUTS.forEach(id=>$(id).addEventListener("input",e=>{ const v=parseFloat(e.target.value); const ok=["vat","pc","roy","paye"].includes(id)?v>=0:v>0; if(!isNaN(v)&&ok){ A[id]=v; if(["price","comm"].includes(id)) A.cdOverride=null; saveA(); render(); } }));
+$("use-mapp").onclick=()=>{ A.cdOverride=11950; saveA(); render(); };
+$("reset-as").onclick=()=>{ A=Object.assign({},DEF); saveA(); syncInputs(); render(); };
+["q","fs","fm"].forEach(id=>$(id).addEventListener("input",render));
+document.querySelector("#tbl thead").addEventListener("click",e=>{ const th=e.target.closest("th"); if(!th) return; const k=th.dataset.k; if(sortK===k) sortDir*=-1; else {sortK=k; sortDir=(k==="pipeW"||k==="remaining"||k==="dpm"||k==="deals"||k==="monthlyCD"||k==="volume"||k==="achieved")?-1:1;} render(); });
+function pick(tr){ if(!tr) return; selected=tr.dataset.n; store.set("cap.sel",selected); render(); $("plan").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"nearest"}); }
+document.querySelector("#tbl tbody").addEventListener("click",e=>{
+  const tr=e.target.closest("tr"); if(!tr) return;
+  if(e.target.classList.contains("cand")){ const n=tr.dataset.n; e.target.checked?cands.add(n):cands.delete(n); saveCands(); selected=n; store.set("cap.sel",n); render(); return; }
+  pick(tr); });
+document.querySelector("#tbl tbody").addEventListener("keydown",e=>{ if(e.target.classList.contains("cand")) return; if(e.key==="Enter"||e.key===" "){e.preventDefault();pick(e.target.closest("tr"));} });
+
+// CSV import
+function money(s){ if(s==null) return 0; s=String(s).replace(/R|\s| /g,""); if(/,\d{1,2}$/.test(s)) s=s.replace(/\./g,"").replace(",","."); else s=s.replace(/,/g,""); const v=parseFloat(s); return isNaN(v)?0:v; }
+function parseCSV(text){
+  const rows=[]; let row=[],f="",q=false;
+  const delim = (text.split("\n")[0].match(/;/g)||[]).length > (text.split("\n")[0].match(/,/g)||[]).length ? ";" : ",";
+  for(let i=0;i<text.length;i++){ const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){f+='"';i++;} else q=false; } else f+=c; }
+    else if(c==='"') q=true; else if(c===delim){row.push(f);f="";} else if(c==="\n"){row.push(f);rows.push(row);row=[];f="";} else if(c!=="\r") f+=c; }
+  if(f||row.length){row.push(f);rows.push(row);}
+  return rows.filter(r=>r.some(c=>c.trim()));
+}
+function importText(text){
+  const rows=parseCSV(text); if(rows.length<2) return fail("No data rows found. Check that the file is the Cappers Report CSV.");
+  const h=rows[0].map(x=>x.trim().toLowerCase());
+  const find=(...ks)=>h.findIndex(c=>ks.some(k=>c.includes(k)));
+  if(h.some(c=>c.includes("associate email"))) return importDirectory(rows,h);
+  const iN=find("associate","agent","name"), iD=find("cap date"), iC=find("cap amount"), iA=find("cap achieved","achieved");
+  if([iN,iD,iC,iA].some(i=>i<0)) return fail("Missing a column. The file needs Associate, Cap Date, Cap Amount and Cap Achieved headers.");
+  const out=[];
+  rows.slice(1).forEach(r=>{ const n=(r[iN]||"").trim(); let d=(r[iD]||"").trim();
+    const m=d.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/) || d.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+    if(!n||!m) return; if(m[1].length!==4) d=`${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`; else d=`${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
+    out.push([n,d,money(r[iC]),money(r[iA])]); });
+  if(!out.length) return fail("No rows could be read. Dates should look like 2027-03-01.");
+  const stamp=new Date().toISOString();
+  if(db){
+    $("imp-msg").textContent="Saving…";
+    api("capPut",{key:"roster",value:{rows:out.map(r=>({n:r[0],d:r[1],c:r[2],a:r[3]}))}})
+      .then(j=>{ syncInfo=j.value; roster={date:String(j.value.syncedAt).slice(0,10), rows:out}; $("imp-msg").textContent=`Loaded ${out.length} associates into your Cap Planner sheet.`; drawSync(); render(); })
+      .catch(e=>{ $("imp-msg").textContent=e.message; });
+  } else {
+    roster={date:stamp.slice(0,10), rows:out}; store.set("cap.roster",roster);
+    $("imp-msg").textContent=`Loaded ${out.length} associates in this browser only.`; render();
+  }
+}
+function fail(m){ $("imp-msg").textContent=m; }
+$("file").addEventListener("change",e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>importText(rd.result); rd.readAsText(f); });
+$("load").onclick=()=>importText($("paste").value);
+
+// Live link: the roster lives in the page's shared store, refreshed from MAPP every weekday morning
+function saveCands(){ const names=[...cands]; if(db) api("capPut",{key:"candidates",value:{names}}).catch(e=>busy(e.message)); else store.set("cap.cands",names); }
+function drawSync(){
+  let dot="", txt="";
+  if(syncInfo && syncInfo.syncedAt){
+    const t=new Date(syncInfo.syncedAt), hrs=(Date.now()-t)/36e5;
+    const when=t.toLocaleString("en-ZA",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+    dot = hrs<30?"ok":hrs<96?"old":"bad";
+    txt = `Synced from MAPP ${when} · ${syncInfo.count||roster.rows.length} associates · ${esc(syncInfo.source||"")}` + (dot==="ok"?"":dot==="old"?" · Data is more than a day old":" · Sync has stopped. Check that MAPP is signed in on Chrome.");
+  } else if(syncErr){ dot="bad"; txt=esc(syncErr.message||"Could not reach your data. Choose Refresh to try again."); }
+  else if(db){ txt="Waiting for the first MAPP sync. You can load a Cappers Report CSV under Data."; }
+  else txt="Loading your Cap Planner data…";
+  $("sync").innerHTML = `<span class="dot ${dot}"></span><span>${txt}</span>`;
+}
+async function connect(){
+  syncErr=null; drawSync();
+  let j;
+  try{ j = await api("capLoad"); }catch(e){ syncErr=e; dbTried=true; drawSync(); return; }
+  db = true; dbTried = true; sheetUrl = j.sheet||"";
+  const st = j.store||{}, L = j.logs||{};
+  if(j.roster && Array.isArray(j.roster.rows)){ syncInfo=j.roster; roster={date:String(j.roster.syncedAt||"").slice(0,10), rows:j.roster.rows.map(r=>[r.n,r.d,+r.c||0,+r.a||0])}; }
+  if(st.candidates) cands=new Set(st.candidates.names||[]);
+  if(st.associates) setDirectory(st.associates.list||[]);
+  if(st.assume && typeof st.assume==="object"){ A=Object.assign({},DEF,st.assume); store.set("cap.assume",A); syncInputs(); }
+  if(st.agencies && Array.isArray(st.agencies.list) && st.agencies.list.length) agencies=st.agencies.list;
+  commsLog=L.comms||[]; coachLog=L.coaching||[]; prospects=L.prospects||[]; pipeline=L.pipeline||[];
+  history=(L.history||[]).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  gmail = j.mailOk ? true : null; gmailTried = true;
+  const sl=$("sheetLink"); if(sheetUrl){ sl.href=sheetUrl; sl.hidden=false; }
+  drawSync(); drawAgTable(); drawProspects(); render();
+}
+
+// ---------- Pipeline: deals in progress per associate ----------
+function pipeOf(name){ const n=norm(name); return pipeline.filter(p=>norm(p.agent)===n).sort((a,b)=>String(a.close||"9").localeCompare(String(b.close||"9"))); }
+const PROB=[[25,"Early: viewing or valuation"],[50,"Offer or mandate signed"],[75,"Offer accepted, bond pending"],[90,"Bond approved, in transfer"]];
+function pipeBlock(x){
+  const list=pipeOf(x.name);
+  const rows=list.map(p=>`<div class="row"><div>${esc(p.what||"Deal")}<small>${p.close?"Registers about "+esc(p.close):"No date"} · ${+p.prob||0}% likely${p.close&&p.close>x.capDateS?" · after cap date":""}</small></div><b>${R(+p.cd||0)}</b><button type="button" class="link" data-pdel="${esc(p.id)}">Remove</button></div>`).join("");
+  return `<div class="pipe"><div class="eyebrow">Pipeline · ${list.length} deal${list.length===1?"":"s"}${x.pipeW?` · weighted ${R(x.pipeW)}`:""}</div>${rows||'<p class="note" style="margin:0">No deals logged. Add the deals they are working on to see if the pipeline covers the cap.</p>'}
+    <div class="add">
+      <label>Property or client<input id="pp-what" type="text" placeholder="e.g. 12 Oak St, Smith"></label>
+      <label>Sale price (R)<input id="pp-price" type="number" min="0" step="50000" value="${A.price}"></label>
+      <label>Expected registration<input id="pp-close" type="date"></label>
+      <label>Stage<select id="pp-prob">${PROB.map(([v,l])=>`<option value="${v}">${v}% · ${l}</option>`).join("")}</select></label>
+      <button type="button" id="pp-add">Add deal</button>
+    </div><p class="note" id="pp-msg" style="margin:0"></p></div>`;
+}
+function wirePipe(x){
+  const add=$("pp-add"); if(!add) return;
+  add.onclick=()=>{
+    const price=+$("pp-price").value||0; if(price<=0){ $("pp-msg").textContent="Add the sale price."; return; }
+    const cd=Math.round(price*(A.comm/100)*factor(x.cand));
+    const rec={agent:x.name, what:$("pp-what").value.trim().slice(0,80), price, cd, prob:+$("pp-prob").value, close:$("pp-close").value||""};
+    add.disabled=true; $("pp-msg").textContent="Saving…";
+    api("capSave",{log:"pipeline",rec}).then(j=>{ pipeline.push(j.rec); render(); }).catch(e=>{ $("pp-msg").textContent=e.message; add.disabled=false; });
+  };
+  document.querySelectorAll("[data-pdel]").forEach(b=>b.onclick=()=>{
+    if(b.dataset.confirm!=="1"){ b.dataset.confirm="1"; b.textContent="Confirm"; return; }
+    const id=b.dataset.pdel; b.disabled=true;
+    api("capDel",{log:"pipeline",id}).then(()=>{ pipeline=pipeline.filter(p=>p.id!==id); render(); }).catch(e=>busy(e.message));
+  });
+}
+
+// ---------- Trend and diary ----------
+function drawTrend(){
+  const h=history.filter(p=>p.active>0);
+  if(h.length<2){ $("trend").innerHTML=`<p class="note" style="margin:0">${h.length?`First point recorded on ${esc(h[0].date)}: ${R(h[0].paid)} paid, ${R(h[0].owed)} still owed by ${h[0].active} associates.`:"No syncs recorded yet."} The trend line builds up with every weekday MAPP sync.</p>`; return; }
+  const W=640,H=230,pl=56,pr=14,pt=14,pb=34, max=Math.max(1,...h.map(p=>Math.max(p.paid,p.owed)));
+  const step=niceStep(max/4), top=Math.ceil(max/step)*step;
+  const t0=+new Date(h[0].date), t1=Math.max(t0+DAY,+new Date(h[h.length-1].date));
+  const x=d=>pl+(W-pl-pr)*((+new Date(d))-t0)/(t1-t0), y=v=>pt+(H-pt-pb)*(1-v/top);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Company dollar paid and owed over time">`;
+  for(let v=0;v<=top+1;v+=step) s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl-6}" y="${y(v)+4}" text-anchor="end">${v?Rk(v):"0"}</text>`;
+  const line=(k,c)=>`<polyline fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round" points="${h.map(p=>x(p.date)+","+y(p[k])).join(" ")}"/>`+h.map(p=>`<circle cx="${x(p.date)}" cy="${y(p[k])}" r="3.5" fill="${c}"><title>${esc(p.date)}: ${k==="paid"?"paid":"owed"} ${R(p[k])}</title></circle>`).join("");
+  s+=line("owed","var(--muted)")+line("paid","var(--accent)");
+  const lab=[h[0],h[h.length-1]]; lab.forEach((p,i)=>{ s+=`<text x="${x(p.date)}" y="${H-10}" text-anchor="${i?"end":"start"}">${new Date(p.date+"T00:00:00").toLocaleDateString("en-ZA",{day:"numeric",month:"short"})}</text>`; });
+  const a=h[0], b=h[h.length-1];
+  $("trend").innerHTML=s+`</svg><div class="legend"><span style="color:var(--accent)">Paid toward caps</span><span>Still owed</span><span>${R(b.paid-a.paid)} collected since ${new Date(a.date+"T00:00:00").toLocaleDateString("en-ZA",{day:"numeric",month:"short"})} · capped ${a.capped} → ${b.capped}</span></div>`;
+}
+function drawDiary(all){
+  const t=todayISO(), latest=new Map();
+  coachLog.forEach(c=>{ const k=norm(c.agent), p=latest.get(k); if(!p||String(c.date)>String(p.date)) latest.set(k,c); });
+  const items=[...latest.values()].filter(c=>c.next && all.some(a=>norm(a.name)===norm(c.agent))).map(c=>({c,late:c.next<t})).sort((a,b)=>String(a.c.next).localeCompare(String(b.c.next))).slice(0,12);
+  const never=all.filter(x=>x.cap>0&&x.remaining>0&&!latest.has(norm(x.name))&&x.monthsLeft<=3).slice(0,5);
+  let h=items.map(({c,late})=>`<button type="button" data-ag="${esc(c.agent)}"><span class="d ${late?"late":""}">${esc(c.next)}</span><span><b>${esc(c.agent)}</b><br><small class="note" style="margin:0">${late?"Missed, rebook":"Next session"} · ${esc(c.focus||"")}</small></span><span class="note" style="margin:0">Open</span></button>`).join("");
+  h+=never.map(x=>`<button type="button" data-ag="${esc(x.name)}"><span class="d late">Never</span><span><b>${esc(x.name)}</b><br><small class="note" style="margin:0">Cap date ${esc(x.capDateS)}, ${R(x.remaining)} to go, not coached yet</small></span><span class="note" style="margin:0">Open</span></button>`).join("");
+  $("diary").innerHTML = h || '<p class="note" style="margin:0">No sessions booked. Save a coaching session with a next date and it appears here.</p>';
+  $("diary").querySelectorAll("[data-ag]").forEach(b=>b.onclick=()=>{ selected=b.dataset.ag; store.set("cap.sel",selected); render(); $("plan").scrollIntoView({block:"start"}); });
+}
+
+// ---------- Productivity coach sessions ----------
+let coachLog=[], kAgent=null, opKey="", opText="", opHtml="", opArmed=null;
+const todayISO=()=>{ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+const addDaysISO=(iso,n)=>{ const d=new Date(iso+"T00:00:00"); d.setDate(d.getDate()+n); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+function sessionsOf(name){ const n=norm(name); return coachLog.filter(c=>norm(c.agent)===n).sort((a,b)=>String(b.date).localeCompare(String(a.date))); }
+function lastCoachOf(name){ const s=sessionsOf(name)[0]; return s?String(s.date).slice(0,10):""; }
+function isStale(name){ const l=lastCoachOf(name); return !l || (Date.now()-new Date(l+"T00:00:00"))/864e5>30; }
+const FOCUS_FOR={none:"Economic model and goals",capped:"Budget and leverage",pace:"Economic model and goals",stretch:"Conversion and appointments",risk:"Lead generation"};
+function drawCoach(all){
+  const x=currentAgent(all); if(!x){ $("k-agenda").innerHTML=""; return; }
+  const t=tokens(x), sess=sessionsOf(x.name), last=sess[0];
+  $("k-who").textContent="Coaching "+x.name+(last?` · last session ${String(last.date).slice(0,10)}`:" · first session");
+  if(kAgent!==x.name){ kAgent=x.name;
+    $("k-date").value=todayISO(); $("k-next").value=addDaysISO(todayISO(),7);
+    $("k-focus").value = x.ach<=0 && x.cap>0 ? "Lead generation" : (FOCUS_FOR[x.status]||"Lead generation");
+    ["conv","appt","list","deal"].forEach(k=>{ $("k-a-"+k).value=""; $("k-c-"+k).value=""; });
+    if(x.cap>0&&x.remaining>0){ $("k-c-conv").value=t.weeklyConvos; $("k-c-appt").value=Math.ceil(+t.weeklyAppts); }
+    $("k-notes").value=""; $("k-msg").textContent="";
+  }
+  const prev = last ? `Last time ${esc(t.first)} committed to ${+last.commit?.conv||0} conversations, ${+last.commit?.appt||0} appointments, ${+last.commit?.list||0} listings and ${+last.commit?.deal||0} deals. Ask what actually happened and record it on the right.` : `No earlier session on record. Agree a baseline: how many conversations and appointments ${esc(t.first)} has each week now.`;
+  const focusTip = {
+    none:"No cap is set in MAPP for this associate. Confirm their status with the office before coaching on cap.",
+    capped:"Net a Million: set a business budget, save a fixed share of every post-cap deal, and choose the first piece of leverage.",
+    pace:"Think a Million: raise the goal. Can they cap two months earlier? What one task could they hand off?",
+    stretch:"Earn a Million, conversion: turn existing conversations into appointments and appointments into signed mandates.",
+    risk:"Earn a Million, lead generation: three hours of lead generation every morning, a database of 100 and the 8x8 for new contacts."
+  }[x.status];
+  const items = x.cap>0 && x.remaining>0 ? [
+    ["Review the numbers",`Paid ${t.paid} of ${t.cap} (${t.pct}) with ${t.elapsedPct} of the cap year gone. ${t.owed} to go by ${t.capDate}. Status: ${SLABEL[x.status]}.`],
+    ["Check last commitments",prev],
+    ["Pipeline review","Open their Command opportunities together. Pick the three most likely to close in the next 60 days and agree the next step on each."],
+    ["Set this week's activity",`To stay on track: about ${t.weeklyConvos} conversations and ${t.weeklyAppts} appointments a week, ${t.deals} deals by ${t.capDate} (one every ${t.dealEvery} months).`],
+    ["MREA focus",focusTip],
+    ["Agree commitments","Record the numbers they commit to, the support you promised, and book the next session before they leave."]
+  ] : [
+    ["Review the numbers", x.status==="capped"?`Capped for this cycle. Next cycle starts after ${t.capDate}.`:"No cap is set in MAPP for this associate."],
+    ["Check last commitments",prev],
+    ["MREA focus",focusTip],
+    ["Agree commitments","Record the numbers they commit to and book the next session."]
+  ];
+  $("k-agenda").innerHTML=items.map(([h,b])=>`<li><b>${esc(h)}</b><span>${esc(b)}</span></li>`).join("");
+  $("k-hist").innerHTML = sess.length ? "<span>Previous sessions:</span>"+sess.slice(0,5).map(s=>`<span><b>${String(s.date).slice(0,10)}</b> · ${esc(s.focus||"")} · actual ${+s.actual?.conv||0} conv / ${+s.actual?.appt||0} appt / ${+s.actual?.deal||0} deals · committed ${+s.commit?.conv||0} / ${+s.commit?.appt||0} / ${+s.commit?.deal||0}${s.notes?" · "+esc(String(s.notes).slice(0,90)):""}</span>`).join("") : "<span>No coaching sessions recorded for this associate yet.</span>";
+}
+function readSession(){
+  const g=id=>{ const v=$(id).value; return v===""?0:Math.max(0,+v||0); };
+  return {agent:kAgent||"", date:$("k-date").value||todayISO(), next:$("k-next").value||"", focus:$("k-focus").value,
+    actual:{conv:g("k-a-conv"),appt:g("k-a-appt"),list:g("k-a-list"),deal:g("k-a-deal")},
+    commit:{conv:g("k-c-conv"),appt:g("k-c-appt"),list:g("k-c-list"),deal:g("k-c-deal")},
+    notes:$("k-notes").value.trim(), by:$("c-sname").value||"", at:new Date().toISOString()};
+}
+$("k-save").onclick=()=>{
+  const s=readSession(); if(!s.agent){ $("k-msg").textContent="Select an associate first."; return; }
+  if(db){ $("k-msg").textContent="Saving…"; api("capSave",{log:"coaching",rec:s}).then(j=>{ coachLog.push(j.rec); $("k-msg").textContent=`Session saved for ${s.agent}.`; render(); }).catch(e=>{$("k-msg").textContent=e.message;}); }
+  else { coachLog.push(s); $("k-msg").textContent="Saved in this browser only."; render(); }
+};
+$("k-mail").onclick=()=>{
+  const s=readSession(), first=(s.agent||"").split(" ")[0]||"there";
+  const dt=d=>d?new Date(d+"T00:00:00").toLocaleDateString("en-ZA",{weekday:"long",day:"numeric",month:"long"}):"to be confirmed";
+  $("c-subj").value=`${first}, your coaching commitments until ${dt(s.next)}`;
+  $("c-body").value=`Hi ${first}\n\nThank you for today's coaching session. Here is what we agreed.\n\nFocus: ${s.focus}\n\nYour commitments until our next session\n- Conversations: ${s.commit.conv}\n- Appointments: ${s.commit.appt}\n- Listings or mandates: ${s.commit.list}\n- Deals written: ${s.commit.deal}\n\n${s.notes?"Notes\n"+s.notes+"\n\n":""}Our next session is on ${dt(s.next)}. Please bring your actual numbers so we can compare them with these commitments.\n\nKind regards\n${$("c-sname").value||"Uhuru Matlhaji"}\n${$("c-srole").value||"MCTT | KW Edge"}`;
+  disarm(); $("c-msg").textContent="Coaching summary loaded. Check it, then send.";
+  $("compose").scrollIntoView({block:"start"});
+};
+
+// ---------- Report to OP ----------
+const P_="style=\"margin:0 0 10px\"";
+function tbl(head,rows){
+  if(!rows.length) return `<p ${P_}><i>None.</i></p>`;
+  return `<table style="border-collapse:collapse;width:100%;font-size:13px;margin:0 0 14px"><thead><tr>${head.map((h,i)=>`<th style="text-align:${i?"right":"left"};padding:6px 8px;background:#f3f4f6;border-bottom:1px solid #d3d7de;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#626b78">${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map((c,i)=>`<td style="text-align:${i?"right":"left"};padding:6px 8px;border-bottom:1px solid #e1e4e9">${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+}
+const H2=t=>`<h3 style="font-family:Arial,sans-serif;font-size:15px;margin:18px 0 8px;color:#1a2230;border-bottom:2px solid #b3121d;padding-bottom:4px">${esc(t)}</h3>`;
+const ttbl=(head,rows)=>rows.length?rows.map(r=>"- "+r.map((c,i)=>i?head[i]+": "+c:c).join(", ")).join("\n"):"- None";
+function buildOffice(all){
+  const act=all.filter(x=>x.cap>0), open=act.filter(x=>x.remaining>0);
+  const owed=open.reduce((s,x)=>s+x.remaining,0), paid=act.reduce((s,x)=>s+Math.min(x.ach,x.cap),0), proj=open.reduce((s,x)=>s+(x.projected-x.ach),0);
+  const cnt=s=>act.filter(x=>x.status===s).length;
+  const soon=open.filter(x=>x.monthsLeft<=3).sort((a,b)=>a.capDate-b.capDate);
+  const risk=open.filter(x=>x.status==="risk").sort((a,b)=>a.capDate-b.capDate||b.remaining-a.remaining);
+  const zero=open.filter(x=>x.ach<=0), stale=open.filter(x=>isStale(x.name)), pace=act.filter(x=>x.status==="pace"||x.status==="capped").sort((a,b)=>b.paidShare-a.paidShare);
+  const since=Date.now()-30*864e5;
+  const sess30=coachLog.filter(c=>new Date(c.date||c.at)>=since), mails30=commsLog.filter(c=>c.mode==="sent"&&new Date(c.at)>=since&&!String(c.agent).startsWith("OP report"));
+  const coached=new Set(sess30.map(c=>norm(c.agent))).size;
+  const recs=[];
+  if(soon.length) recs.push(`${soon.length} associates reset within 3 months and still owe ${R(soon.reduce((s,x)=>s+x.remaining,0))}. Prioritise coaching sessions with them this week.`);
+  if(zero.length) recs.push(`${zero.length} associates have no production in this cap cycle. Put them on the 30-day first deal plan and pair each with a productive agent.`);
+  if(stale.length) recs.push(`${stale.length} associates still working toward cap have not been coached in 30 days. Book them into the productivity coaching calendar.`);
+  if(risk.length) recs.push(`${risk.length} associates are at risk of not capping. Review their pipelines in Command and focus them on lead generation.`);
+  if(pace.length) recs.push(`Recognise the ${pace.length} associates who are capped or on pace at the next sales meeting.`);
+  const date=new Date().toLocaleDateString("en-ZA",{day:"numeric",month:"long",year:"numeric"});
+  const kpi=[["Still to collect",R(owed)],["Collected this cycle",R(paid)],["Projected at current pace",R(proj)],["Capped",`${cnt("capped")} of ${act.length}`],["On pace",String(cnt("pace"))],["At risk",String(cnt("risk"))]];
+  const row=x=>[x.name, x.capDateS, R(x.remaining), SLABEL[x.status], lastCoachOf(x.name)||"Never", lastMailOf(x.name)||"Never"];
+  const hd=["Associate","Cap date","Still owed","Status","Last coached","Last email"];
+  const html=`<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#1a2230">
+<p ${P_}>Good day</p><p ${P_}>Here is the KW Edge cap and production report as at ${date}, from the MAPP Cappers Report.</p>
+${H2("Summary")}<table style="border-collapse:collapse;width:100%;margin:0 0 6px"><tr>${kpi.map(([l,v])=>`<td style="padding:8px;border:1px solid #e1e4e9;vertical-align:top"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#626b78">${esc(l)}</div><div style="font-size:18px;font-weight:bold">${esc(v)}</div></td>`).join("")}</tr></table>
+${H2("Recommended actions")}${recs.length?`<ol style="margin:0 0 10px;padding-left:20px">${recs.map(r=>`<li style="margin-bottom:4px">${esc(r)}</li>`).join("")}</ol>`:`<p ${P_}>No urgent actions.</p>`}
+${H2("Caps resetting in the next 3 months")}${tbl(hd,soon.map(row))}
+${H2("At risk of not capping")}${tbl(hd,risk.slice(0,15).map(row))}
+${H2("Capped or on pace")}${tbl(["Associate","Cap date","Paid","Status"],pace.slice(0,15).map(x=>[x.name,x.capDateS,R(x.ach),SLABEL[x.status]]))}
+${H2("Coaching activity, last 30 days")}<p ${P_}>${sess30.length} coaching sessions with ${coached} associates, and ${mails30.length} production emails sent. ${zero.length} associates have not yet recorded a deal this cycle.</p>
+<p style="margin:18px 0 0">Kind regards<br>${esc($("c-sname").value||"Uhuru Matlhaji")}<br>${esc($("c-srole").value||"MCTT | KW Edge")}</p></div>`;
+  const text=`Good day\n\nHere is the KW Edge cap and production report as at ${date}, from the MAPP Cappers Report.\n\nSummary\n${kpi.map(([l,v])=>"- "+l+": "+v).join("\n")}\n\nRecommended actions\n${recs.map((r,i)=>(i+1)+". "+r).join("\n")||"- None"}\n\nCaps resetting in the next 3 months\n${ttbl(hd,soon.map(row))}\n\nAt risk of not capping\n${ttbl(hd,risk.slice(0,15).map(row))}\n\nCoaching activity, last 30 days\n${sess30.length} sessions with ${coached} associates, ${mails30.length} production emails sent.\n\nKind regards\n${$("c-sname").value||"Uhuru Matlhaji"}\n${$("c-srole").value||"MCTT | KW Edge"}`;
+  return {subject:`KW Edge cap and production report, ${date}`, html, text};
+}
+function buildAgent(x){
+  const t=tokens(x), sess=sessionsOf(x.name), mails=commsLog.filter(c=>norm(c.agent)===norm(x.name)&&c.mode==="sent").sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+  const date=new Date().toLocaleDateString("en-ZA",{day:"numeric",month:"long",year:"numeric"});
+  const facts=[["Status",SLABEL[x.status]],["Cap date",t.capDate],["Paid",`${t.paid} of ${t.cap} (${t.pct})`],["Cap year passed",t.elapsedPct],["Still owed",t.owed],["Deals still needed",t.deals],["Projected by cap date",R(x.projected)],["Candidate",x.cand?"Yes":"No"]];
+  let rec;
+  if(x.status==="capped") rec=`${t.first} has capped. Recommend recognition at the sales meeting and a Net a Million conversation about budget and leverage.`;
+  else if(x.status==="none") rec="No cap is set in MAPP for this associate. Confirm their status.";
+  else if(x.ach<=0) rec=`${t.first} has no production this cycle. Recommend the 30-day first deal plan, weekly coaching and pairing with a productive agent.`;
+  else if(x.status==="risk") rec=`${t.first} needs ${t.deals} deals in ${t.monthsLeft} months, faster than is realistic. Recommend weekly coaching focused on lead generation and a pipeline review in Command.`;
+  else if(x.status==="stretch") rec=`${t.first} is behind pace but can still cap with ${t.deals} deals by ${t.capDate}. Recommend fortnightly coaching focused on conversion.`;
+  else rec=`${t.first} is on pace. Recommend a stretch goal and monthly check-ins.`;
+  const sRows=sess.slice(0,5).map(s=>[String(s.date).slice(0,10), s.focus||"", `${+s.actual?.conv||0} / ${+s.actual?.appt||0} / ${+s.actual?.deal||0}`, `${+s.commit?.conv||0} / ${+s.commit?.appt||0} / ${+s.commit?.deal||0}`]);
+  const sHead=["Date","Focus","Actual conv / appt / deals","Committed conv / appt / deals"];
+  const notes=sess.filter(s=>s.notes).slice(0,3).map(s=>`${String(s.date).slice(0,10)}: ${s.notes}`);
+  const html=`<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#1a2230">
+<p ${P_}>Good day</p><p ${P_}>Here is a progress update on ${esc(x.name)} as at ${date}.</p>
+${H2("Cap position")}${tbl(["Measure","Value"],facts)}
+${H2("Recommendation")}<p ${P_}>${esc(rec)}</p>
+${H2("Coaching sessions")}${tbl(sHead,sRows)}${notes.length?`<p ${P_}><b>Recent notes</b><br>${notes.map(esc).join("<br>")}</p>`:""}
+${H2("Communication")}<p ${P_}>${mails.length} production emails sent${mails[0]?`, most recently on ${String(mails[0].at).slice(0,10)} ("${esc(mails[0].subject)}")`:""}.</p>
+<p style="margin:18px 0 0">Kind regards<br>${esc($("c-sname").value||"Uhuru Matlhaji")}<br>${esc($("c-srole").value||"MCTT | KW Edge")}</p></div>`;
+  const text=`Good day\n\nHere is a progress update on ${x.name} as at ${date}.\n\nCap position\n${facts.map(([l,v])=>"- "+l+": "+v).join("\n")}\n\nRecommendation\n${rec}\n\nCoaching sessions\n${ttbl(sHead,sRows)}${notes.length?"\n\nRecent notes\n"+notes.join("\n"):""}\n\nCommunication\n${mails.length} production emails sent.\n\nKind regards\n${$("c-sname").value||"Uhuru Matlhaji"}\n${$("c-srole").value||"MCTT | KW Edge"}`;
+  return {subject:`Progress update: ${x.name}, ${date}`, html, text};
+}
+function drawReport(all){
+  const scope=$("op-scope").value, x=currentAgent(all);
+  if(!$("op-to").value){ const saved=store.get("cap.op"); const op=directory.get("charmaine bulow"); $("op-to").value=saved||(op?op.e:""); }
+  if(!all.length){ $("op-prev").innerHTML="<p>No associates loaded yet.</p>"; return; }
+  const rep = scope==="agent" && x ? buildAgent(x) : buildOffice(all);
+  const key=scope+"|"+(scope==="agent"&&x?x.name:"");
+  if(key!==opKey){ opKey=key; $("op-subj").value=rep.subject; opArmed=null; $("op-send").textContent="Send report"; }
+  opHtml=rep.html; opText=rep.text; $("op-prev").innerHTML=rep.html;
+}
+async function sendReport(mode){
+  const to=$("op-to").value.trim(), cc=$("op-cc").value.split(/[,;\s]+/).filter(Boolean), subject=$("op-subj").value.trim();
+  const ok=a=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a);
+  if(!ok(to)){ $("op-msg").textContent="Add the OP's email address in To."; return; }
+  if(cc.some(a=>!ok(a))){ $("op-msg").textContent="One of the Cc addresses isn't valid."; return; }
+  store.set("cap.op",to);
+  if(mode==="sent"&&opArmed!==to){ opArmed=to; $("op-send").textContent="Confirm send to "+to; $("op-msg").textContent="Check the preview, then confirm."; return; }
+  opArmed=null; $("op-send").textContent="Send report";
+  if(!gmail){ $("op-msg").textContent=MAIL_OFF+" Use Copy report text or Download PDF instead."; return; }
+  const btns=[$("op-send"),$("op-draft")]; btns.forEach(b=>b.disabled=true); $("op-msg").textContent=mode==="sent"?"Sending…":"Saving draft…";
+  try{ const j=await api("capMail",{mail:{to,cc,subject,text:opText,html:opHtml,mode,from:$("c-sname").value,agent:"OP report · "+($("op-scope").value==="agent"?(cAgent||selected):"Market Centre"),tpl:"op-report"}}); commsLog.push(j.rec);
+    $("op-msg").textContent=mode==="sent"?`Report sent to ${to}.`:"Report saved as a Gmail draft.";
+  }catch(e){ $("op-msg").textContent=gmailErr(e); }
+  finally{ btns.forEach(b=>b.disabled=false); }
+}
+$("op-send").onclick=()=>sendReport("sent");
+$("op-draft").onclick=()=>sendReport("draft");
+$("op-scope").addEventListener("input",()=>{ opKey=""; render(); });
+["op-to","op-cc","op-subj"].forEach(id=>$(id).addEventListener("input",()=>{ opArmed=null; $("op-send").textContent="Send report"; }));
+$("op-copy").onclick=()=>{ try{ navigator.clipboard.writeText(opText).then(()=>{$("op-msg").textContent="Report text copied.";},()=>{$("op-msg").textContent="Copy was blocked. Select the preview and copy it.";}); }catch(e){ $("op-msg").textContent="Copy was blocked. Select the preview and copy it."; } };
+$("go-report").onclick=()=>{ $("op-scope").value="office"; opKey=""; render(); $("opreport").scrollIntoView({block:"start"}); };
+$("go-coach").onclick=()=>$("coach").scrollIntoView({block:"start"});
+
+// ---------- Agent comms: 10 MREA journey templates ----------
+const norm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," ").trim();
+let directory=new Map(), commsLog=[], gmail=null, gmailTried=false, cKey="", cTpl=null, cArmed=null, cAgent=null;
+function setDirectory(list){ directory=new Map(list.map(p=>[norm(p.n),p])); }
+function lastMailOf(name){ const n=norm(name); let best=""; commsLog.forEach(c=>{ if(norm(c.agent)===n&&c.mode==="sent"&&String(c.at)>best) best=String(c.at); }); return best.slice(0,10); }
+const SIG="\n\nKind regards\n{sender}\n{senderRole}";
+const TPL=[
+ {id:"cap-plan",k:"01",name:"Your cap plan",when:"Any associate still working toward cap",subject:"{first}, your plan to cap by {capDate}",
+  body:"Hi {first}\n\nI've put together your cap plan for this cycle. Here is where you stand and what it takes from here.\n\nWhere you are now\n- Paid toward your cap: {paid} of {cap} ({pct})\n- Still to go: {owed}\n- Time left: {monthsLeft} months, until {capDate}\n\nWhat it takes\n- {deals} more deals at about {perDeal} company dollar each, roughly one every {dealEvery} months\n- About {volume} in sales volume, or {gciIncl} in gross commission including VAT\n- At least {perMonth} company dollar a month from now on\n\nWhy it matters to you\nBefore you cap, you take home about {netPerDeal} on an average deal. Once you cap, the Market Centre split falls away and the same deal pays you about {postCapNet}.\n\nCan we book 30 minutes this week to turn these numbers into a weekly plan? Reply with a time that suits you."+SIG},
+ {id:"welcome",k:"02",name:"Start the MREA journey",when:"New associates and candidates",subject:"Welcome {first}: your Millionaire Real Estate Agent journey starts here",
+  body:"Hi {first}\n\nWelcome to the journey. At KW Edge we follow the path laid out in The Millionaire Real Estate Agent, and it has four stages:\n\n- Think a Million: set big goals and build the habits to match them\n- Earn a Million: lead generation and conversion, every working day\n- Net a Million: budget well and add leverage\n- Receive a Million: turn income into lasting wealth\n\nFor your first 90 days we focus on Earn a Million. That means three things:\n- Build a database of at least 100 people you know and load them into Command\n- Block three hours of lead generation every morning before anything else\n- Book your first appointment within 30 days and your first deal within 90\n\nYour current cap year runs until {capDate}. Capping means {deals} deals at the average deal size, and I want to help you get the first one on the board.\n\nLet's book a one-hour goal session to set your 1-3-5 goals and your economic model. Reply with two times that work for you."+SIG},
+ {id:"economic",k:"03",name:"Economic model",when:"Turning a goal into daily activity",subject:"{first}, your numbers worked backwards",
+  body:"Hi {first}\n\nThe Economic Model works backwards from the income you want to the activity it takes. Here it is using your cap goal for this cycle:\n\n- Company dollar still needed: {owed}\n- Deals needed: {deals}\n- Appointments needed: about {appts}, if one in three appointments becomes a deal\n- Conversations needed: about {convos}, if one in ten conversations becomes an appointment\n- Per week until {capDate}: about {weeklyConvos} conversations and {weeklyAppts} appointments\n\nThose conversion rates are a starting rule of thumb. Your own numbers matter more, so please track your conversations and appointments for the next two weeks and we'll replace them with yours.\n\nThe goal is simple: know exactly how many conversations stand between you and your next deal."+SIG},
+ {id:"leadgen",k:"04",name:"Lead generation model",when:"Building the database and daily habit",subject:"Your database is your business, {first}",
+  body:"Hi {first}\n\nThe agents who cap every year have one thing in common: a database they work every day. The Lead Generation Model gives us a simple system.\n\n- Met list: everyone you know. Aim for 100 names this week.\n- 8x8: every new contact gets 8 touches in 8 weeks so they remember you\n- 33 Touch: everyone in your database hears from you 33 times a year, through calls, notes, market updates and events\n- Time block: three hours of lead generation before noon, every working day\n\nYour action this week: add 100 names to Command and tag them Met or Have. I'm happy to sit with you for 30 minutes and set up the 8x8 and 33 Touch campaigns in Command so they run automatically.\n\nYou need about {weeklyConvos} conversations a week to stay on track for your cap by {capDate}. A working database makes that easy."+SIG},
+ {id:"behind",k:"05",name:"Close the gap",when:"Behind pace or at risk",subject:"{first}, let's close the gap to your cap",
+  body:"Hi {first}\n\nI'm checking in on your cap year. You've paid {paid} so far, which puts you about {gap} behind a steady pace to your cap on {capDate}.\n\nThe good news is that there is still time. From here you need {deals} deals, roughly one every {dealEvery} months, or about {volume} in sales volume.\n\nThree moves I'd suggest for the next 30 days:\n- Review every opportunity in your Command pipeline with me and pick the three most likely to close\n- Hold at least 10 lead generation conversations a day\n- Book two listing or buyer appointments a week\n\nCan we meet for 30 minutes this week to plan this together? Reply with a time and I'll make it work."+SIG},
+ {id:"stretch",k:"06",name:"Final stretch",when:"Cap date within 3 months",subject:"{monthsLeft} months to your cap date, {first}",
+  body:"Hi {first}\n\nYour cap cycle ends on {capDate}, about {monthsLeft} months from now. Only deals in this cycle count toward this cap.\n\n- Still to go: {owed}\n- That is about {deals} deals at the average deal size\n- Or one larger deal: at your commission rate a sale of about {volume} would do it\n\nWhat would help most right now:\n- A look at any deals already in progress so we can make sure nothing stalls\n- Calls to past clients and your sphere this week, asking who they know who is thinking of selling\n- A price review on any listings that have had no offers\n\nLet me know where you'd like support and I'll make time."+SIG},
+ {id:"onpace",k:"07",name:"On pace, raise the bar",when:"Ahead of pace",subject:"You're on pace to cap, {first}",
+  body:"Hi {first}\n\nWell done. You've paid {pct} of your cap with {elapsedPct} of your cap year gone, so you are on pace to cap before {capDate}.\n\nThis is the right moment to think bigger. In the MREA journey, agents who are consistently on pace start asking:\n- What would it take to cap two months earlier?\n- Which task could I hand to an assistant to free up more time for appointments?\n- Is my database growing every month?\n\nRemember, once you cap you take home about {postCapNet} on an average deal instead of {netPerDeal}.\n\nWould you be open to a 30-minute session to set a stretch goal for the rest of the year?"+SIG},
+ {id:"capped",k:"08",name:"Capped: Net a Million",when:"Associates who have capped",subject:"Congratulations on capping, {first}",
+  body:"Hi {first}\n\nCongratulations, you've capped for this cycle. That is a real achievement and the whole office should know about it.\n\nFrom now until {capDate} the Market Centre split no longer applies, so an average deal pays you about {postCapNet} instead of {netPerDeal}.\n\nThis is where the Net a Million stage starts:\n- Set a budget for your business and stick to it\n- Put a fixed share of every post-cap commission into savings or investment\n- Decide on your first piece of leverage, such as an assistant or a buyer's agent\n\nI'd also love you to share how you did it at a sales meeting. Your story could help another agent get there.\n\nShall we plan your next cap year together before it starts?"+SIG},
+ {id:"411",k:"09",name:"Weekly 4-1-1 accountability",when:"Ongoing weekly coaching",subject:"{first}, your weekly numbers and 4-1-1",
+  body:"Hi {first}\n\nLet's make your cap goal a weekly habit. The 4-1-1 breaks your goals into 4 weeks, 1 month and 1 year so you always know what this week needs.\n\nYour weekly targets until {capDate}:\n- Conversations: {weeklyConvos}\n- Appointments: {weeklyAppts}\n- Company dollar: about {perMonth} a month toward your cap\n\nEach Friday, please reply to this email with four numbers:\n- Conversations held\n- Appointments set\n- Listings or buyer agreements signed\n- Deals written\n\nI'll reply with one thing to focus on next week. Small weekly wins are how caps get made."+SIG},
+ {id:"first",k:"10",name:"30-day first deal plan",when:"No production yet this cycle",subject:"{first}, let's get your first deal this month",
+  body:"Hi {first}\n\nI'd like to help you get your first deal of this cap cycle on the board. Here is a simple 30-day plan.\n\nWeek 1: Build the list\n- Write down 100 people you know and load them into Command\n\nWeek 2: Start the conversations\n- Call 20 people a day and ask who they know who is thinking of buying or selling\n\nWeek 3: Get in front of people\n- Host an open house on a listing in the office\n- Book at least two buyer or seller appointments\n\nWeek 4: Convert\n- Follow up every lead within 24 hours\n- Write your first offer or sign your first mandate\n\nTo cap by {capDate} you need {deals} deals, and every cap starts with the first one. I can also pair you with an experienced agent in the office for support.\n\nCan we start with a 30-minute session this week?"+SIG}
+];
+function suggestTpl(x){
+  if(x.status==="capped") return "capped";
+  if(x.ach<=0) return (x.elapsed<0.25)?"welcome":"first";
+  if(x.monthsLeft<=3) return "stretch";
+  if(x.status==="pace") return "onpace";
+  if(x.status==="risk") return "behind";
+  return "cap-plan";
+}
+function tokens(x){
+  const w=waterfall(x.cdDeal,x.cand), months=Math.max(x.monthsLeft,0.5), weeks=Math.max(1,months*4.345);
+  const appts=x.deals*3, convos=appts*10;
+  const s=JSON.parse(store.get("cap.sender")||"null")||{};
+  return {first:x.name.split(" ")[0], cap:R(x.cap), capDate:x.capDate.toLocaleDateString("en-ZA",{day:"numeric",month:"long",year:"numeric"}),
+    monthsLeft:x.monthsLeft.toFixed(1), paid:R(x.ach), owed:R(x.remaining), pct:Math.round(x.paidShare*100)+"%", elapsedPct:Math.round(x.elapsed*100)+"%",
+    deals:String(x.deals), dealEvery:x.deals?(months/x.deals).toFixed(1):"–", perDeal:R(x.cdDeal), perMonth:R(x.monthlyCD), volume:R(x.volume),
+    gciIncl:R(x.gci*(1+A.vat/100)), netPerDeal:R(w.net), postCapNet:R(w.postCapNet), gap:R(Math.max(0,x.cap*x.elapsed-x.ach)),
+    appts:String(appts), convos:String(convos), weeklyConvos:String(Math.ceil(convos/weeks)), weeklyAppts:(appts/weeks).toFixed(1),
+    sender:$("c-sname").value||"Uhuru Matlhaji", senderRole:$("c-srole").value||"MCTT | KW Edge"};
+}
+const fillT=(s,t)=>s.replace(/\{(\w+)\}/g,(m,k)=>k in t?t[k]:m);
+function currentAgent(all){ return all.find(a=>a.name===selected) || all.find(a=>a.cap>0&&a.remaining>0); }
+function drawCompose(all){
+  const x=currentAgent(all);
+  if(!x){ $("c-who").textContent=""; $("c-tpls").innerHTML=""; return; }
+  const sug=suggestTpl(x);
+  if(cAgent!==x.name){ cAgent=x.name; cTpl=sug; }
+  $("c-tpls").innerHTML=TPL.map(t=>`<button type="button" class="tpl" role="radio" aria-checked="${t.id===cTpl}" data-t="${t.id}"><span class="k">${t.k}</span><b>${esc(t.name)}</b><small>${t.id===sug?'<span class="sug">Suggested · </span>':""}${esc(t.when)}</small></button>`).join("");
+  const key=x.name+"|"+cTpl;
+  const dir=directory.get(norm(x.name));
+  if(key!==cKey){ cKey=key; fillCompose(x); }
+  if(!$("c-to").value && dir) $("c-to").value=dir.e;
+  $("c-who").textContent = `To ${x.name}${dir?"":" · no email on file, type one in"}`;
+  const hist=commsLog.filter(c=>norm(c.agent)===norm(x.name)).sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,5);
+  $("c-hist").innerHTML = hist.length ? "<span>Recent emails to "+esc(x.name.split(" ")[0])+":</span>"+hist.map(c=>`<span><b>${String(c.at).slice(0,10)}</b> · ${esc(c.subject)} · ${c.mode==="sent"?"sent":"saved as draft"}</span>`).join("") : "<span>No emails logged for this associate yet.</span>";
+  if(gmailTried && !gmail){ $("c-send").disabled=true; $("c-draft").disabled=true; $("c-msg").textContent=MAIL_OFF; }
+}
+function fillCompose(x){
+  const t=TPL.find(t=>t.id===cTpl)||TPL[0], tk=tokens(x), dir=directory.get(norm(x.name));
+  $("c-to").value=dir?dir.e:""; $("c-subj").value=fillT(t.subject,tk); $("c-body").value=fillT(t.body,tk);
+  disarm(); $("c-msg").textContent="";
+}
+function bodyHtml(text){
+  const blocks=text.split(/\n{2,}/);
+  return '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#1a2230">'+blocks.map(b=>{
+    const lines=b.split("\n"); let out="", list=[];
+    const flush=()=>{ if(list.length){ out+="<ul style=\"margin:4px 0 12px;padding-left:20px\">"+list.map(l=>"<li>"+esc(l)+"</li>").join("")+"</ul>"; list=[]; } };
+    let para=[];
+    const flushP=()=>{ if(para.length){ out+="<p style=\"margin:0 0 10px\">"+para.map(esc).join("<br>")+"</p>"; para=[]; } };
+    lines.forEach(l=>{ if(/^- /.test(l)){ flushP(); list.push(l.slice(2)); } else { flush(); para.push(l); } });
+    flushP(); flush(); return out; }).join("")+"</div>";
+}
+function disarm(){ cArmed=null; $("c-send").textContent="Send email"; }
+const MAIL_OFF="Sending is waiting for Gmail permission. Open the studio's Apps Script, choose Run, then Review permissions and allow Gmail.";
+function gmailErr(e){
+  if(e&&e.message&&!e.code) return e.message+" Nothing was sent.";
+  const c=e&&e.code;
+  if(c==="server_not_connected"||c==="server_not_found") return "Gmail isn't connected. Connect it in claude.ai under Settings, Connectors, then try again.";
+  if(c==="needs_reauth") return "Gmail needs you to sign in again. Reconnect it in claude.ai connector settings.";
+  if(c==="not_granted"||c==="consent_required"||c==="approval_required") return "Gmail wasn't allowed for this page. Choose Send again and allow Gmail when asked.";
+  if(c==="rate_limited") return "Too many emails in a short time. Wait a minute and try again.";
+  return "The email didn't go through"+(e&&e.message?": "+e.message:".")+" Nothing was sent.";
+}
+async function deliver(mode){
+  const to=$("c-to").value.trim(), subject=$("c-subj").value.trim(), body=$("c-body").value;
+  const cc=$("c-cc").value.split(/[,;\s]+/).map(s=>s.trim()).filter(Boolean);
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)){ $("c-msg").textContent="Add a valid email address in To."; return; }
+  if(cc.some(a=>!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a))){ $("c-msg").textContent="One of the Cc addresses isn't valid."; return; }
+  if(!subject||!body.trim()){ $("c-msg").textContent="Add a subject and a message."; return; }
+  if(mode==="sent" && cArmed!==to){ cArmed=to; $("c-send").textContent="Confirm send to "+to; $("c-msg").textContent="Check the message, then confirm."; return; }
+  disarm();
+  if(!gmail){ $("c-msg").textContent=MAIL_OFF; return; }
+  const btns=[$("c-send"),$("c-draft")]; btns.forEach(b=>b.disabled=true); $("c-msg").textContent=mode==="sent"?"Sending…":"Saving draft…";
+  try{
+    const j=await api("capMail",{mail:{to,cc,subject,text:body,html:bodyHtml(body),mode,from:$("c-sname").value,agent:(cAgent||selected||""),tpl:cTpl}});
+    $("c-msg").textContent = mode==="sent" ? `Sent to ${to}.` : `Saved as a draft in your Gmail.`;
+    commsLog.push(j.rec); render();
+  }catch(e){ $("c-msg").textContent=gmailErr(e); }
+  finally{ btns.forEach(b=>b.disabled=false); }
+}
+$("c-tpls").addEventListener("click",e=>{ const b=e.target.closest(".tpl"); if(!b) return; cTpl=b.dataset.t; cKey=""; render(); });
+$("c-send").onclick=()=>deliver("sent");
+$("c-draft").onclick=()=>deliver("draft");
+$("c-reset").onclick=()=>{ cKey=""; render(); };
+["c-to","c-subj","c-body","c-cc"].forEach(id=>$(id).addEventListener("input",disarm));
+["c-sname","c-srole"].forEach(id=>$(id).addEventListener("input",()=>store.set("cap.sender",JSON.stringify({name:$("c-sname").value,role:$("c-srole").value}))));
+(function(){ const s=JSON.parse(store.get("cap.sender")||"null")||{}; $("c-sname").value=s.name||"Uhuru Matlhaji"; $("c-srole").value=s.role||"MCTT | KW Edge"; })();
+function importDirectory(rows,h){
+  const iN=h.indexOf("associate"), iE=h.findIndex(c=>c.includes("associate email")), iS=h.findIndex(c=>c.includes("start date")), iR=h.findIndex(c=>c==="roles");
+  const list=rows.slice(1).map(r=>({n:String(r[iN]||"").replace(/\s+/g," ").trim(), e:String(r[iE]||"").trim(), s:iS>=0?r[iS]:"", r:iR>=0?r[iR]:""})).filter(p=>p.n&&p.e);
+  if(!list.length) return fail("No associate emails found in that file.");
+  if(db) api("capPut",{key:"associates",value:{list, updatedAt:new Date().toISOString(), source:"Associate Report CSV", count:list.length}}).then(()=>{ setDirectory(list); $("imp-msg").textContent=`Updated ${list.length} associate email addresses.`; render(); }).catch(e=>fail(e.message));
+  else { setDirectory(list); $("imp-msg").textContent=`Loaded ${list.length} email addresses in this browser.`; render(); }
+}
+
+// ---------- Recruitment comparison ----------
+const AG_DEF=[
+  {id:"kw",name:"KW Edge",kw:true,cap:140000,monthly:0},
+  {id:"ex1",name:"Example: 50/50 split, no cap",split:50,cap:0,fee:0,monthly:0},
+  {id:"ex2",name:"Example: 60/40 split, no cap",split:40,cap:0,fee:0,monthly:0},
+  {id:"ex3",name:"Example: 70/30 split + 6% franchise fee, no cap",split:30,cap:0,fee:6,monthly:0},
+  {id:"ex4",name:"Example: desk-fee model, 95% to agent",split:5,cap:0,fee:0,monthly:6000}
+];
+const clone=o=>JSON.parse(JSON.stringify(o));
+let agencies=clone(AG_DEF), prospects=[], agTimer=null, pitchText="";
+
+function readP(){
+  const deals=Math.max(1,Math.round(+$("p-deals").value||1)), price=+$("p-price").value||0, comm=+$("p-comm").value||0, ov=+$("p-gci").value||0;
+  return {name:$("p-name").value.trim(), agency:$("p-agency").value, deals, price, comm, gciOv:ov, gci: ov>0?ov:deals*price*comm/100, cand:$("p-cand").checked};
+}
+// Deal-by-deal so a cap on the agency share is applied at the right deal
+function runModel(m,P){
+  const split=(m.kw?A.split:+m.split||0)/100, feePct=(m.kw?A.roy:+m.fee||0)/100;
+  const per=P.gci/P.deals; let capLeft=(+m.cap>0)?+m.cap:Infinity, fees=0, co=0, agent=0, capDeal=null;
+  for(let i=0;i<P.deals;i++){
+    let x=per;
+    if(m.kw&&P.cand){ const pc=x*A.pc/100; fees+=pc; x-=pc; }
+    const f=x*feePct; fees+=f; x-=f;
+    const c=Math.min(x*split,capLeft); capLeft-=c; co+=c; agent+=x-c;
+    if(capLeft<=0.005&&capDeal===null) capDeal=i+1;
+  }
+  const desk=(+m.monthly||0)*12, paye=agent*A.paye/100, net=agent-paye-desk;
+  return {fees,co,desk,agent,paye,net,capDeal};
+}
+function renderRecruit(){
+  const sel=$("p-agency"), cur=sel.value;
+  const opts=agencies.filter(a=>!a.kw).map(a=>`<option value="${esc(a.id)}">${esc(a.name)}</option>`).join("");
+  if(sel.dataset.opts!==opts){ sel.innerHTML=opts; sel.dataset.opts=opts; if(agencies.some(a=>a.id===cur&&!a.kw)) sel.value=cur; }
+  const P=readP();
+  $("p-gci-out").textContent=R(P.gci);
+  $("p-gci-note").textContent=P.gciOv?"Using the GCI you entered":`${P.deals} deals × ${R(P.price)} × ${P.comm}%`;
+  const res=agencies.map(a=>({a,r:runModel(a,P)}));
+  const kw=res.find(x=>x.a.kw), cu=res.find(x=>x.a.id===P.agency)||res.find(x=>!x.a.kw);
+  if(!kw||!cu){ $("r-tiles").innerHTML=""; return; }
+  const diff=kw.r.net-cu.r.net, who=P.name||"This agent";
+  $("r-tiles").innerHTML=[
+    [R(cu.r.net),"Take-home now at "+cu.a.name],
+    [R(kw.r.net),"Take-home at KW Edge"+(P.cand?" as a candidate":"")],
+    [(diff>=0?"+":"–")+R(Math.abs(diff)),"Difference per year"],
+    [(diff>=0?"+":"–")+R(Math.abs(diff)/12),"Difference per month"],
+    [kw.r.capDeal?"Deal "+kw.r.capDeal+" of "+P.deals:"Not reached","When they would cap at KW Edge"]
+  ].map(([b,s])=>`<div class="tile"><b>${b}</b><span>${esc(s)}</span></div>`).join("");
+  // table
+  document.querySelector("#r-tbl tbody").innerHTML=res.map(({a,r})=>{
+    const d=r.net-cu.r.net;
+    return `<tr class="${a.kw?"kw":""} ${a===cu.a?"cur":""}"><td>${esc(a.name)}${a===cu.a?' <span class="pill s-none">Current</span>':""}</td><td>${R(r.fees)}</td><td>${R(r.co)}${r.capDeal?` <span class="pill s-capped">capped</span>`:""}</td><td>${R(r.desk)}</td><td>${R(r.agent)}</td><td>${R(r.paye)}</td><td><b>${R(r.net)}</b></td><td class="${d>0?"up":d<0?"down":""}">${a===cu.a?"–":(d>=0?"+":"–")+R(Math.abs(d))}</td></tr>`;}).join("");
+  // chart: horizontal bars
+  const W=640,rowH=34,pl=230,pr=96,H=res.length*rowH+12, max=Math.max(1,...res.map(x=>x.r.net));
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Annual take-home by agency">`;
+  res.forEach(({a,r},i)=>{ const y=6+i*rowH, w=Math.max(0,(W-pl-pr)*Math.max(0,r.net)/max);
+    const nm=a.name.length>34?a.name.slice(0,33)+"…":a.name;
+    s+=`<text x="${pl-8}" y="${y+rowH/2+4}" text-anchor="end">${esc(nm)}</text><rect x="${pl}" y="${y+6}" width="${w}" height="${rowH-14}" rx="3" fill="${a.kw?"var(--accent)":a===cu.a?"var(--muted)":"var(--bar)"}"><title>${esc(a.name)}: ${R(r.net)}</title></rect><text x="${pl+w+6}" y="${y+rowH/2+4}">${R(r.net)}</text>`; });
+  $("r-chart").innerHTML=s+"</svg>";
+  // pitch
+  const first=who.split(" ")[0];
+  if(diff>0){
+    pitchText=`${who} closes about ${P.deals} deals a year, roughly ${R(P.gci)} in commission excluding VAT. At ${cu.a.name} that leaves about ${R(cu.r.net)} after fees and PAYE. On the same production at KW Edge, ${first} would take home about ${R(kw.r.net)}: ${R(diff)} more a year, or ${R(diff/12)} a month.`+(kw.r.capDeal?` The Market Centre split stops once ${R(kw.a.cap)} is paid, which happens around deal ${kw.r.capDeal}. Every deal after that pays no split.`:"");
+  } else {
+    pitchText=`On ${P.deals} deals a year (${R(P.gci)} GCI excl. VAT), ${who} would take home about ${R(Math.abs(diff))} less at KW Edge than at ${cu.a.name}. At this production the cap is ${kw.r.capDeal?"reached late":"not reached"}, so lead with growth, training and lead generation rather than the split.`;
+  }
+  $("r-pitch").textContent=pitchText;
+}
+function drawAgTable(){
+  document.querySelector("#ag-tbl tbody").innerHTML=agencies.map((a,i)=>`<tr data-i="${i}">
+    <td>${a.kw?"<b>KW Edge</b>":`<input data-f="name" type="text" value="${esc(a.name)}" aria-label="Agency name">`}</td>
+    <td>${a.kw?A.split+"% from Cap tracking":`<input data-f="split" type="number" min="0" max="100" step="1" value="${a.split}" aria-label="${esc(a.name)} agency share">`}</td>
+    <td><input data-f="cap" type="number" min="0" step="1000" value="${a.cap}" aria-label="${esc(a.name)} cap"></td>
+    <td>${a.kw?A.roy+"% royalty"+(A.pc?` (+${A.pc}% PC for candidates)`:""):`<input data-f="fee" type="number" min="0" max="99" step="0.5" value="${a.fee}" aria-label="${esc(a.name)} fees before split">`}</td>
+    <td><input data-f="monthly" type="number" min="0" step="100" value="${a.monthly}" aria-label="${esc(a.name)} monthly fees"></td>
+    <td>${a.kw?"":`<button type="button" data-del="${i}">Remove</button>`}</td></tr>`).join("");
+}
+function saveAgencies(){ clearTimeout(agTimer); agTimer=setTimeout(()=>{ if(db) api("capPut",{key:"agencies",value:{list:agencies}}).catch(e=>busy(e.message)); else store.set("cap.agencies",agencies); },600); }
+document.querySelector("#ag-tbl tbody").addEventListener("input",e=>{ const f=e.target.dataset.f; if(!f) return; const i=+e.target.closest("tr").dataset.i; agencies[i][f]= f==="name"?e.target.value:(+e.target.value||0); saveAgencies(); renderRecruit(); });
+document.querySelector("#ag-tbl tbody").addEventListener("click",e=>{ const d=e.target.dataset.del; if(d===undefined) return; agencies.splice(+d,1); saveAgencies(); drawAgTable(); renderRecruit(); });
+$("ag-add").onclick=()=>{ agencies.push({id:"ag"+Date.now().toString(36),name:"New agency",split:40,cap:0,fee:0,monthly:0}); saveAgencies(); drawAgTable(); renderRecruit(); };
+$("ag-reset").onclick=()=>{ agencies=clone(AG_DEF); saveAgencies(); drawAgTable(); renderRecruit(); };
+["p-name","p-agency","p-deals","p-price","p-comm","p-gci","p-cand"].forEach(id=>$(id).addEventListener("input",renderRecruit));
+$("r-copy").onclick=()=>{ const done=()=>{$("r-copy-msg").textContent="Copied";}; const fallback=()=>{ const r=document.createRange(); r.selectNodeContents($("r-pitch")); const s=getSelection(); s.removeAllRanges(); s.addRange(r); $("r-copy-msg").textContent="Selected. Press Ctrl+C to copy."; };
+  try{ navigator.clipboard.writeText(pitchText).then(done,fallback); }catch(e){ fallback(); } };
+
+// saved prospects
+function drawProspects(){
+  if(!prospects.length){ $("p-list").innerHTML='<p class="note" style="margin:0">No saved prospects yet. Fill in a prospect above and choose Save prospect.</p>'; return; }
+  $("p-list").innerHTML=prospects.slice().sort((a,b)=>String(b.savedAt).localeCompare(String(a.savedAt))).map(p=>{
+    const ag=agencies.find(a=>a.id===p.agency); 
+    return `<div class="prow" data-id="${esc(p.id)}"><div><b>${esc(p.name)}</b><div class="meta">${esc(ag?ag.name:"Agency removed")} · ${p.deals} deals · ${R(p.gci)} GCI · saved ${String(p.savedAt).slice(0,10)}</div></div><div class="acts"><button type="button" data-act="load">Open</button><button type="button" data-act="del">Delete</button></div></div>`;}).join("");
+}
+$("p-save").onclick=()=>{
+  const P=readP(); if(!P.name){ $("p-msg").textContent="Add the prospect's name first."; $("p-name").focus(); return; }
+  const old=prospects.find(p=>p.name.toLowerCase()===P.name.toLowerCase());
+  const rec={...P, id: old?old.id:"p"+Date.now().toString(36), savedAt:new Date().toISOString()};
+  if(db){ $("p-msg").textContent="Saving…"; api("capSave",{log:"prospects",rec}).then(j=>{ prospects=prospects.filter(p=>p.id!==j.rec.id).concat(j.rec); drawProspects(); $("p-msg").textContent=`Saved ${P.name}.`; }).catch(e=>{$("p-msg").textContent=e.message;}); }
+  else { prospects=prospects.filter(p=>p.id!==rec.id).concat(rec); store.set("cap.prospects",prospects); drawProspects(); $("p-msg").textContent=`Saved ${P.name} in this browser.`; }
+};
+$("p-list").addEventListener("click",e=>{
+  const act=e.target.dataset.act; if(!act) return; const row=e.target.closest(".prow"), id=row.dataset.id, p=prospects.find(x=>x.id===id); if(!p) return;
+  if(act==="load"){ $("p-name").value=p.name; $("p-deals").value=p.deals; $("p-price").value=p.price; $("p-comm").value=p.comm; $("p-gci").value=p.gciOv||""; $("p-cand").checked=!!p.cand; if(agencies.some(a=>a.id===p.agency)) $("p-agency").value=p.agency; renderRecruit(); $("p-name").scrollIntoView({block:"center"}); }
+  if(act==="del"){ if(e.target.dataset.confirm!=="1"){ e.target.dataset.confirm="1"; e.target.textContent="Confirm delete"; return; }
+    if(db) api("capDel",{log:"prospects",id}).then(()=>{ prospects=prospects.filter(x=>x.id!==id); drawProspects(); }).catch(e=>busy(e.message)); else { prospects=prospects.filter(x=>x.id!==id); store.set("cap.prospects",prospects); drawProspects(); } }
+});
+function recruitConnect(){
+  if(!db){ const la=store.get("cap.agencies"); if(Array.isArray(la)&&la.length) agencies=la; prospects=store.get("cap.prospects")||[]; drawAgTable(); drawProspects(); renderRecruit(); return; }
+  drawAgTable(); drawProspects(); renderRecruit();
+}
+// tabs
+function showTab(which){ const r=which==="recruit"; $("tab-cap").hidden=r; $("tab-recruit").hidden=!r; $("t-cap").setAttribute("aria-selected",String(!r)); $("t-recruit").setAttribute("aria-selected",String(r)); try{ history.replaceState(null,"",r?"#recruit":"#cap"); }catch(e){} if(r){ drawAgTable(); renderRecruit(); } }
+$("t-cap").onclick=()=>showTab("cap"); $("t-recruit").onclick=()=>showTab("recruit");
+
+drawAgTable(); drawProspects();
+syncInputs(); drawSync();
+// ---------- sign-in, refresh, PDF ----------
+function showGate(){ $("app").hidden=true; $("gate").hidden=false; setTimeout(()=>$("pin").focus(),50); }
+function showApp(){ $("gate").hidden=true; $("app").hidden=false; render(); connect().then(recruitConnect); if(location.hash==="#recruit") showTab("recruit"); }
+$("login").addEventListener("submit",e=>{ e.preventDefault(); $("loginErr").textContent=""; $("loginBtn").disabled=true;
+  api("login",{pin:$("pin").value}).then(j=>{ setTok(j.token); $("pin").value=""; showApp(); }).catch(er=>{ $("loginErr").textContent=er.message; }).finally(()=>{ $("loginBtn").disabled=false; }); });
+$("signOut").onclick=()=>{ api("logout").catch(()=>{}); setTok(null); db=null; showGate(); };
+$("refresh").onclick=()=>{ busy("Refreshing…"); connect().then(()=>busy("Up to date.")); };
+function winAnsi(t){ return String(t).replace(/[\u2010-\u2015\u2212]/g,"-").replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"').replace(/\u2026/g,"...").replace(/[\u00A0\u202F]/g," ").replace(/[^\x09\x0A\x0D\x20-\x7E\u00A1-\u00FF\u2022]/g,""); }
+function loadJsPdf(){ return window.jspdf ? Promise.resolve(window.jspdf) : new Promise((ok,no)=>{ const sc=document.createElement("script"); sc.src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"; sc.onload=()=>ok(window.jspdf); sc.onerror=()=>no(new Error("Could not load the PDF tool. Check your connection.")); document.head.appendChild(sc); }); }
+$("op-pdf").onclick=()=>{ $("op-msg").textContent="Preparing PDF…";
+  loadJsPdf().then(({jsPDF})=>{
+    const doc=new jsPDF({unit:"pt",format:"a4"}), W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=48; let y=M;
+    doc.setFillColor(179,18,29); doc.rect(0,0,W,8,"F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(16); doc.text(winAnsi($("op-subj").value||"Cap report"),M,y+10,{maxWidth:W-2*M}); y+=34;
+    doc.setFontSize(10.5);
+    const heads=new Set(["Summary","Recommended actions","Caps resetting in the next 3 months","At risk of not capping","Coaching activity, last 30 days","Cap position","Recommendation","Coaching sessions","Recent notes","Communication"]);
+    opText.split("\n").forEach(line=>{
+      const head=heads.has(line.trim());
+      doc.setFont("helvetica",head?"bold":"normal"); doc.setFontSize(head?12:10.5);
+      const parts=line.trim()?doc.splitTextToSize(winAnsi(line),W-2*M):[""];
+      if(head) y+=6;
+      parts.forEach(p=>{ if(y>H-M){ doc.addPage(); y=M; } doc.text(p,M,y); y+=head?16:14; });
+    });
+    const pages=doc.getNumberOfPages(); for(let i=1;i<=pages;i++){ doc.setPage(i); doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(120); doc.text(`KW Edge Cap Planner · page ${i} of ${pages}`,M,H-24); doc.setTextColor(0); }
+    doc.save(($("op-subj").value||"cap-report").replace(/[^\w ,-]+/g,"").trim().replace(/\s+/g,"-").slice(0,80)+".pdf");
+    $("op-msg").textContent="PDF downloaded.";
+  }).catch(e=>{ $("op-msg").textContent=e.message; }); };
+if(token) showApp(); else showGate();
+</script>
+
+</body></html>
