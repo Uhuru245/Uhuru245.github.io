@@ -90,6 +90,7 @@
   // ---------- library ----------
   function openLibrary() {
     show('vLib'); $('keyWarn').hidden = keySet !== false;
+    oneCall('oneStatus');
     post('status').then(function (s) { keySet = s.keySet; $('keyWarn').hidden = keySet !== false; }).catch(function () {});
     var list = $('libList'); list.innerHTML = ''; list.appendChild(h('p', { class: 'empty', text: 'Loading your trainings...' }));
     var draft = ls.get('studio.draft');
@@ -106,6 +107,37 @@
       });
     }).catch(function (err) { list.innerHTML = ''; list.appendChild(h('p', { class: 'empty', text: err.message })); });
   }
+  // ---------- smart 1-on-1 bookings ----------
+  function oneDraw(st) {
+    $('oneErr').textContent = '';
+    var pill = $('onePill'); pill.className = 'pill ' + (st.on ? st.mode : ''); pill.textContent = !st.on ? 'Off' : st.mode === 'live' ? 'Live' : 'Test mode';
+    $('oneState').textContent = !st.on ? 'Off. Turn it on to start watching your bookings.' : st.mode === 'live' ? 'Live: agents receive the emails.' : 'On in test mode: every email comes only to you.';
+    $('oneOn').hidden = st.on; $('oneOff').hidden = !st.on; $('oneLive').hidden = !st.on || st.mode === 'live'; $('oneTest').hidden = false;
+    $('oneLive').textContent = 'Go live'; if (st.on && st.mode === 'live') { $('oneLive').hidden = false; $('oneLive').textContent = 'Back to test mode'; }
+    var list = $('oneList'); list.innerHTML = '';
+    (st.sessions || []).slice(0, 12).forEach(function (x) {
+      var marks = [['Booked', x.booked], ['Day before', x.dayBefore], ['2 hours', x.soon], ['After', x.after], ['Week', x.week]];
+      list.appendChild(h('div', { class: 'sess' }, [
+        h('div', {}, [h('b', { text: x.name + (x.status === 'Cancelled' ? ' (cancelled)' : '') }), h('span', { class: 't', text: x.start + (x.topics && x.topics.length ? ' · ' + x.topics.join(', ') : ' · no prep form yet') }), x.goal ? h('span', { class: 't', style: 'display:block', text: 'Goal: ' + x.goal }) : null]),
+        h('div', { class: 'm' }, marks.map(function (m) { var done = m[1] && m[1] !== 'skipped' && m[1] !== 'failed'; return h('i', { class: done ? 'y' : '', title: m[1] || 'not yet', text: m[0] }); }))]));
+    });
+    if (st.on && !(st.sessions || []).length) list.appendChild(h('p', { class: 'note', text: 'No bookings seen yet. New bookings show here within 15 minutes.' }));
+  }
+  function oneCall(action, extra, btn) {
+    if (btn) btn.disabled = true; $('oneErr').textContent = '';
+    return post(action, extra || {}, 90).then(function (j) { if (j.sessions) oneDraw(j); return j; })
+      .catch(function (e) { $('oneErr').textContent = /permission|authori/i.test(e.message) ? 'The studio needs your permission for Calendar and email first. Open the Smart Agent Studio project in Apps Script and approve it.' : e.message; })
+      .then(function (j) { if (btn) btn.disabled = false; return j; });
+  }
+  $('oneOn').onclick = function () { oneCall('oneSetup', { on: true }, this); };
+  $('oneOff').onclick = function () { oneCall('oneSetup', { on: false }, this); };
+  $('oneLive').onclick = function () {
+    var live = this.textContent === 'Go live';
+    if (live && !confirm('Go live? From now on agents who book "I Help You To Win" receive these emails directly from you.')) return;
+    oneCall('oneMode', { mode: live ? 'live' : 'test' }, this);
+  };
+  $('oneTest').onclick = function () { var b = this; oneCall('oneTest', {}, b).then(function (j) { if (j && j.sent) $('oneErr').textContent = 'Sent 5 sample emails to ' + j.to + '. Check your inbox.'; }); };
+
   function load(id) {
     $('libList').prepend(h('p', { class: 'note', text: 'Opening...' }));
     post('load', { id: id }).then(function (j) { T = j.training; T.id = id; markSaved(T.updated); openWork(); }).catch(function (err) { alert(err.message); });

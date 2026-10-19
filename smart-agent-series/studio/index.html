@@ -56,6 +56,18 @@
       <button class="btn primary" type="submit" id="keyBtn">Test and save the key</button>
     </form>
     <div id="libList" class="lib"></div>
+    <section class="card one" id="oneBox" aria-labelledby="oneH">
+      <div class="row-between"><div><h2 id="oneH">Smart 1-on-1 bookings</h2><p class="sub" id="oneState">Checking...</p></div><span class="pill" id="onePill"></span></div>
+      <p class="note">Agents fill a one-minute form on www.mret.co.za/one-on-one/ and book a slot. For every booking of "I Help You To Win", the studio emails them: when they book, the day before, two hours before, after the session and a week later. In test mode every email comes only to you, marked [TEST - ONE-ON-ONE].</p>
+      <div class="onebtns">
+        <button class="btn primary small" type="button" id="oneOn">Turn on</button>
+        <button class="btn small" type="button" id="oneTest">Email me the 5 sample emails</button>
+        <button class="btn small" type="button" id="oneLive">Go live</button>
+        <button class="btn small ghost" type="button" id="oneOff">Turn off</button>
+      </div>
+      <p class="err" id="oneErr" aria-live="polite"></p>
+      <div id="oneList"></div>
+    </section>
   </section>
 
   <!-- feed -->
