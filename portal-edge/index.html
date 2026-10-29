@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Portal Edge · www.mret.co.za</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#14202b">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+html{-webkit-text-size-adjust:100%;overflow-x:clip}body{margin:0}[hidden]{display:none!important}
+:root{
+  --chrome:#14202b; --chrome-2:#1f2d3a; --chrome-ink:#f1f4f7; --chrome-muted:#9fb0bf;
+  --bg:#f2f4f6; --surface:#fff; --surface-2:#f7f9fa; --ink:#1a2430; --muted:#5f6b78; --line:#e0e5ea; --line-2:#cfd6dd;
+  --accent:#0b6e8a; --accent-ink:#fff; --accent-soft:#e3f2f6;
+  --good:#1d7a4c; --good-soft:#e3f3ea; --warn:#93600a; --warn-soft:#fbf0db; --bad:#b3261e; --bad-soft:#fbe4e2;
+  --shadow:0 1px 2px rgba(20,24,31,.06);
+  --f-display:"Archivo",system-ui,sans-serif; --f-body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --chrome:#0a1016; --chrome-2:#15202a; --chrome-ink:#eef2f5; --chrome-muted:#93a3b2;
+  --bg:#0f151b; --surface:#16202a; --surface-2:#1b2631; --ink:#e4eaf0; --muted:#97a5b3; --line:#26323d; --line-2:#33414e;
+  --accent:#4cb8d6; --accent-ink:#06202a; --accent-soft:#143341;
+  --good:#5cc690; --good-soft:#163024; --warn:#e3b05a; --warn-soft:#382b14; --bad:#f08a82; --bad-soft:#3b1d1b; --shadow:none; color-scheme:dark}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--f-display);margin:0;letter-spacing:-.005em;text-wrap:balance}
+h1{font-size:1.55rem;font-weight:700}h2{font-size:1.05rem;font-weight:600}h3{font-size:.95rem;font-weight:600}
+a{color:var(--accent)}
+.appbar{background:var(--chrome);color:var(--chrome-ink);padding:0 max(16px,env(safe-area-inset-left))}
+.appbar-in{max-width:1240px;margin:0 auto}
+.brandrow{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 0 8px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.mark{font-family:var(--f-display);font-weight:800;font-size:.78rem;letter-spacing:.06em;background:var(--accent);color:#fff;padding:6px 8px;border-radius:3px;line-height:1}
+.brand b{font-family:var(--f-display);font-weight:600}.brand span{color:var(--chrome-muted);font-size:.9rem}
+.toplinks{display:flex;align-items:center;gap:2px;flex-wrap:wrap;justify-content:flex-end}
+.toplinks a,.toplinks button{font:600 .82rem var(--f-body);color:var(--chrome-muted);background:none;border:1px solid transparent;border-radius:999px;padding:6px 10px;text-decoration:none;cursor:pointer;min-height:34px;display:inline-flex;align-items:center;gap:6px}
+.toplinks a:hover,.toplinks button:hover{color:var(--chrome-ink);border-color:var(--chrome-2)}
+.seal{width:28px;height:28px;color:#E8C873;flex:none}
+.sync{font-size:.82rem;color:var(--chrome-muted);display:flex;gap:8px;align-items:baseline;padding-bottom:6px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--chrome-muted);flex:none}.dot.ok{background:#4cc38a}.dot.bad{background:#f0736a}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tabs button{font:600 .9rem var(--f-body);background:none;border:none;border-bottom:3px solid transparent;color:var(--chrome-muted);padding:10px 12px 9px;cursor:pointer;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--chrome-ink);border-bottom-color:var(--accent)}
+.tabs .n{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--bad);color:#fff;font-size:.7rem;margin-left:5px;line-height:18px;text-align:center}
+.wrap{max-width:1240px;margin:0 auto;padding:22px max(16px,env(safe-area-inset-left)) 48px}
+.pane{display:grid;gap:18px}
+.pagehead{display:flex;flex-wrap:wrap;gap:10px 20px;align-items:flex-end;justify-content:space-between}
+.sub{color:var(--muted);margin:4px 0 0;max-width:72ch;font-size:.95rem}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px;box-shadow:var(--shadow);min-width:0}
+.panel-h{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.panel-h p{margin:2px 0 0;font-size:.84rem;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:18px}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+.note{font-size:.84rem;color:var(--muted);margin:0}
+.eyebrow{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700}
+label{display:grid;gap:4px;font-size:.76rem;color:var(--muted);font-weight:600}
+input,select,textarea{font:inherit;font-size:.92rem;color:var(--ink);background:var(--surface);border:1px solid var(--line-2);border-radius:4px;padding:8px 10px;width:100%;min-width:0}
+textarea{min-height:80px;resize:vertical}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button{font:inherit;font-size:.88rem;cursor:pointer;border-radius:4px;border:1px solid var(--line-2);background:var(--surface);color:var(--ink);padding:8px 14px;font-weight:600}
+button:hover{border-color:var(--ink)}button:disabled{opacity:.5;cursor:not-allowed}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.link{border:0;background:none;padding:4px 6px;color:var(--accent)}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--line-2);border-radius:6px;padding:14px 16px;display:grid;gap:4px}
+.tile.Green{border-left-color:var(--good)}.tile.Amber{border-left-color:var(--warn)}.tile.Red{border-left-color:var(--bad)}
+.tile b{font-family:var(--f-display);font-size:1.45rem;font-variant-numeric:tabular-nums;line-height:1.15;word-break:break-word}
+.tile span{font-size:.8rem;color:var(--muted)}
+.tile small{font-size:.74rem;color:var(--muted)}
+.rag{display:inline-block;font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:3px}
+.rag.Green{background:var(--good-soft);color:var(--good)}.rag.Amber{background:var(--warn-soft);color:var(--warn)}.rag.Red{background:var(--bad-soft);color:var(--bad)}
+.actions{margin:0;padding-left:22px;display:grid;gap:8px}
+.banner{border:1px solid var(--warn);background:var(--warn-soft);color:var(--ink);border-radius:6px;padding:12px 14px;font-size:.9rem}
+.list{display:grid;gap:10px}
+.lead{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 16px;display:grid;gap:10px}
+.lead.late{border-color:var(--bad);box-shadow:inset 4px 0 0 var(--bad)}
+.lead-top{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:space-between;align-items:baseline}
+.lead-top h3{font-size:1.02rem}
+.meta{font-size:.82rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}
+.msg{font-size:.9rem;background:var(--surface-2);border-radius:4px;padding:8px 10px;white-space:pre-wrap;overflow-wrap:anywhere}
+.timer{font-family:var(--f-mono);font-size:.8rem;padding:2px 8px;border-radius:3px;background:var(--surface-2);color:var(--muted)}
+.timer.late{background:var(--bad-soft);color:var(--bad);font-weight:600}
+.chip{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:3px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.Live{background:var(--good-soft);color:var(--good);border-color:transparent}.chip.Error,.chip.Expired{background:var(--bad-soft);color:var(--bad);border-color:transparent}.chip.Pending{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.lead-edit{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end}
+.cardgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.lcard{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 16px;display:grid;gap:8px;align-content:start}
+.score{font-family:var(--f-display);font-size:1.4rem;font-weight:700}
+.meter{height:6px;border-radius:3px;background:var(--line);overflow:hidden}.meter i{display:block;height:100%;background:var(--accent)}
+.flags{font-size:.82rem;color:var(--bad);margin:0;padding-left:18px}
+.tablebox{overflow:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:.88rem;vertical-align:top}
+th{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--surface-2)}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+.counters{display:flex;flex-wrap:wrap;gap:8px}
+.counters button{border-radius:999px;font-size:.84rem;padding:6px 12px}
+.counters button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.calc{display:grid;gap:10px}
+.out{display:grid;grid-template-columns:1fr auto;gap:6px 14px;font-size:.92rem}
+.out b{font-variant-numeric:tabular-nums;text-align:right}
+.gate{min-height:100vh;display:grid;place-items:center;background:var(--chrome);padding:24px 16px}
+.gate form{background:var(--surface);border-radius:10px;padding:26px 22px;width:min(400px,100%);display:grid;gap:12px}
+.gate p{margin:0;color:var(--muted);font-size:.92rem}.gate input,.gate button{min-height:48px;font-size:16px}
+.gate .back{color:var(--muted);font-size:.85rem;text-align:center;text-decoration:none}
+.err{color:var(--bad);font-size:.88rem;margin:0;min-height:1.2em}
+.busy{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--chrome);color:var(--chrome-ink);padding:8px 14px;border-radius:999px;font-size:.85rem;z-index:20;box-shadow:0 8px 20px rgba(0,0,0,.25);max-width:calc(100% - 32px)}
+dialog{border:1px solid var(--line);border-radius:8px;padding:0;width:min(760px,calc(100% - 24px));background:var(--surface);color:var(--ink)}
+dialog::backdrop{background:rgba(10,16,22,.55)}
+dialog .dh{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+dialog .db{padding:16px 18px;display:grid;gap:14px;max-height:72vh;overflow:auto}
+dialog .df{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+fieldset{border:1px solid var(--line);border-radius:4px;padding:10px 12px 12px;margin:0;min-width:0}
+legend{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;padding:0 4px}
+footer.foot{border-top:1px solid var(--line);margin-top:28px;padding-top:12px;font-size:.78rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between}
+@media (max-width:640px){.brand span{display:none}.toplinks .hm{display:none}.toplinks a,.toplinks button{padding:6px 7px}.tile b{font-size:1.2rem}.panel{padding:14px}h1{font-size:1.3rem}}
+</style>
+</head>
+<body>
+<div class="gate" id="gate" hidden>
+  <form id="login" autocomplete="off">
+    <svg class="seal" style="width:52px;height:52px;color:var(--accent)" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="32" cy="32" r="25.5" fill="none" stroke="currentColor" stroke-width=".6" opacity=".55"/><path d="M19 26.5 32 15.5l13 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><text x="32" y="44" text-anchor="middle" fill="currentColor" font-family="Georgia, serif" font-weight="600" font-size="17">UM</text></svg>
+    <h1>Portal Edge</h1>
+    <p>Private to Uhuru. Portal leads and buyer details live here, so it opens with your studio PIN.</p>
+    <input type="password" id="pin" inputmode="numeric" autocomplete="current-password" aria-label="Studio PIN" required>
+    <p class="err" id="loginErr" role="alert"></p>
+    <button type="submit" class="primary" id="loginBtn">Sign in</button>
+    <a class="back" href="/">Back to www.mret.co.za</a>
+  </form>
+</div>
+
+<div id="app" hidden>
+<header class="appbar">
+  <div class="appbar-in">
+    <div class="brandrow">
+      <div class="brand"><span class="mark">PE</span><b>Portal Edge</b><span>Property24 · Private Property · ImmoAfrica</span></div>
+      <div class="toplinks">
+        <a href="/" aria-label="www.mret.co.za home"><svg class="seal" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 26.5 32 15.5l13 11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><text x="32" y="45" text-anchor="middle" fill="currentColor" font-family="Georgia, serif" font-weight="600" font-size="18">UM</text></svg><span class="hm">mret.co.za</span></a>
+        <button type="button" id="refresh">Refresh</button>
+        <a id="sheetLink" href="#" target="_blank" rel="noopener" hidden>Sheet</a>
+        <button type="button" id="signOut">Sign out</button>
+      </div>
+    </div>
+    <div class="sync" id="sync" aria-live="polite"></div>
+    <nav class="tabs" role="tablist" aria-label="Portal Edge sections">
+      <button role="tab" data-tab="dash" aria-selected="true">Dashboard</button>
+      <button role="tab" data-tab="leads" aria-selected="false">Leads<span class="n" id="nLate" hidden></span></button>
+      <button role="tab" data-tab="listings" aria-selected="false">Listings</button>
+      <button role="tab" data-tab="reports" aria-selected="false">Seller reports</button>
+      <button role="tab" data-tab="roi" aria-selected="false">Portal ROI</button>
+      <button role="tab" data-tab="market" aria-selected="false">Market</button>
+      <button role="tab" data-tab="calc" aria-selected="false">Calculators</button>
+      <button role="tab" data-tab="settings" aria-selected="false">Settings</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- DASHBOARD -->
+  <section class="pane" id="tab-dash">
+    <div class="pagehead">
+      <div><div class="eyebrow">This week</div><h1 id="dashHead">Weekly dashboard</h1><p class="sub">Every portal lead, listing and rand of portal spend in one view. Red needs you today.</p></div>
+      <div class="toolbar"><button type="button" class="primary" id="captureNow">Capture portal leads now</button></div>
+    </div>
+    <div class="banner" id="gmailBanner" hidden>Lead capture is waiting for Gmail permission. In the studio's Apps Script, choose Run, then Review permissions and allow Gmail. Everything else works now.</div>
+    <div class="tiles" id="tiles"></div>
+    <div class="grid2">
+      <div class="panel"><div class="panel-h"><h2>Top actions this week</h2></div><ol class="actions" id="topActions"></ol></div>
+      <div class="panel"><div class="panel-h"><h2>Recent activity</h2><p>What the system did on its own</p></div><div id="activity" class="list"></div></div>
+    </div>
+  </section>
+
+  <!-- LEADS -->
+  <section class="pane" id="tab-leads" hidden>
+    <div class="pagehead">
+      <div><div class="eyebrow">Speed to lead</div><h1>Leads inbox</h1><p class="sub">Oldest uncontacted lead first. Red means more than 15 business minutes without contact. Acknowledgements wait as drafts in your Gmail.</p></div>
+      <div class="toolbar"><label style="min-width:220px">Search<input id="leadQ" type="search" placeholder="Name, phone, listing"></label></div>
+    </div>
+    <div class="counters" id="leadFilters"></div>
+    <div class="list" id="leadList"></div>
+  </section>
+
+  <!-- LISTINGS -->
+  <section class="pane" id="tab-listings" hidden>
+    <div class="pagehead">
+      <div><div class="eyebrow">Listing control centre</div><h1>Listings</h1><p class="sub">Enter each listing once. Quality score, stale adverts and price reviews are checked every morning at 07:00.</p></div>
+      <div class="toolbar"><button type="button" id="runChecks">Run checks now</button><button type="button" class="primary" id="addListing">Add listing</button></div>
+    </div>
+    <div class="cardgrid" id="listingCards"></div>
+  </section>
+
+  <!-- REPORTS -->
+  <section class="pane" id="tab-reports" hidden>
+    <div class="pagehead">
+      <div><div class="eyebrow">Sellers</div><h1>Seller reports</h1><p class="sub">Built every Monday at 06:00 as a Google Doc and a Gmail draft. Read it, send it from Gmail, then mark it sent here.</p></div>
+      <div class="toolbar"><button type="button" class="primary" id="buildReports">Build this week's drafts</button></div>
+    </div>
+    <div class="tablebox"><table><thead><tr><th>Week</th><th>Listing</th><th>Recommendation</th><th>Status</th><th></th></tr></thead><tbody id="reportRows"></tbody></table></div>
+    <div class="panel">
+      <div class="panel-h"><div><h2>Add portal statistics</h2><p>From each portal's stats export, one row per listing per week. Enquiries are counted from your leads automatically.</p></div></div>
+      <form class="form" id="statForm">
+        <label>Listing<select name="ListingID" class="listingSel" required></select></label>
+        <label>Portal<select name="Portal"><option>Property24</option><option>Private Property</option><option>ImmoAfrica</option></select></label>
+        <label>Week starting (Monday)<input name="WeekStart" type="date" required></label>
+        <label>Views<input name="Views" type="number" min="0" required></label>
+        <label>Viewings<input name="Viewings" type="number" min="0" value="0"></label>
+        <label>Offers<input name="Offers" type="number" min="0" value="0"></label>
+        <button type="submit" class="primary">Save stats</button>
+      </form>
+      <p class="note" id="statMsg" style="margin-top:8px"></p>
+    </div>
+    <div class="panel">
+      <div class="panel-h"><div><h2>Log a viewing</h2><p>Feedback here goes into the seller's report.</p></div></div>
+      <form class="form" id="viewForm">
+        <label>Listing<select name="ListingID" class="listingSel" required></select></label>
+        <label>Buyer<input name="BuyerName" required></label>
+        <label>Date<input name="DateTime" type="date" required></label>
+        <label>Status<select name="Status"><option>Held</option><option>Booked</option><option>No-show</option><option>Cancelled</option></select></label>
+        <label>Price view<select name="PriceView"><option value="">-</option><option>too high</option><option>fair</option><option>good value</option></select></label>
+        <label style="grid-column:1/-1">Feedback<input name="Feedback" placeholder="What the buyer said"></label>
+        <button type="submit" class="primary">Save viewing</button>
+      </form>
+      <p class="note" id="viewMsg" style="margin-top:8px"></p>
+    </div>
+  </section>
+
+  <!-- ROI -->
+  <section class="pane" id="tab-roi" hidden>
+    <div class="pagehead">
+      <div><div class="eyebrow">Marketing spend</div><h1>Portal ROI</h1><p class="sub">Last 6 full months. Increase: GCI at least 5 times cost and 20% of leads reach an appointment. Reduce: no mandate or deal, or cost per appointment above twice the best portal.</p></div>
+      <div class="toolbar"><button type="button" class="primary" id="runRoi">Recalculate</button></div>
+    </div>
+    <div class="tablebox"><table><thead><tr><th>Portal</th><th class="r">Cost</th><th class="r">Leads</th><th class="r">Appts</th><th class="r">Mandates</th><th class="r">Deals</th><th class="r">GCI</th><th class="r">Cost / lead</th><th class="r">Cost / appt</th><th class="r">Lead to appt</th><th>Call</th></tr></thead><tbody id="roiRows"></tbody></table></div>
+    <div class="panel">
+      <div class="panel-h"><div><h2>Portal costs</h2><p>Monthly, excluding VAT, from your invoices.</p></div></div>
+      <form class="form" id="costForm">
+        <label>Portal<select name="Portal"><option>Property24</option><option>Private Property</option><option>ImmoAfrica</option></select></label>
+        <label>Month<input name="Month" type="month" required></label>
+        <label>Item<select name="Item"><option>subscription</option><option>featured</option><option>boost</option></select></label>
+        <label>Amount (R)<input name="Amount" type="number" min="0" step="1" required></label>
+        <button type="submit" class="primary">Save cost</button>
+      </form>
+      <p class="note" id="costMsg" style="margin-top:8px"></p>
+      <div class="tablebox" style="margin-top:12px"><table><thead><tr><th>Month</th><th>Portal</th><th>Item</th><th class="r">Amount</th><th></th></tr></thead><tbody id="costRows"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- MARKET -->
+  <section class="pane" id="tab-market" hidden>
+    <div class="pagehead"><div><div class="eyebrow">Pricing evidence</div><h1>Market snapshots</h1><p class="sub">One row per suburb per month from Lightstone, portal exports or a sold-price lookup you did by hand. Never scraped. Every figure keeps its source.</p></div></div>
+    <div class="panel">
+      <form class="form" id="snapForm">
+        <label>Suburb<input name="Suburb" list="suburbs" required></label>
+        <label>Month<input name="Month" type="month" required></label>
+        <label>Active stock<input name="ActiveStock" type="number" min="0"></label>
+        <label>Average asking (R)<input name="AvgAsking" type="number" min="0"></label>
+        <label>Asking per m² (R)<input name="AskingPerM2" type="number" min="0"></label>
+        <label>Avg days on market<input name="AvgDOM" type="number" min="0"></label>
+        <label>Price reductions<input name="PriceReductions" type="number" min="0"></label>
+        <label>Sold vs asking %<input name="SoldVsAskingPct" type="number" step="0.1"></label>
+        <label>Source<select name="Source" required><option>Lightstone</option><option>Property24 sold-price lookup</option><option>Portal stats export</option><option>Manual</option></select></label>
+        <button type="submit" class="primary">Save snapshot</button>
+      </form>
+      <datalist id="suburbs"><option>Garsfontein</option><option>Moreleta Park</option><option>Faerie Glen</option><option>Woodhill</option><option>Silver Lakes</option><option>Mooikloof</option><option>Olympus</option><option>Equestria</option><option>Lynnwood</option></datalist>
+      <p class="note" id="snapMsg" style="margin-top:8px"></p>
+    </div>
+    <div class="tablebox"><table><thead><tr><th>Month</th><th>Suburb</th><th class="r">Stock</th><th class="r">Avg asking</th><th class="r">Per m²</th><th class="r">Days</th><th class="r">Sold vs asking</th><th>Source</th><th></th></tr></thead><tbody id="snapRows"></tbody></table></div>
+  </section>
+
+  <!-- CALCULATORS -->
+  <section class="pane" id="tab-calc" hidden>
+    <div class="pagehead"><div><div class="eyebrow">For buyer conversations</div><h1>Calculators</h1><p class="sub">Estimates only, not financial advice. Confirm with a bond originator and conveyancer.</p></div></div>
+    <div class="grid2">
+      <div class="panel calc">
+        <h2>Bond and transfer duty</h2>
+        <div class="form">
+          <label>Purchase price (R)<input id="cPrice" type="number" min="0" step="10000" value="1800000"></label>
+          <label>Deposit (R)<input id="cDep" type="number" min="0" step="10000" value="180000"></label>
+          <label>Interest rate %<input id="cRate" type="number" min="0" step="0.05" value="10.5"></label>
+          <label>Term (years)<input id="cYears" type="number" min="1" max="30" value="20"></label>
+        </div>
+        <div class="out" id="cOut"></div>
+        <p class="note">Transfer duty uses the SARS table in force since 1 April 2025, unchanged for 2026/27. Prime was 10.50% in July 2026. Attorney fees are not estimated; use your conveyancer's schedule.</p>
+      </div>
+      <div class="panel calc">
+        <h2>Affordability</h2>
+        <div class="form">
+          <label>Gross monthly income (R)<input id="aInc" type="number" min="0" step="1000" value="60000"></label>
+          <label>Max repayment % of income<input id="aPct" type="number" min="1" max="50" value="30"></label>
+        </div>
+        <div class="out" id="aOut"></div>
+        <p class="note">Uses the rate and term on the left. Banks also look at expenses and credit history.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="pane" id="tab-settings" hidden>
+    <div class="pagehead"><div><div class="eyebrow">Setup</div><h1>Settings</h1><p class="sub">The three Gmail searches decide which emails become leads. Check each against a real lead email from that portal.</p></div></div>
+    <form class="panel" id="setForm" style="display:grid;gap:12px">
+      <div class="form">
+        <label>Your name<input name="OwnerName"></label>
+        <label>Alert email<input name="OwnerEmail" type="email" placeholder="Blank = your Google account"></label>
+        <label>Sign-off<input name="Signature"></label>
+      </div>
+      <label>Property24 Gmail search<input name="Query_Property24"></label>
+      <label>Private Property Gmail search<input name="Query_PrivateProperty"></label>
+      <label>ImmoAfrica Gmail search<input name="Query_ImmoAfrica"></label>
+      <label>Skip emails whose subject contains<input name="SkipSubjectWords"></label>
+      <div class="form">
+        <label>Speed limit (minutes)<input name="SpeedLimitMins" type="number" min="1"></label>
+        <label>Stale after (days)<input name="StaleDays" type="number" min="1"></label>
+        <label>Price review after (days)<input name="PriceReviewDays" type="number" min="1"></label>
+        <label>Minimum quality<input name="MinQuality" type="number" min="0" max="100"></label>
+        <label>Target photos<input name="TargetPhotos" type="number" min="1"></label>
+      </div>
+      <label>Acknowledgement draft ({first}, {listing}, {signature})<textarea name="AckTemplate" rows="6"></textarea></label>
+      <div class="toolbar"><button type="submit" class="primary">Save settings</button><span class="note" id="setMsg"></span></div>
+      <p class="note">Business hours for the response clock: Monday to Friday 08:00 to 17:00, Saturday 08:00 to 13:00.</p>
+    </form>
+  </section>
+
+  <footer class="foot"><span>Portal Edge · www.mret.co.za</span><span>No scraping. Client messages are drafts until you send them. POPIA: source and consent kept per contact.</span></footer>
+</main>
+</div>
+
+<dialog id="listingDlg" aria-labelledby="ldTitle">
+  <form method="dialog" id="listingForm">
+    <div class="dh"><h2 id="ldTitle">Listing</h2><button type="button" class="link" data-close>Close</button></div>
+    <div class="db">
+      <input type="hidden" name="ListingID">
+      <div class="form">
+        <label style="grid-column:span 2">Address<input name="Address" required></label>
+        <label>Suburb<input name="Suburb" list="suburbs" required></label>
+        <label>Type<select name="Type"><option>House</option><option>Townhouse</option><option>Apartment</option><option>Vacant land</option></select></label>
+        <label>Asking price (R)<input name="AskingPrice" type="number" min="0" step="10000" required></label>
+        <label>Status<select name="Status"><option>Active</option><option>Draft</option><option>Under offer</option><option>Sold</option><option>Withdrawn</option><option>Expired</option></select></label>
+        <label>Floor m²<input name="FloorM2" type="number" min="0"></label>
+        <label>Erf m²<input name="ErfM2" type="number" min="0"></label>
+        <label>Beds<input name="Beds" type="number" min="0" step="0.5"></label>
+        <label>Baths<input name="Baths" type="number" min="0" step="0.5"></label>
+        <label>Garages<input name="Garages" type="number" min="0"></label>
+        <label>Photos<input name="Photos" type="number" min="0"></label>
+        <label>Description length (characters)<input name="DescLength" type="number" min="0"></label>
+        <label>Pet friendly<select name="PetFriendly"><option></option><option>Yes</option><option>No</option></select></label>
+        <label>Security estate<select name="SecurityEstate"><option></option><option>Yes</option><option>No</option></select></label>
+        <label>Pool<select name="Pool"><option></option><option>Yes</option><option>No</option></select></label>
+        <label>Garden<select name="Garden"><option></option><option>Yes</option><option>No</option></select></label>
+        <label>Flatlet<select name="Flatlet"><option></option><option>Yes</option><option>No</option></select></label>
+        <label>Floor plan<select name="FloorPlan"><option></option><option>Yes</option><option>No</option></select></label>
+        <label>Video<select name="Video"><option></option><option>Yes</option><option>No</option></select></label>
+        <label>Virtual tour<select name="Tour"><option></option><option>Yes</option><option>No</option></select></label>
+        <label>Mandate<select name="MandateType"><option></option><option>Sole</option><option>Open</option></select></label>
+        <label>Mandate start<input name="MandateStart" type="date"></label>
+        <label>Mandate expiry<input name="MandateExpiry" type="date"></label>
+        <label>Last price review<input name="LastPriceReview" type="date"></label>
+        <label>Seller name<input name="SellerName"></label>
+        <label>Seller email<input name="SellerEmail" type="email"></label>
+      </div>
+      <fieldset><legend>On the portals</legend><div id="portalRows" style="display:grid;gap:10px"></div></fieldset>
+      <p class="err" id="ldErr"></p>
+    </div>
+    <div class="df"><button type="button" data-close>Cancel</button><button type="button" class="primary" id="ldSave">Save listing</button></div>
+  </form>
+</dialog>
+
+<div class="busy" id="busy" hidden></div>
+
+<script>
+(function () {
+  var API = 'https://script.google.com/macros/s/AKfycbx9dEC3FRyHrjxsVoKG-SW230E_h2LaYEc8aPiu3ubkiLKv1F2HGuBO6H9Z2OHIgkb-/exec';
+  try { API = localStorage.getItem('studio.api') || API; } catch (e) {}
+  var token = null; try { token = sessionStorage.getItem('studio.token'); } catch (e) {}
+  var $ = function (id) { return document.getElementById(id); };
+  var D = null, leadFilter = 'open', busyT = null;
+  var PORTALS = ['Property24', 'Private Property', 'ImmoAfrica'];
+  var STATUSES = ['New', 'Attempted contact', 'Contacted', 'Qualified', 'Appointment set', 'Appointment held', 'Active opportunity', 'Nurture', 'Unresponsive', 'Converted', 'Lost', 'Needs review'];
+
+  function setTok(t) { token = t; try { t ? sessionStorage.setItem('studio.token', t) : sessionStorage.removeItem('studio.token'); } catch (e) {} }
+  function api(action, extra) {
+    return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ action: action, token: token }, extra || {})) })
+      .then(function (r) { return r.json(); }, function () { throw new Error('Could not reach your studio. Check your connection.'); })
+      .then(function (j) {
+        if (j.error === 'signin') { setTok(null); showGate(); throw new Error('Please sign in again.'); }
+        if (!j.ok && j.error === 'Unknown request' && /^pe/.test(action)) throw new Error('Portal Edge is not switched on in your studio yet. It finishes installing in Apps Script.');
+        if (!j.ok) throw new Error(j.message || j.error || 'Something went wrong.');
+        return j;
+      });
+  }
+  function busy(m, keep) { clearTimeout(busyT); var b = $('busy'); if (!m) { b.hidden = true; return; } b.textContent = m; b.hidden = false; if (!keep) busyT = setTimeout(function () { b.hidden = true; }, 5000); }
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) { if (k === 'text') n.textContent = attrs[k]; else if (k === 'cls') n.className = attrs[k]; else if (k.slice(0, 2) === 'on') n.addEventListener(k.slice(2), attrs[k]); else if (attrs[k] != null) n.setAttribute(k, attrs[k]); });
+    (kids || []).forEach(function (c) { if (c != null) n.append(c); });
+    return n;
+  }
+  var R = function (v) { return 'R ' + Math.round(Number(v) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' '); };
+  var day = function (v) { if (!v) return ''; var d = new Date(v); return isNaN(d) ? String(v).slice(0, 10) : d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }); };
+  var iso = function (v) { if (!v) return ''; var d = new Date(v); if (isNaN(d)) return String(v).slice(0, 10); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+  var month = function (v) { if (!v) return ''; var s = String(v); if (/^\d{4}-\d{2}/.test(s) && s.length <= 7) return s; var d = new Date(v); if (isNaN(d)) return s.slice(0, 7); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 7); };
+
+  // ---------- business minutes (SAST: Mon-Fri 08-17, Sat 08-13) ----------
+  function sast(d) { return new Date(d.getTime() + 2 * 3600e3); }
+  function hours(dow) { return dow >= 1 && dow <= 5 ? [480, 1020] : dow === 6 ? [480, 780] : null; }
+  function bizMins(a, b) {
+    if (!(a < b)) return 0; var t = 0, cur = new Date(a), g = 0;
+    while (cur < b && g++ < 60) {
+      var s = sast(cur), dow = s.getUTCDay(), h = hours(dow), dayStart = Date.UTC(s.getUTCFullYear(), s.getUTCMonth(), s.getUTCDate()) - 2 * 3600e3;
+      var next = new Date(dayStart + 864e5);
+      if (h) { var m0 = Math.max((cur - dayStart) / 6e4, h[0]), m1 = Math.min(b < next ? (b - dayStart) / 6e4 : 1440, h[1]); if (m1 > m0) t += m1 - m0; }
+      cur = next;
+    }
+    return Math.floor(t);
+  }
+
+  // ---------- gate ----------
+  function showGate() { $('app').hidden = true; $('gate').hidden = false; setTimeout(function () { $('pin').focus(); }, 50); }
+  function showApp() { $('gate').hidden = true; $('app').hidden = false; load(); }
+  $('login').addEventListener('submit', function (e) {
+    e.preventDefault(); $('loginErr').textContent = ''; $('loginBtn').disabled = true;
+    api('login', { pin: $('pin').value }).then(function (j) { setTok(j.token); $('pin').value = ''; showApp(); })
+      .catch(function (er) { $('loginErr').textContent = er.message; }).then(function () { $('loginBtn').disabled = false; });
+  });
+  $('signOut').onclick = function () { api('logout').catch(function () {}); setTok(null); D = null; showGate(); };
+  $('refresh').onclick = function () { load(true); };
+
+  // ---------- tabs ----------
+  var tabs = document.querySelectorAll('.tabs [role=tab]');
+  function showTab(name) {
+    tabs.forEach(function (t) { var on = t.dataset.tab === name; t.setAttribute('aria-selected', String(on)); $('tab-' + t.dataset.tab).hidden = !on; });
+    try { history.replaceState(null, '', '#' + name); } catch (e) {}
+  }
+  tabs.forEach(function (t) { t.onclick = function () { showTab(t.dataset.tab); }; });
+
+  // ---------- load + render ----------
+  function load(manual) {
+    $('sync').innerHTML = ''; $('sync').append(el('span', { cls: 'dot' }), el('span', { text: 'Loading your portal data...' }));
+    return api('peLoad').then(function (j) {
+      D = j; render();
+      $('sync').innerHTML = ''; $('sync').append(el('span', { cls: 'dot ok' }), el('span', { text: 'Up to date ' + new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' }) + ' · ' + j.leads.length + ' leads · ' + j.listings.length + ' listings' }));
+      if (j.sheet) { $('sheetLink').href = j.sheet; $('sheetLink').hidden = false; }
+      if (manual) busy('Up to date.');
+    }).catch(function (e) { $('sync').innerHTML = ''; $('sync').append(el('span', { cls: 'dot bad' }), el('span', { text: e.message })); });
+  }
+  function listingName(id) { var l = (D.listings || []).filter(function (x) { return x.ListingID === id; })[0]; return l ? l.Address + (l.Suburb ? ', ' + l.Suburb : '') : ''; }
+  function render() {
+    $('gmailBanner').hidden = !!D.gmail;
+    renderDash(); renderLeads(); renderListings(); renderReports(); renderRoi(); renderMarket(); fillSettings(); fillListingSelects();
+  }
+
+  function renderDash() {
+    var rows = D.dashboard || [], tiles = $('tiles'); tiles.innerHTML = '';
+    rows.filter(function (r) { return r.Area !== 'Top actions'; }).forEach(function (r) {
+      tiles.append(el('div', { cls: 'tile ' + (r.Status || '') }, [
+        el('span', { text: r.Measure }), el('b', { text: String(r.Value === '' ? '-' : r.Value) }),
+        r.Status ? el('span', null, [el('span', { cls: 'rag ' + r.Status, text: r.Status })]) : null,
+        r.Note ? el('small', { text: r.Note }) : null]));
+    });
+    var acts = rows.filter(function (r) { return r.Area === 'Top actions'; }), ol = $('topActions'); ol.innerHTML = '';
+    if (!acts.length) ol.append(el('li', { text: 'Nothing urgent. Keep prospecting.' }));
+    acts.forEach(function (a) { ol.append(el('li', { text: a.Value })); });
+    var lg = $('activity'); lg.innerHTML = '';
+    (D.log || []).slice(0, 8).forEach(function (x) { lg.append(el('div', { cls: 'meta' }, [el('b', { text: day(x.At) }), el('span', { text: x.Actor + ': ' + x.Action + (x.Detail ? ' (' + x.Detail + ')' : '') })])); });
+    if (!lg.children.length) lg.append(el('p', { cls: 'note', text: 'No activity yet.' }));
+  }
+
+  // leads
+  function leadLate(l) { return l.Status === 'New' && !l.FirstContactAt && bizMins(new Date(l.ReceivedAt), new Date()) >= Number((D.settings || {}).SpeedLimitMins || 15); }
+  function renderLeads() {
+    var all = D.leads || [], late = all.filter(leadLate);
+    $('nLate').hidden = !late.length; $('nLate').textContent = late.length;
+    var groups = [['open', 'Open', function (l) { return ['Converted', 'Lost'].indexOf(l.Status) < 0; }], ['late', 'Waiting over 15 min', leadLate], ['new', 'New', function (l) { return l.Status === 'New'; }], ['review', 'Needs review', function (l) { return l.Status === 'Needs review'; }], ['all', 'All', function () { return true; }]];
+    var f = $('leadFilters'); f.innerHTML = '';
+    groups.forEach(function (g) { f.append(el('button', { type: 'button', 'aria-pressed': String(leadFilter === g[0]), text: g[1] + ' (' + all.filter(g[2]).length + ')', onclick: function () { leadFilter = g[0]; renderLeads(); } })); });
+    var test = groups.filter(function (g) { return g[0] === leadFilter; })[0][2], q = $('leadQ').value.trim().toLowerCase();
+    var rows = all.filter(test).filter(function (l) { return !q || [l.Name, l.Phone, l.Email, l.PortalRef, listingName(l.ListingID)].join(' ').toLowerCase().indexOf(q) >= 0; });
+    rows.sort(function (a, b) { var la = leadLate(a), lb = leadLate(b); if (la !== lb) return la ? -1 : 1; if (!a.FirstContactAt !== !b.FirstContactAt) return a.FirstContactAt ? 1 : -1; return new Date(b.ReceivedAt) - new Date(a.ReceivedAt); });
+    var box = $('leadList'); box.innerHTML = '';
+    if (!rows.length) box.append(el('p', { cls: 'note', text: all.length ? 'No leads in this view.' : 'No portal leads yet. They arrive here within 5 minutes of the portal email.' }));
+    rows.forEach(function (l) { box.append(leadCard(l)); });
+  }
+  function leadCard(l) {
+    var late = leadLate(l), mins = l.FirstContactAt ? Number(l.ResponseMins) : bizMins(new Date(l.ReceivedAt), new Date());
+    var phone = String(l.Phone || ''), wa = phone.replace(/[^\d]/g, '');
+    var st = el('select', { 'aria-label': 'Status' }, STATUSES.map(function (s) { var o = el('option', { text: s }); if (s === l.Status) o.selected = true; return o; }));
+    var na = el('input', { value: l.NextAction || '', 'aria-label': 'Next action' }), nd = el('input', { type: 'date', value: iso(l.NextActionDate), 'aria-label': 'Next action date' });
+    var lost = el('input', { value: l.LostReason || '', placeholder: 'Reason lost', 'aria-label': 'Reason lost' });
+    var msg = el('span', { cls: 'note' });
+    var save = el('button', { type: 'button', cls: 'primary', text: 'Save', onclick: function () {
+      save.disabled = true; msg.textContent = 'Saving...';
+      api('peLead', { id: l.LeadID, patch: { Status: st.value, NextAction: na.value, NextActionDate: nd.value, LostReason: lost.value } })
+        .then(function (j) { Object.assign(l, j.lead); msg.textContent = 'Saved.'; renderLeads(); }).catch(function (e) { msg.textContent = e.message; save.disabled = false; });
+    } });
+    var contacted = l.FirstContactAt ? null : el('button', { type: 'button', text: 'Mark contacted', onclick: function () {
+      contacted.disabled = true;
+      api('peLead', { id: l.LeadID, patch: { contacted: true } }).then(function (j) { Object.assign(l, j.lead); busy('Contacted after ' + j.lead.ResponseMins + ' business minutes.'); renderLeads(); }).catch(function (e) { busy(e.message); contacted.disabled = false; });
+    } });
+    return el('article', { cls: 'lead' + (late ? ' late' : ''), 'data-id': l.LeadID }, [
+      el('div', { cls: 'lead-top' }, [
+        el('div', null, [el('h3', { text: l.Name || '(no name)' }), el('div', { cls: 'meta' }, [el('span', { text: l.Portal }), el('span', { text: listingName(l.ListingID) || (l.PortalRef ? 'Ref ' + l.PortalRef : 'No listing linked') }), el('span', { text: day(l.ReceivedAt) + ' ' + new Date(l.ReceivedAt).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' }) }), l.Repeat ? el('span', { cls: 'chip', text: l.Repeat }) : null])]),
+        el('span', { cls: 'timer' + (late ? ' late' : ''), text: l.FirstContactAt ? 'Answered in ' + mins + ' min' : mins + ' business min waiting' })]),
+      el('div', { cls: 'meta' }, [
+        phone ? el('a', { href: 'tel:' + phone, text: phone }) : null,
+        wa ? el('a', { href: 'https://wa.me/' + wa, target: '_blank', rel: 'noopener', text: 'WhatsApp' }) : null,
+        l.Email ? el('a', { href: 'mailto:' + l.Email, text: l.Email }) : null,
+        l.DraftID ? el('span', { text: 'Acknowledgement draft waiting in Gmail' }) : null, el('span', { text: l.Status })]),
+      l.Message ? el('div', { cls: 'msg', text: l.Message }) : null,
+      el('div', { cls: 'lead-edit' }, [el('label', null, ['Status', st]), el('label', null, ['Next action', na]), el('label', null, ['Next action date', nd]), el('label', null, ['Reason if lost', lost]),
+        el('div', { cls: 'toolbar' }, [contacted, save, msg])])
+    ]);
+  }
+  $('leadQ').addEventListener('input', function () { if (D) renderLeads(); });
+
+  // listings
+  function renderListings() {
+    var box = $('listingCards'); box.innerHTML = '';
+    var ls = (D.listings || []).slice().sort(function (a, b) { return (a.Status === 'Active' ? 0 : 1) - (b.Status === 'Active' ? 0 : 1); });
+    if (!ls.length) box.append(el('p', { cls: 'note', text: 'No listings yet. Add your first listing and its portal references so leads link to it.' }));
+    ls.forEach(function (l) {
+      var mine = (D.portals || []).filter(function (p) { return p.ListingID === l.ListingID; });
+      var m2 = Number(l.FloorM2) > 0 ? Math.round(Number(l.AskingPrice) / Number(l.FloorM2)) : 0;
+      var flags = String(l.Flags || '').split(' | ').filter(String);
+      box.append(el('article', { cls: 'lcard' }, [
+        el('div', { cls: 'lead-top' }, [el('div', null, [el('h3', { text: l.Address }), el('div', { cls: 'meta' }, [el('span', { text: l.Suburb }), el('span', { text: R(l.AskingPrice) }), m2 ? el('span', { text: R(m2) + '/m²' }) : null, el('span', { text: l.Status })])]), el('span', { cls: 'score', text: (l.QualityScore === '' ? '-' : l.QualityScore) })]),
+        el('div', { cls: 'meter', 'aria-label': 'Quality ' + l.QualityScore + ' of 100' }, [el('i', { style: 'width:' + Math.min(100, Number(l.QualityScore) || 0) + '%' })]),
+        el('div', { cls: 'meta' }, PORTALS.map(function (p) { var x = mine.filter(function (y) { return y.Portal === p; })[0]; return el('span', { cls: 'chip ' + (x ? x.Status : ''), title: x && x.LastUpdated ? 'Updated ' + day(x.LastUpdated) : '', text: p + ': ' + (x ? x.Status || 'set' : 'not listed') }); })),
+        flags.length ? el('ul', { cls: 'flags' }, flags.map(function (f) { return el('li', { text: f }); })) : el('p', { cls: 'note', text: 'No flags.' }),
+        el('div', { cls: 'toolbar' }, [el('button', { type: 'button', text: 'Edit', onclick: function () { openListing(l); } }), el('button', { type: 'button', text: 'Price reviewed today', onclick: function () { quickSave(l, { LastPriceReview: iso(new Date()) }); } })])
+      ]));
+    });
+  }
+  function quickSave(l, patch) { busy('Saving...', true); api('peListing', { listing: Object.assign({}, l, patch), portals: [] }).then(function () { busy('Saved.'); return load(); }).catch(function (e) { busy(e.message); }); }
+  function openListing(l) {
+    var f = $('listingForm'); f.reset(); $('ldErr').textContent = '';
+    $('ldTitle').textContent = l ? 'Edit listing' : 'Add listing';
+    if (l) Array.prototype.forEach.call(f.elements, function (x) { if (x.name && l[x.name] !== undefined && l[x.name] !== null) x.value = x.type === 'date' ? iso(l[x.name]) : l[x.name]; });
+    else f.elements.ListingID.value = '';
+    var pr = $('portalRows'); pr.innerHTML = '';
+    PORTALS.forEach(function (p) {
+      var x = l ? (D.portals || []).filter(function (y) { return y.ListingID === l.ListingID && y.Portal === p; })[0] : null;
+      var s = el('select', { 'data-p': p, 'data-k': 'Status' }, ['', 'Pending', 'Live', 'Error', 'Expired', 'Withdrawn'].map(function (v) { var o = el('option', { value: v, text: v || 'Not listed' }); if (x && x.Status === v) o.selected = true; return o; }));
+      pr.append(el('div', { cls: 'form' }, [el('label', null, [p + ' reference', el('input', { 'data-p': p, 'data-k': 'PortalRef', value: x ? x.PortalRef : '' })]), el('label', null, ['Status', s]), el('label', null, ['Last updated', el('input', { type: 'date', 'data-p': p, 'data-k': 'LastUpdated', value: x ? iso(x.LastUpdated) : '' })])]));
+    });
+    $('listingDlg').showModal();
+  }
+  $('addListing').onclick = function () { openListing(null); };
+  document.querySelectorAll('[data-close]').forEach(function (b) { b.onclick = function () { $('listingDlg').close(); }; });
+  $('ldSave').onclick = function () {
+    var f = $('listingForm'), l = {};
+    if (!f.elements.Address.value.trim() || !f.elements.Suburb.value.trim() || !f.elements.AskingPrice.value) { $('ldErr').textContent = 'Address, suburb and asking price are needed.'; return; }
+    Array.prototype.forEach.call(f.elements, function (x) { if (x.name) l[x.name] = x.type === 'number' ? (x.value === '' ? '' : Number(x.value)) : x.value; });
+    var portals = PORTALS.map(function (p) { var o = { Portal: p }; document.querySelectorAll('#portalRows [data-p="' + p + '"]').forEach(function (x) { o[x.dataset.k] = x.value; }); return o; });
+    $('ldSave').disabled = true; $('ldErr').textContent = 'Saving...';
+    api('peListing', { listing: l, portals: portals }).then(function () { $('listingDlg').close(); busy('Listing saved and checked.'); return load(); })
+      .catch(function (e) { $('ldErr').textContent = e.message; }).then(function () { $('ldSave').disabled = false; });
+  };
+  $('runChecks').onclick = function () { busy('Checking listings...', true); api('peRun', { job: 'checks' }).then(function () { busy('Checks done.'); return load(); }).catch(function (e) { busy(e.message); }); };
+
+  // reports
+  function renderReports() {
+    var tb = $('reportRows'); tb.innerHTML = '';
+    var rs = D.reports || [];
+    if (!rs.length) tb.append(el('tr', null, [el('td', { colspan: '5', text: 'No seller reports yet. They are built on Mondays, or now with the button above.' })]));
+    rs.forEach(function (r) {
+      var mark = r.Status === 'Sent' ? el('span', { cls: 'note', text: 'Sent ' + day(r.SentAt) }) : el('button', { type: 'button', cls: 'link', text: 'Mark sent', onclick: function () {
+        mark.disabled = true; api('peReport', { id: r.ReportID }).then(function () { busy('Marked sent.'); return load(); }).catch(function (e) { busy(e.message); mark.disabled = false; }); } });
+      tb.append(el('tr', null, [el('td', { text: day(r.WeekStart) }), el('td', { text: listingName(r.ListingID) || r.ListingID }), el('td', { text: r.Recommendation }), el('td', { text: r.Status }), el('td', null, [r.DocURL ? el('a', { href: r.DocURL, target: '_blank', rel: 'noopener', text: 'Open report' }) : null, ' ', mark])]));
+    });
+  }
+  $('buildReports').onclick = function () { busy('Building seller reports...', true); api('peRun', { job: 'reports' }).then(function (j) { busy(j.count + ' report draft(s) built. They are in your Gmail drafts.'); return load(); }).catch(function (e) { busy(e.message); }); };
+  function fillListingSelects() {
+    document.querySelectorAll('.listingSel').forEach(function (s) { var v = s.value; s.innerHTML = ''; (D.listings || []).forEach(function (l) { s.append(el('option', { value: l.ListingID, text: l.Address })); }); if (v) s.value = v; });
+  }
+  function formRow(form) { var o = {}; Array.prototype.forEach.call(form.elements, function (x) { if (x.name) o[x.name] = x.type === 'number' ? (x.value === '' ? '' : Number(x.value)) : x.value; }); return o; }
+  function bindRowForm(id, table, msgId, extra) {
+    $(id).addEventListener('submit', function (e) {
+      e.preventDefault(); var row = Object.assign(formRow(e.target), extra || {}); $(msgId).textContent = 'Saving...';
+      api('peRow', { table: table, row: row }).then(function () { $(msgId).textContent = 'Saved.'; e.target.reset(); return load(); }).catch(function (er) { $(msgId).textContent = er.message; });
+    });
+  }
+  bindRowForm('statForm', 'PortalStats', 'statMsg', { Source: 'export' });
+  bindRowForm('viewForm', 'Viewings', 'viewMsg');
+  bindRowForm('costForm', 'PortalCosts', 'costMsg');
+  bindRowForm('snapForm', 'MarketSnapshots', 'snapMsg', { EnteredBy: 'website' });
+
+  // roi
+  function renderRoi() {
+    var tb = $('roiRows'); tb.innerHTML = '';
+    (D.roi || []).forEach(function (r) {
+      var cls = r.Recommendation === 'Increase' ? 'Green' : r.Recommendation === 'Reduce' ? 'Red' : 'Amber';
+      tb.append(el('tr', null, [el('td', { text: r.Portal }), el('td', { cls: 'r', text: R(r.Cost) }), el('td', { cls: 'r', text: r.Leads }), el('td', { cls: 'r', text: r.Appointments }), el('td', { cls: 'r', text: r.Mandates }), el('td', { cls: 'r', text: r.Deals }), el('td', { cls: 'r', text: R(r.GCI) }), el('td', { cls: 'r', text: r.CostPerLead === '' ? '-' : R(r.CostPerLead) }), el('td', { cls: 'r', text: r.CostPerAppointment === '' ? '-' : R(r.CostPerAppointment) }), el('td', { cls: 'r', text: r.LeadToApptPct === '' ? '-' : r.LeadToApptPct + '%' }), el('td', null, [el('span', { cls: 'rag ' + cls, text: r.Recommendation })])]));
+    });
+    if (!tb.children.length) tb.append(el('tr', null, [el('td', { colspan: '11', text: 'Enter portal costs below, then Recalculate.' })]));
+    var cb = $('costRows'); cb.innerHTML = '';
+    (D.costs || []).slice().sort(function (a, b) { return month(b.Month).localeCompare(month(a.Month)); }).forEach(function (c) {
+      cb.append(el('tr', null, [el('td', { text: month(c.Month) }), el('td', { text: c.Portal }), el('td', { text: c.Item }), el('td', { cls: 'r', text: R(c.Amount) }), el('td', null, [delBtn('PortalCosts', c.CostID)])]));
+    });
+  }
+  function delBtn(table, id) {
+    var b = el('button', { type: 'button', cls: 'link', text: 'Delete', onclick: function () {
+      if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Confirm delete'; return; }
+      api('peDel', { table: table, id: id }).then(function () { busy('Deleted.'); return load(); }).catch(function (e) { busy(e.message); });
+    } });
+    return b;
+  }
+  $('runRoi').onclick = function () { busy('Recalculating...', true); api('peRun', { job: 'roi' }).then(function () { busy('ROI updated.'); return load(); }).catch(function (e) { busy(e.message); }); };
+
+  // market
+  function renderMarket() {
+    var tb = $('snapRows'); tb.innerHTML = '';
+    (D.snapshots || []).slice().sort(function (a, b) { return month(b.Month).localeCompare(month(a.Month)); }).forEach(function (s) {
+      tb.append(el('tr', null, [el('td', { text: month(s.Month) }), el('td', { text: s.Suburb }), el('td', { cls: 'r', text: s.ActiveStock }), el('td', { cls: 'r', text: s.AvgAsking ? R(s.AvgAsking) : '' }), el('td', { cls: 'r', text: s.AskingPerM2 ? R(s.AskingPerM2) : '' }), el('td', { cls: 'r', text: s.AvgDOM }), el('td', { cls: 'r', text: s.SoldVsAskingPct === '' ? '' : s.SoldVsAskingPct + '%' }), el('td', { text: s.Source }), el('td', null, [delBtn('MarketSnapshots', s.SnapshotID)])]));
+    });
+    if (!tb.children.length) tb.append(el('tr', null, [el('td', { colspan: '9', text: 'No snapshots yet. One per farm suburb lets the listing checks test price per m².' })]));
+  }
+
+  // settings
+  function fillSettings() {
+    var f = $('setForm'), s = D.settings || {};
+    Array.prototype.forEach.call(f.elements, function (x) { if (x.name && s[x.name] !== undefined && document.activeElement !== x) x.value = s[x.name]; });
+  }
+  $('setForm').addEventListener('submit', function (e) {
+    e.preventDefault(); var o = formRow(e.target); $('setMsg').textContent = 'Saving...';
+    api('peSettings', { settings: o }).then(function () { $('setMsg').textContent = 'Saved.'; return load(); }).catch(function (er) { $('setMsg').textContent = er.message; });
+  });
+
+  $('captureNow').onclick = function () {
+    busy('Checking Gmail for portal leads...', true);
+    api('peRun', { job: 'capture' }).then(function (j) { busy(j.count ? j.count + ' new lead(s) captured.' : 'No new portal leads.'); return load(); }).catch(function (e) { busy(e.message); });
+  };
+
+  // ---------- calculators (client side) ----------
+  function duty(v) { var b = [[13310000, 1241456, 0.13], [2994800, 106784, 0.11], [2329300, 53544, 0.08], [1663800, 13614, 0.06], [1210000, 0, 0.03]]; for (var i = 0; i < b.length; i++) if (v > b[i][0]) return Math.round(b[i][1] + (v - b[i][0]) * b[i][2]); return 0; }
+  function repay(p, rate, yrs) { var r = rate / 1200, n = Math.round(yrs * 12); if (p <= 0) return 0; if (!r) return p / n; return p * r / (1 - Math.pow(1 + r, -n)); }
+  function calc() {
+    var price = +$('cPrice').value || 0, dep = +$('cDep').value || 0, rate = +$('cRate').value || 0, yrs = +$('cYears').value || 20, loan = Math.max(0, price - dep);
+    var pay = repay(loan, rate, yrs), out = $('cOut'); out.innerHTML = '';
+    [['Loan amount', R(loan)], ['Monthly repayment', R(pay)], ['Total paid over ' + yrs + ' years', R(pay * yrs * 12)], ['Transfer duty', R(duty(price))]].forEach(function (x) { out.append(el('span', { text: x[0] }), el('b', { text: x[1] })); });
+    var inc = +$('aInc').value || 0, pct = +$('aPct').value || 30, max = inc * pct / 100, r = rate / 1200, n = Math.round(yrs * 12);
+    var maxLoan = r ? max * (1 - Math.pow(1 + r, -n)) / r : max * n, ao = $('aOut'); ao.innerHTML = '';
+    [['Maximum repayment', R(max)], ['Maximum loan', R(maxLoan)], ['With your deposit, price up to', R(maxLoan + dep)]].forEach(function (x) { ao.append(el('span', { text: x[0] }), el('b', { text: x[1] })); });
+  }
+  ['cPrice', 'cDep', 'cRate', 'cYears', 'aInc', 'aPct'].forEach(function (id) { $(id).addEventListener('input', calc); });
+  calc();
+  window.__pe = { duty: duty, repay: repay, bizMins: bizMins };
+
+  var h = (location.hash || '').slice(1);
+  if (h && document.querySelector('[data-tab="' + h + '"]')) showTab(h);
+  if (token) showApp(); else showGate();
+})();
+</script>
+</body>
+</html>
