@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Millionaire OS admin</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#f4f3ef;--surface:#fff;--ink:#16211e;--muted:#6a7672;--line:#e3e1da;--accent:#16614f;--accent-ink:#fff;--bad:#b3352a;--warn:#9a6609;--good:#1f7a4e;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0d1412;--surface:#141d1a;--ink:#e8efec;--muted:#93a39d;--line:#24302c;--accent:#4fbf9c;--accent-ink:#06231b;--bad:#f08b80;--warn:#e2b25a;--good:#5fc894;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#0d1412;--surface:#141d1a;--ink:#e8efec;--muted:#93a39d;--line:#24302c;--accent:#4fbf9c;--accent-ink:#06231b;--bad:#f08b80;--warn:#e2b25a;--good:#5fc894;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 Inter,system-ui,sans-serif}
+[hidden]{display:none!important}
+header{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:2}
+header h1{font-size:1.05rem;margin:0;flex:1}
+nav{display:flex;gap:4px;flex-wrap:wrap}nav button{border:0;background:none;color:var(--muted);font:600 .84rem Inter,sans-serif;padding:6px 10px;border-radius:6px;cursor:pointer}nav button[aria-current=page]{background:var(--accent);color:var(--accent-ink)}
+main{padding:20px;display:grid;gap:16px;max-width:1200px;margin:auto}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}.card h2{font-size:.95rem;margin:0 0 10px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.k .l{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.k .v{font-size:1.5rem;font-weight:700;font-variant-numeric:tabular-nums}.k .s{font-size:.78rem;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:.84rem}th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+.tb{overflow:auto}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:7px 9px;width:100%}
+label{display:grid;gap:3px;font-size:.75rem;font-weight:600;color:var(--muted)}
+.form{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:end}
+.btn{font:600 .84rem Inter,sans-serif;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:7px;padding:7px 12px;cursor:pointer}.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.note{font-size:.8rem;color:var(--muted);margin:0}.err{color:var(--bad);font-size:.85rem;min-height:1em;margin:0}
+.wall{border-left:4px solid var(--accent);padding:10px 14px;background:var(--surface);border-radius:8px;font-size:.84rem}
+.gate{max-width:380px;margin:12vh auto;display:grid;gap:12px}
+.pill{display:inline-block;font-size:.7rem;font-weight:700;padding:1px 7px;border-radius:9px;background:var(--line)}.pill.bad{background:var(--bad);color:#fff}.pill.good{background:var(--good);color:#fff}
+.msg{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:6px 0;white-space:pre-wrap;font-size:.84rem}
+</style>
+</head>
+<body>
+<form class="card gate" id="gate">
+  <h1 style="margin:0;font-size:1.2rem">Millionaire OS administration</h1>
+  <p class="note">Operational data only. This portal cannot open customer financial records: they are encrypted on customers' devices.</p>
+  <label>Email<input name="email" type="email" autocomplete="username" required></label>
+  <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+  <p class="err" id="gErr"></p>
+  <button class="btn primary" type="submit">Sign in</button>
+</form>
+<div id="app" hidden>
+  <header><h1>Millionaire OS admin <span class="note" id="who"></span></h1><nav id="nav"></nav><button class="btn" id="out">Sign out</button></header>
+  <main id="main"></main>
+</div>
+<script>
+/* Millionaire OS browser cryptography (Web Crypto API). Runs unchanged in the browser and in Node 20+ for tests.
+ * The password and every key that opens financial data stay on the device. The server receives only:
+ * a sign-in key (derived, not the password), public keys, and keys wrapped so that it cannot open them. */
+var MCrypto = (function () {
+  'use strict';
+  var subtle = (typeof crypto !== 'undefined' ? crypto : globalThis.crypto).subtle;
+  var rnd = function (n) { var a = new Uint8Array(n); (typeof crypto !== 'undefined' ? crypto : globalThis.crypto).getRandomValues(a); return a; };
+  var te = new TextEncoder(), td = new TextDecoder();
+  var ITER = 310000;
+  function b64(buf) { var b = new Uint8Array(buf), s = ''; for (var i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function unb64(s) { s = String(s).replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; var bin = atob(s), out = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }
+  async function pbkdf2(secret, salt, iter) {
+    var base = await subtle.importKey('raw', te.encode(secret), 'PBKDF2', false, ['deriveBits']);
+    return new Uint8Array(await subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: te.encode(salt), iterations: iter || ITER }, base, 256));
+  }
+  async function hkdf(master, info, usage) {
+    var base = await subtle.importKey('raw', master, 'HKDF', false, ['deriveBits', 'deriveKey']);
+    if (usage === 'bits') return new Uint8Array(await subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: te.encode('millionaire-os'), info: te.encode(info) }, base, 256));
+    return subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: te.encode('millionaire-os'), info: te.encode(info) }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  }
+  /** Password + email -> { authKey (sent to server), unlock (AES key, never leaves the device) } */
+  async function fromPassword(email, password, iter) {
+    var m = await pbkdf2(String(password), 'mos1|' + String(email).trim().toLowerCase(), iter);
+    return { authKey: b64(await hkdf(m, 'auth', 'bits')), unlock: await hkdf(m, 'unlock') };
+  }
+  async function fromRecovery(email, code, iter) {
+    var m = await pbkdf2(normCode(code), 'mos1-recovery|' + String(email).trim().toLowerCase(), iter);
+    return { authKey: b64(await hkdf(m, 'auth', 'bits')), unlock: await hkdf(m, 'unlock') };
+  }
+  function normCode(c) { return String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+  function newRecoveryCode() { var al = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', b = rnd(24), s = ''; for (var i = 0; i < 24; i++) s += al[b[i] % al.length]; return s.match(/.{4}/g).join('-'); }
+  async function seal(aesKey, bytes) { var iv = rnd(12); return { iv: b64(iv), ct: b64(await subtle.encrypt({ name: 'AES-GCM', iv: iv }, aesKey, bytes)) }; }
+  async function open(aesKey, blob) { return new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv: unb64(blob.iv) }, aesKey, unb64(blob.ct))); }
+  async function aesFromRaw(raw) { return subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']); }
+  /** Creates everything a new account needs. Returns the server payload and the recovery code to show once. */
+  async function newAccount(email, password, iter) {
+    var pw = await fromPassword(email, password, iter), code = newRecoveryCode(), rec = await fromRecovery(email, code, iter);
+    var pair = await subtle.generateKey({ name: 'RSA-OAEP', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['encrypt', 'decrypt']);
+    var priv = new Uint8Array(await subtle.exportKey('pkcs8', pair.privateKey)), pub = b64(await subtle.exportKey('spki', pair.publicKey)), personal = rnd(32);
+    return {
+      recoveryCode: code,
+      payload: { email: email, authKey: pw.authKey, recAuth: rec.authKey, pub: pub, encPriv: await seal(pw.unlock, priv), encPersonal: await seal(pw.unlock, personal), recPriv: await seal(rec.unlock, priv), recPersonal: await seal(rec.unlock, personal) },
+      keys: await loadKeys({ pub: pub }, priv, personal)
+    };
+  }
+  async function loadKeys(server, privRaw, personalRaw) {
+    return { pub: server.pub, priv: await subtle.importKey('pkcs8', privRaw, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['decrypt']), personal: await aesFromRaw(personalRaw), privRaw: privRaw, personalRaw: personalRaw };
+  }
+  /** Opens the key blobs returned at sign-in. Throws if the password-derived key is wrong. */
+  async function unlockAccount(unlock, server) { return loadKeys(server, await open(unlock, server.encPriv), await open(unlock, server.encPersonal)); }
+  /** Re-wraps the same private and personal keys under a new password (password change or recovery). */
+  async function rewrap(email, newPassword, keys, iter) { var pw = await fromPassword(email, newPassword, iter); return { authKey: pw.authKey, encPriv: await seal(pw.unlock, keys.privRaw), encPersonal: await seal(pw.unlock, keys.personalRaw) }; }
+  async function newWorkspaceKey() { return rnd(32); }
+  async function wrapFor(pubB64, raw) { var pk = await subtle.importKey('spki', unb64(pubB64), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']); return b64(await subtle.encrypt({ name: 'RSA-OAEP' }, pk, raw)); }
+  async function unwrapWs(keys, wrapped) { var raw = new Uint8Array(await subtle.decrypt({ name: 'RSA-OAEP' }, keys.priv, unb64(wrapped))); return { key: await aesFromRaw(raw), raw: raw }; }
+  /** Record ciphertext: "v1.<iv>.<ct>", the record id bound in as associated data so rows cannot be swapped. */
+  async function encRecord(aesKey, id, obj) { var iv = rnd(12); var ct = await subtle.encrypt({ name: 'AES-GCM', iv: iv, additionalData: te.encode(id) }, aesKey, te.encode(JSON.stringify(obj))); return 'v1.' + b64(iv) + '.' + b64(ct); }
+  async function decRecord(aesKey, id, s) { var p = String(s).split('.'); if (p[0] !== 'v1') throw new Error('Unknown format'); var pt = await subtle.decrypt({ name: 'AES-GCM', iv: unb64(p[1]), additionalData: te.encode(id) }, aesKey, unb64(p[2])); return JSON.parse(td.decode(pt)); }
+  async function fingerprint(pubB64) { var h = new Uint8Array(await subtle.digest('SHA-256', unb64(pubB64))); return Array.from(h.slice(0, 8)).map(function (x) { return ('0' + x.toString(16)).slice(-2); }).join('').toUpperCase().match(/.{4}/g).join(' '); }
+  function newRecordId() { var b = rnd(12), s = 'r'; for (var i = 0; i < b.length; i++) s += ('0' + b[i].toString(16)).slice(-2); return s; }
+  return { fromPassword: fromPassword, fromRecovery: fromRecovery, newAccount: newAccount, unlockAccount: unlockAccount, rewrap: rewrap, newWorkspaceKey: newWorkspaceKey, wrapFor: wrapFor, unwrapWs: unwrapWs, encRecord: encRecord, decRecord: decRecord, seal: seal, open: open, fingerprint: fingerprint, newRecordId: newRecordId, normCode: normCode, b64: b64, unb64: unb64, ITER: ITER };
+})();
+if (typeof module !== 'undefined') module.exports = MCrypto;
+
+</script>
+<script>
+'use strict';
+let API = 'https://script.google.com/macros/s/AKfycbyZ7ODdfUB0y9JkLedWZWq4ukZCB-keLPdav4xcTmB33wELLjApbap1O_chzkUsDNYQ/exec'; try { API = localStorage.getItem('mos.api') || API; } catch (e) {}
+let st = null, me = null, view = 'overview';
+const $ = id => document.getElementById(id), esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const R = c => 'R ' + (Math.round(c) / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+async function call(action, extra) { const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ action, st }, extra || {})) }); const j = await r.json(); if (j.error === 'signin') { location.reload(); } if (!j.ok) throw new Error(j.message || j.error); return j; }
+const AREAS = [['overview', 'Overview', 'metrics'], ['subscriptions', 'Revenue', 'billing'], ['plans', 'Plans', 'plans'], ['promos', 'Promotions', 'promos'], ['tickets', 'Support', 'tickets'], ['errors', 'Errors', 'errors'], ['audit', 'Security', 'security'], ['announce', 'Announcements', 'announce'], ['flags', 'Features', 'flags'], ['roles', 'Roles', 'roles']];
+const PERMS = { metrics: ['platform_owner', 'platform_admin', 'billing_admin', 'security_admin'], plans: ['platform_owner', 'platform_admin'], promos: ['platform_owner', 'platform_admin', 'billing_admin'], flags: ['platform_owner', 'platform_admin'], announce: ['platform_owner', 'platform_admin'], billing: ['platform_owner', 'billing_admin'], tickets: ['platform_owner', 'platform_admin', 'tech_support'], errors: ['platform_owner', 'platform_admin', 'tech_support', 'security_admin'], security: ['platform_owner', 'security_admin'], roles: ['platform_owner'] };
+const can = p => (me.platformRoles || []).some(r => PERMS[p].includes(r));
+const kpi = (l, v, s) => '<div class="card k"><div class="l">' + esc(l) + '</div><div class="v">' + v + '</div>' + (s ? '<div class="s">' + s + '</div>' : '') + '</div>';
+const tbl = (h, rows) => '<div class="tb"><table><thead><tr>' + h.map(x => '<th' + (x[0] === '#' ? ' class="r"' : '') + '>' + esc(x.replace('#', '')) + '</th>').join('') + '</tr></thead><tbody>' + (rows.length ? rows.map(r => '<tr>' + r.map((c, i) => '<td' + (h[i][0] === '#' ? ' class="r"' : '') + '>' + c + '</td>').join('') + '</tr>').join('') : '<tr><td colspan="' + h.length + '" class="note">Nothing yet.</td></tr>') + '</tbody></table></div>';
+const WALL = '<div class="wall">This portal shows operational data only. Customer salaries, balances, transactions, debts, goals and net worth are encrypted on their devices and cannot be shown here.</div>';
+function nav() { $('nav').innerHTML = AREAS.filter(a => can(a[2])).map(a => '<button data-v="' + a[0] + '"' + (a[0] === view ? ' aria-current="page"' : '') + '>' + a[1] + '</button>').join(''); }
+async function show(v) {
+  view = v; nav(); const m = $('main'); m.innerHTML = '<p class="note">Loading...</p>';
+  try { m.innerHTML = WALL + await VIEWS[v](); if (AFTER[v]) AFTER[v](); } catch (e) { m.innerHTML = WALL + '<p class="err">' + esc(e.message) + '</p>'; }
+}
+const VIEWS = {}, AFTER = {};
+VIEWS.overview = async () => {
+  const j = await call('mosAdminMetrics'), s = j.subscriptions, bs = s.byState;
+  const ad = Object.entries(j.adoption || {}).sort((a, b) => b[1] - a[1]);
+  return '<div class="grid">' + kpi('Registered users', j.users.total, j.users.new30 + ' new in 30 days · ' + j.users.unverified + ' unverified') + kpi('Paying customers', s.paying, (bs.past_due || 0) + ' past due · ' + (bs.cancelled_pending || 0) + ' cancelling') + kpi('Trials', bs.trial || 0, (bs.read_only || 0) + ' read-only · ' + (bs.closed || 0) + ' closed') + kpi('MRR', R(s.mrrCents), 'ARR ' + R(s.arrCents)) + kpi('Revenue, 30 days', R(j.payments.revenue30Cents), j.payments.paid30 + ' payments · ' + j.payments.renewals30 + ' renewals') + kpi('Failed payments, 30 days', j.payments.failed30, j.payments.cancellations30 + ' cancellations') + kpi('Workspaces', j.workspaces.total, Object.entries(j.workspaces.byType).map(([k, v]) => k.replace('_', ' ') + ' ' + v).join(' · ')) + kpi('Support', j.support.open + ' open', j.support.waiting + ' waiting on customer') + kpi('Errors, 7 days', j.errors7.total, '') + kpi('Security, 7 days', j.security7.failedLogins + ' failed sign-ins', j.security7.roleChanges + ' role changes · ' + j.security7.deniedAdmin + ' denied admin') + kpi('Last backup', j.backups.last ? esc(j.backups.last.slice(0, 16).replace('T', ' ')) : 'none yet', 'Platform sheet copy, daily') + kpi('Service', 'v' + esc(j.version), 'checked ' + esc(j.at.slice(11, 16)) + ' UTC') + '</div>'
+    + '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))"><div class="card"><h2>Subscriptions by plan</h2>' + tbl(['Plan', '#Paying'], Object.entries(s.byPlan).map(([k, v]) => [esc(k), v])) + '</div><div class="card"><h2>Feature adoption (workspaces using each)</h2>' + tbl(['Feature', '#Workspaces'], ad.map(([k, v]) => [esc(k), v])) + '</div><div class="card"><h2>Top errors, 7 days</h2>' + tbl(['Error', '#Count'], j.errors7.top.map(([k, v]) => [esc(k), v])) + '</div></div>';
+};
+VIEWS.subscriptions = async () => { const j = await call('mosAdminList', { area: 'subscriptions' }); return '<div class="card"><h2>Subscriptions</h2>' + tbl(['Customer', 'Plan', 'Period', 'State', 'Renews or ends', '#Price', 'Failures'], j.items.map(x => [esc(x.email), esc(x.plan), esc(x.period), '<span class="pill ' + (x.state === 'active' ? 'good' : x.state === 'past_due' ? 'bad' : '') + '">' + esc(x.state) + (x.cancelAtPeriodEnd ? ' · cancelling' : '') + '</span>', esc(String(x.periodEnd || '').slice(0, 10)), x.recurringCents ? R(x.recurringCents) : '-', x.failures])) + '</div><div class="card"><h2>Payment events</h2>' + tbl(['When', 'Type', 'Invoice', '#Amount', 'Event'], j.events.map(e => [esc(e.at.slice(0, 16).replace('T', ' ')), esc(e.type), esc(e.invoice), R(e.amountCents), esc(e.id)])) + '</div>'; };
+VIEWS.plans = async () => { const j = await call('mosAdminList', { area: 'plans' }); return '<div class="card"><h2>Plans</h2><p class="note">Price changes apply to new subscriptions. Existing PayFast subscriptions keep their amount until changed individually.</p>' + tbl(['Id', 'Name', '#Monthly', '#Annual', 'Members', 'Workspaces', 'Dependants', 'Active', ''], j.items.map(p => [esc(p.id), esc(p.name), R(p.monthlyCents), R(p.annualCents), p.members, p.workspaces, p.dependants, p.active ? 'yes' : 'no', '<button class="btn" data-plan=\'' + esc(JSON.stringify(p)) + '\'>Edit</button>'])) + '</div><form class="card" id="planForm"><h2>Create or edit a plan</h2><div class="form"><label>Id<input name="id" required></label><label>Name<input name="name"></label><label>Monthly (R)<input name="monthly" inputmode="decimal"></label><label>Annual (R)<input name="annual" inputmode="decimal"></label><label>Members<input name="members" type="number" min="1"></label><label>Workspaces<input name="workspaces" type="number" min="1"></label><label>Dependants<input name="dependants" type="number" min="0"></label><label>Order<input name="order" type="number"></label><label>Active<select name="active"><option value="true">Yes</option><option value="false">No</option></select></label></div><p class="err"></p><button class="btn primary">Save plan</button></form>'; };
+AFTER.plans = () => {
+  document.querySelectorAll('[data-plan]').forEach(b => b.onclick = () => { const p = JSON.parse(b.dataset.plan), f = $('planForm'); f.id.value = p.id; f.name.value = p.name; f.monthly.value = (p.monthlyCents / 100).toFixed(2); f.annual.value = (p.annualCents / 100).toFixed(2); f.members.value = p.members; f.workspaces.value = p.workspaces; f.dependants.value = p.dependants; f.order.value = p.order; f.active.value = String(p.active); });
+  $('planForm').onsubmit = async e => { e.preventDefault(); const f = e.target; try { await call('mosAdminSave', { area: 'plans', rec: { id: f.id.value, name: f.name.value, monthlyCents: Math.round(parseFloat(f.monthly.value) * 100), annualCents: Math.round(parseFloat(f.annual.value) * 100), members: +f.members.value, workspaces: +f.workspaces.value, dependants: +f.dependants.value, order: +f.order.value, active: f.active.value === 'true' } }); show('plans'); } catch (x) { f.querySelector('.err').textContent = x.message; } };
+};
+VIEWS.promos = async () => { const j = await call('mosAdminList', { area: 'promos' }); return '<div class="card"><h2>Promotion codes</h2>' + tbl(['Code', '#% off first payment', 'Plans', 'Period', 'Expires', 'Uses', 'Active'], j.items.map(p => [esc(p.code), p.percentOff, esc((p.plans || []).join(', ') || 'all'), esc(p.period || 'any'), esc(p.expires || '-'), (p.uses || 0) + (p.maxUses ? ' / ' + p.maxUses : ''), p.active ? 'yes' : 'no'])) + '</div><form class="card" id="promoForm"><h2>Create or update a code</h2><div class="form"><label>Code<input name="code" required></label><label>% off first payment<input name="pct" type="number" min="1" max="100" required></label><label>Plans (comma separated, blank = all)<input name="plans"></label><label>Period<select name="period"><option value="">Any</option><option value="monthly">Monthly</option><option value="annual">Annual</option></select></label><label>Expires<input name="expires" type="date"></label><label>Max uses (0 = unlimited)<input name="max" type="number" min="0" value="0"></label><label>Active<select name="active"><option value="true">Yes</option><option value="false">No</option></select></label></div><p class="err"></p><button class="btn primary">Save code</button></form>'; };
+AFTER.promos = () => { $('promoForm').onsubmit = async e => { e.preventDefault(); const f = e.target; try { await call('mosAdminSave', { area: 'promos', rec: { code: f.code.value, percentOff: +f.pct.value, plans: f.plans.value.split(',').map(s => s.trim()).filter(Boolean), period: f.period.value, expires: f.expires.value, maxUses: +f.max.value, active: f.active.value === 'true' } }); show('promos'); } catch (x) { f.querySelector('.err').textContent = x.message; } }; };
+VIEWS.tickets = async () => { const j = await call('mosAdminList', { area: 'tickets' }); return j.items.length ? j.items.map(t => '<div class="card"><h2>' + esc(t.id) + ' · ' + esc(t.subject) + ' <span class="pill ' + (t.status === 'open' ? 'bad' : '') + '">' + esc(t.status) + '</span></h2><p class="note">' + esc(t.email) + ' · ' + esc(t.category) + ' · plan ' + esc(t.plan) + ' · app ' + esc(t.appVersion) + '</p>' + (t.diagnostics ? '<p class="note">Diagnostics (shared by the customer): ' + esc(Object.entries(t.diagnostics).map(([k, v]) => k + ' ' + v).join(' · ')) + '</p>' : '') + t.messages.map(m => '<div class="msg"><b>' + (m.from === 'support' ? 'Support' : 'Customer') + '</b> · ' + esc(m.at.slice(0, 16).replace('T', ' ')) + '\n' + esc(m.body) + '</div>').join('') + '<div class="form"><label style="grid-column:1/-1">Reply<textarea data-r="' + esc(t.id) + '"></textarea></label><label>Status<select data-s="' + esc(t.id) + '"><option value="waiting">Waiting on customer</option><option value="open">Open</option><option value="resolved">Resolved</option><option value="closed">Closed</option></select></label><button class="btn primary" data-send="' + esc(t.id) + '">Send</button></div></div>').join('') : '<div class="card"><p class="note">No tickets.</p></div>'; };
+AFTER.tickets = () => document.querySelectorAll('[data-send]').forEach(b => b.onclick = async () => { const id = b.dataset.send; try { await call('mosAdminTicket', { id, body: document.querySelector('[data-r="' + id + '"]').value, status: document.querySelector('[data-s="' + id + '"]').value }); show('tickets'); } catch (e) { alertBox(e.message); } });
+VIEWS.errors = async () => { const j = await call('mosAdminList', { area: 'errors' }); return '<div class="card"><h2>Application errors</h2><p class="note">Codes and screens only; record contents are never logged.</p>' + tbl(['When', 'Source', 'Code', 'Screen', 'Version', 'Detail'], j.items.map(e => [esc(e.at.slice(0, 16).replace('T', ' ')), esc(e.source), esc(e.code), esc(e.screen || ''), esc(e.version || ''), esc(e.detail || '')])) + '</div>'; };
+VIEWS.audit = async () => { const j = await call('mosAdminList', { area: 'audit' }); return '<div class="card"><h2>Audit log</h2>' + tbl(['When', 'Actor', 'Action', 'Target', 'Detail'], j.items.map(a => [esc(a.at.slice(0, 16).replace('T', ' ')), esc(a.actor), esc(a.action), esc(a.target), esc(a.detail)])) + '</div>'; };
+VIEWS.announce = async () => { const j = await call('mosAdminList', { area: 'announce' }); return '<div class="card"><h2>Announcements</h2>' + tbl(['Title', 'Plan', 'Active', 'When'], j.items.map(a => [esc(a.title), esc(a.plan || 'all'), a.active ? 'yes' : 'no', esc(a.at.slice(0, 10))])) + '</div><form class="card" id="anForm"><h2>Publish an announcement</h2><div class="form"><label>Title<input name="title" required></label><label>Plan<select name="plan"><option value="">All customers</option><option value="individual">Individual</option><option value="couple">Couple</option><option value="family">Family</option></select></label><label style="grid-column:1/-1">Message<textarea name="body"></textarea></label></div><p class="err"></p><button class="btn primary">Publish</button></form>'; };
+AFTER.announce = () => { $('anForm').onsubmit = async e => { e.preventDefault(); const f = e.target; try { await call('mosAdminSave', { area: 'announce', rec: { title: f.title.value, body: f.body.value, plan: f.plan.value } }); show('announce'); } catch (x) { f.querySelector('.err').textContent = x.message; } }; };
+VIEWS.flags = async () => { const j = await call('mosAdminList', { area: 'flags' }); return '<div class="card"><h2>Feature switches</h2>' + tbl(['Feature', 'On', 'Note'], j.items.map(f => [esc(f.id), f.on ? 'yes' : 'no', esc(f.note || '')])) + '</div><form class="card" id="flForm"><h2>Set a switch</h2><div class="form"><label>Name<input name="id" required></label><label>On<select name="on"><option value="true">On</option><option value="false">Off</option></select></label><label>Note<input name="note"></label></div><p class="err"></p><button class="btn primary">Save</button></form>'; };
+AFTER.flags = () => { $('flForm').onsubmit = async e => { e.preventDefault(); const f = e.target; try { await call('mosAdminSave', { area: 'flags', rec: { id: f.id.value, on: f.on.value === 'true', note: f.note.value } }); show('flags'); } catch (x) { f.querySelector('.err').textContent = x.message; } }; };
+VIEWS.roles = async () => { const j = await call('mosAdminList', { area: 'roles' }); return '<div class="card"><h2>Platform roles</h2><p class="note">No platform role can read customer financial records.</p>' + tbl(['Person', 'Roles'], j.items.map(x => [esc(x.email), esc(x.roles.join(', '))])) + '</div><form class="card" id="roForm"><h2>Set roles</h2><div class="form"><label>Email of a verified account<input name="email" type="email" required></label>' + ['platform_admin', 'billing_admin', 'tech_support', 'security_admin', 'platform_owner'].map(r => '<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" name="r" value="' + r + '" style="width:auto"> ' + r.replace('_', ' ') + '</label>').join('') + '</div><p class="err"></p><button class="btn primary">Save roles</button></form>'; };
+AFTER.roles = () => { $('roForm').onsubmit = async e => { e.preventDefault(); const f = e.target; try { await call('mosAdminSave', { area: 'roles', rec: { email: f.email.value, roles: [...f.querySelectorAll('[name=r]:checked')].map(x => x.value) } }); show('roles'); } catch (x) { f.querySelector('.err').textContent = x.message; } }; };
+function alertBox(m) { const p = document.createElement('p'); p.className = 'err'; p.textContent = m; $('main').prepend(p); }
+$('gate').onsubmit = async e => {
+  e.preventDefault(); const f = e.target; $('gErr').textContent = '';
+  try { const pw = await MCrypto.fromPassword(f.email.value, f.password.value), j = await call('mosLogin', { email: f.email.value, authKey: pw.authKey }); if (j.needVerify) throw new Error('Verify your email in the app first.'); st = j.token; me = j.user; f.password.value = '';
+    if (!(me.platformRoles || []).length) { st = null; throw new Error('This account has no platform role.'); }
+    $('gate').hidden = true; $('app').hidden = false; $('who').textContent = '· ' + me.email + ' (' + me.platformRoles.join(', ') + ')';
+    show(AREAS.find(a => can(a[2]))[0]); } catch (x) { $('gErr').textContent = x.message; }
+};
+$('nav').onclick = e => { const b = e.target.closest('[data-v]'); if (b) show(b.dataset.v); };
+$('out').onclick = async () => { try { await call('mosLogout'); } catch (e) {} location.reload(); };
+</script>
+</body>
+</html>
