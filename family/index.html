@@ -724,39 +724,106 @@ var FC = (function () {
   }
 
   // ---------- CSV import helpers ----------
+  /** RFC 4180 parsing, lenient where banks are sloppy: a quote only opens a quoted field at the very start of a
+   *  field, so an unquoted description such as  5" PVC PIPE  stays one field instead of swallowing later lines.
+   *  Returns the non-empty rows; rows.lineNos[i] is the file line each row started on. */
   function parseCSV(text) {
-    var rows = [], row = [], f = '', q = false; text = String(text || '').replace(/^﻿/, '');
-    var first = text.split('\n')[0] || '', delim = (first.match(/;/g) || []).length > (first.match(/,/g) || []).length ? ';' : ',';
-    for (var i = 0; i < text.length; i++) { var c = text[i];
-      if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
-      else if (c === '"') q = true; else if (c === delim) { row.push(f); f = ''; } else if (c === '\n') { row.push(f); rows.push(row); row = []; f = ''; } else if (c !== '\r') f += c; }
-    if (f || row.length) { row.push(f); rows.push(row); }
-    return rows.filter(function (r) { return r.some(function (c) { return String(c).trim(); }); });
+    text = String(text || '').replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+    var first = text.split('\n')[0] || '', delim = (first.match(/;/g) || []).length > (first.match(/,/g) || []).length ? ';' : (first.match(/\t/g) || []).length > (first.match(/,/g) || []).length ? '\t' : ',';
+    var rows = [], lines = [], row = [], f = '', q = false, line = 1, rowLine = 1, started = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (q) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { f += '"'; i++; }
+          else if (i + 1 >= text.length || text[i + 1] === delim || text[i + 1] === '\n') q = false;
+          else f += c; // a stray quote inside a quoted field is kept as text
+        } else { if (c === '\n') line++; f += c; }
+        continue;
+      }
+      if (c === '"' && f === '' && !started) { q = true; started = true; }
+      else if (c === delim) { row.push(f); f = ''; started = false; }
+      else if (c === '\n') { row.push(f); rows.push(row); lines.push(rowLine); row = []; f = ''; started = false; line++; rowLine = line; }
+      else { f += c; started = true; }
+    }
+    if (f !== '' || row.length) { row.push(f); rows.push(row); lines.push(rowLine); }
+    var keep = [], keepLines = [];
+    rows.forEach(function (r, k) { if (r.some(function (x) { return String(x).trim(); })) { keep.push(r); keepLines.push(lines[k]); } });
+    keep.lineNos = keepLines; keep.unclosedQuote = q;
+    return keep;
   }
   function parseDate(s) {
-    s = String(s || '').trim(); var m;
-    if ((m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/))) return iso(+m[1], +m[2], +m[3]);
-    if ((m = s.match(/^(\d{1,2})[-\/ ](\d{1,2})[-\/ ](\d{4})/))) return iso(+m[3], +m[2], +m[1]);
-    var mon = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
-    if ((m = s.match(/^(\d{1,2})[ -]([A-Za-z]{3})[a-z]*[ -](\d{4})/)) && mon[m[2].toLowerCase()]) return iso(+m[3], mon[m[2].toLowerCase()], +m[1]);
-    return null;
+    s = String(s || '').trim(); var m, d = null;
+    if ((m = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/))) d = [+m[1], +m[2], +m[3]];
+    else if ((m = s.match(/^(\d{1,2})[-\/. ](\d{1,2})[-\/. ](\d{4})/))) d = [+m[3], +m[2], +m[1]];
+    else if ((m = s.match(/^(\d{4})(\d{2})(\d{2})$/))) d = [+m[1], +m[2], +m[3]];
+    else {
+      var mon = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+      if ((m = s.match(/^(\d{1,2})[ -]([A-Za-z]{3})[a-z]*[ -](\d{4})/)) && mon[m[2].toLowerCase()]) d = [+m[3], mon[m[2].toLowerCase()], +m[1]];
+    }
+    if (!d || d[1] < 1 || d[1] > 12 || d[2] < 1 || d[2] > daysInMonth(d[0], d[1])) return null; // no silent roll-over of 2026/02/31
+    return iso(d[0], d[1], d[2]);
   }
+  /** Strict money parse for imports: returns whole cents, or null when the text is not a number. */
+  function parseMoney(v) {
+    var s = String(v == null ? '' : v).trim(); if (!s) return null;
+    var neg = /^-|^\(.*\)$|-$|\bDR$/i.test(s);
+    s = s.replace(/\b(CR|DR)$/i, '').replace(/[R\s ()+]/g, '').replace(/-/g, '');
+    if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) s = s.replace(/,/g, '');      // 1,234.56
+    else if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) s = s.replace(/\./g, '').replace(',', '.'); // 1.234,56
+    else if (/^\d+,\d{1,2}$/.test(s)) s = s.replace(',', '.');                // 1234,56
+    if (!/^\d*\.?\d+$/.test(s)) return null;
+    var c = Math.round(parseFloat(s) * 100); return neg ? -c : c;
+  }
+  /** Reads statement rows. Every data row ends up in exactly one place: out (importable) or out.skipped (with the reason).
+   *  Duplicates are judged only against transactions already saved, never between rows of the same file, and the
+   *  running balance is part of the match when both sides have one. */
   function importRows(rows, map, accountId, rules, existing) {
-    var head = rows[0], body = rows.slice(1), seen = {}, out = [];
-    (existing || []).forEach(function (t) { seen[dupKey(t)] = true; });
-    body.forEach(function (r, i) {
-      var date = parseDate(r[map.date]); if (!date) return;
-      var amt = map.amount != null ? cents(r[map.amount]) : cents(r[map.credit]) - Math.abs(cents(r[map.debit]));
-      if (!amt) return;
+    var lineNos = rows.lineNos || rows.map(function (_, i) { return i + 1; });
+    var out = [], skipped = [], hasBal = map.balance != null && map.balance !== '';
+    (rows.slice(1)).forEach(function (r, i) {
+      var line = lineNos[i + 1], raw = r.join(' | ');
+      var date = parseDate(r[map.date]);
+      if (!date) { skipped.push({ line: line, reason: 'Date "' + (r[map.date] == null ? '' : r[map.date]) + '" is not a date', raw: raw }); return; }
+      var amt;
+      if (map.amount != null && map.amount !== '') amt = parseMoney(r[map.amount]);
+      else { var cr = parseMoney(r[map.credit]), dr = parseMoney(r[map.debit]); amt = cr == null && dr == null ? null : (cr || 0) - Math.abs(dr || 0); }
+      if (amt == null) { skipped.push({ line: line, reason: 'Amount "' + (r[map.amount != null ? map.amount : map.debit] || '') + '" is not a number', raw: raw }); return; }
+      if (amt === 0) { skipped.push({ line: line, reason: 'Amount is zero (nothing to record)', raw: raw }); return; }
       var desc = String(r[map.description] || '').replace(/\s+/g, ' ').trim();
-      var t = { date: date, amountCents: Math.abs(amt), kind: amt > 0 ? 'income' : 'expense', description: desc, accountId: accountId, category: '', subcategory: '', source: 'csv', row: i + 2 };
-      applyRules(t, rules);
-      t.duplicate = !!seen[dupKey(t)]; seen[dupKey(t)] = true;
-      out.push(t);
+      var t = { date: date, amountCents: Math.abs(amt), kind: amt > 0 ? 'income' : 'expense', description: desc, accountId: accountId, category: '', subcategory: '', source: 'csv', row: line };
+      if (hasBal) { var b = parseMoney(r[map.balance]); if (b != null) t.balanceCents = b; }
+      applyRules(t, rules); out.push(t);
     });
+    markExisting(out, existing, accountId);
+    out.skipped = skipped; out.dataRows = rows.length - 1;
+    out.balanceCheck = hasBal ? checkBalances(out) : null;
     return out;
   }
-  function dupKey(t) { return [t.date, t.amountCents, t.accountId, String(t.description || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 24)].join('|'); }
+  function normDesc(d) { return String(d || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+  function baseKey(t) { return [t.date, t.amountCents, t.kind === 'income' ? 'in' : 'out', t.accountId, normDesc(t.description)].join('|'); }
+  /** Identity of a transaction. With a running balance, two same-day payments of the same amount stay distinct. */
+  function dupKey(t) { return baseKey(t) + (t.balanceCents != null ? '|b' + t.balanceCents : ''); }
+  /** Marks incoming rows already saved. Count-based: if the account holds one matching payment and the file has two, only one is flagged. */
+  function markExisting(list, existing, accountId) {
+    var withBal = {}, noBal = {};
+    (existing || []).forEach(function (t) { if (t.accountId !== accountId || t.hidden) return; if (t.balanceCents != null) withBal[dupKey(t)] = (withBal[dupKey(t)] || 0) + 1; else noBal[baseKey(t)] = (noBal[baseKey(t)] || 0) + 1; });
+    list.forEach(function (t) {
+      var k = dupKey(t), b = baseKey(t);
+      if (t.balanceCents != null && withBal[k]) { withBal[k]--; t.duplicate = true; t.duplicateWhy = 'Same date, amount, description and balance as a saved transaction'; }
+      else if (noBal[b]) { noBal[b]--; t.duplicate = true; t.duplicateWhy = 'Matches a saved transaction that has no balance recorded'; }
+      else t.duplicate = false;
+    });
+    return list;
+  }
+  /** Checks that each row's balance equals the previous balance plus the amount, in file order (oldest or newest first). */
+  function checkBalances(list) {
+    var rows = list.filter(function (t) { return t.balanceCents != null; }); if (rows.length < 2) return { ok: true, checked: rows.length, breaks: [] };
+    var signed = function (t) { return t.kind === 'income' ? t.amountCents : -t.amountCents; };
+    var test = function (dir) { var br = []; for (var i = 1; i < rows.length; i++) { var a = rows[i - 1], b = rows[i]; var ok = dir > 0 ? a.balanceCents + signed(b) === b.balanceCents : b.balanceCents + signed(a) === a.balanceCents; if (!ok) br.push({ line: b.row, after: a.row }); } return br; };
+    var up = test(1), down = test(-1), best = up.length <= down.length ? up : down;
+    return { ok: best.length === 0, checked: rows.length, order: up.length <= down.length ? 'oldest first' : 'newest first', breaks: best.slice(0, 20), breakCount: best.length };
+  }
   function applyRules(t, rules) {
     (rules || []).some(function (r) {
       if (!r.contains) return false;
@@ -766,8 +833,9 @@ var FC = (function () {
     });
     return t;
   }
+  /** Saved transactions that look identical, including the running balance when recorded. */
   function findDuplicates(list) {
-    var groups = {}; list.forEach(function (t) { var k = dupKey(t); (groups[k] = groups[k] || []).push(t.id); });
+    var groups = {}; list.forEach(function (t) { if (t.hidden) return; var k = dupKey(t); (groups[k] = groups[k] || []).push(t.id); });
     return Object.keys(groups).filter(function (k) { return groups[k].length > 1; }).map(function (k) { return groups[k]; });
   }
 
@@ -794,7 +862,7 @@ var FC = (function () {
     netWorth: netWorth, netWorthChange: netWorthChange, dashboard: dashboard, forecast: forecast, debtPlan: debtPlan, roadmap: roadmap, milestoneStatus: milestoneStatus,
     monthlyCashflow: monthlyCashflow, goalStats: goalStats, educationProjection: educationProjection, instalment: instalment, vehicleSim: vehicleSim, fuelStats: fuelStats, vehicleMonthCost: vehicleMonthCost,
     commissionNet: commissionNet, allocate: allocate, scenario: scenario, insights: insights,
-    parseCSV: parseCSV, parseDate: parseDate, importRows: importRows, dupKey: dupKey, applyRules: applyRules, findDuplicates: findDuplicates, validateTxn: validateTxn
+    parseCSV: parseCSV, parseDate: parseDate, parseMoney: parseMoney, importRows: importRows, dupKey: dupKey, markExisting: markExisting, checkBalances: checkBalances, applyRules: applyRules, findDuplicates: findDuplicates, validateTxn: validateTxn
   };
 })();
 if (typeof module !== 'undefined') module.exports = FC;
@@ -1150,24 +1218,55 @@ function importDlg() {
 }
 function importMap(rows) {
   const head = rows[0], guess = re => { const i = head.findIndex(h => re.test(String(h))); return i < 0 ? '' : i; };
-  const g = { date: guess(/date/i), description: guess(/desc|narr|detail|reference|transaction/i), amount: guess(/^amount|amount$/i), debit: guess(/debit|out|withdraw/i), credit: guess(/credit|in$|deposit/i) };
+  const g = { date: guess(/date/i), description: guess(/desc|narr|detail|reference|transaction/i), amount: guess(/^\s*amount|amount\s*$/i), balance: guess(/balance|saldo/i), debit: guess(/debit|out|withdraw/i), credit: guess(/credit|in$|deposit/i) };
   const sel = (k, label, opt) => '<label>' + label + '<select id="im_' + k + '">' + (opt ? '<option value="">Not used</option>' : '') + head.map((h, i) => '<option value="' + i + '"' + (g[k] === i ? ' selected' : '') + '>' + esc(h || 'Column ' + (i + 1)) + '</option>').join('') + '</select></label>';
-  $('imMap').innerHTML = '<h3 style="margin-top:8px">Match the columns</h3><div class="form">' + sel('date', 'Date') + sel('description', 'Description') + sel('amount', 'Amount (+ in, - out)', true) + sel('debit', 'Or: money out', true) + sel('credit', 'and money in', true) + '</div><div id="imPrev"></div>';
+  $('imMap').innerHTML = '<h3 style="margin-top:8px">Match the columns</h3><div class="form">' + sel('date', 'Date') + sel('description', 'Description') + sel('amount', 'Amount (+ in, - out)', true) + sel('balance', 'Running balance', true) + sel('debit', 'Or: money out', true) + sel('credit', 'and money in', true) + '</div><div id="imPrev"></div>';
+  let includeDup = false;
   const prev = () => {
     const v = k => $('im_' + k).value, map = { date: +v('date'), description: +v('description') };
-    if (v('amount') !== '') map.amount = +v('amount'); else { map.debit = +v('debit'); map.credit = +v('credit'); }
+    if (v('amount') !== '') map.amount = +v('amount'); else { map.debit = v('debit') === '' ? null : +v('debit'); map.credit = v('credit') === '' ? null : +v('credit'); }
+    if (v('balance') !== '') map.balance = +v('balance');
     const acc = $('imAcc').value, list = FC.importRows(rows, map, acc, S.data.rules, S.data.transactions);
     list.forEach(t => { if (!t.category && t.kind === 'expense') t.category = 'Other'; t.owner = t.owner || 'shared'; });
-    const fresh = list.filter(t => !t.duplicate);
-    $('imPrev').innerHTML = '<p class="small" style="margin:10px 0">' + list.length + ' rows read · <b>' + fresh.length + ' new</b> · ' + (list.length - fresh.length) + ' look like duplicates and will be skipped. Uncategorised spending is marked Other; add category rules in Settings to sort it automatically.</p>' + table(['Date', 'Description', 'Category', '#Amount'], list.slice(0, 12).map(t => ({ cls: t.duplicate ? 'muted' : '', cells: [t.date, esc(t.description) + (t.duplicate ? ' <span class="tag estimated">duplicate</span>' : ''), esc(t.category), (t.kind === 'income' ? '+' : '-') + R(t.amountCents)] })));
-    $('dlgFoot').innerHTML = '<button type="button" class="btn" data-close>Cancel</button><button type="button" class="btn primary" id="imGo"' + (fresh.length ? '' : ' disabled') + '>Import ' + fresh.length + ' transactions</button>';
+    const dups = list.filter(t => t.duplicate), todo = list.filter(t => includeDup || !t.duplicate), bc = list.balanceCheck;
+    const line = (n, l) => n + ' ' + l + (n === 1 ? '' : 's');
+    let h = '<div class="list small" style="margin:12px 0"><div class="row"><span>Data rows in the file</span><b class="r">' + list.dataRows + '</b></div><div class="row"><span>Read as transactions</span><b class="r">' + list.length + '</b></div>'
+      + '<div class="row"><span>Not readable (listed below)</span><b class="r ' + (list.skipped.length ? 'neg' : '') + '">' + list.skipped.length + '</b></div>'
+      + '<div class="row"><span>Already saved in this account</span><b class="r">' + dups.length + '</b></div>'
+      + '<div class="row"><span><b>Will be imported</b></span><b class="r">' + todo.length + '</b></div></div>';
+    if (rows.unclosedQuote) h += '<div class="alert high"><h3>The file ends inside a quoted field</h3><div class="small">A " character opened a field that never closed, so the last rows may be merged. Check the last few lines of the file.</div></div>';
+    if (bc) h += bc.ok ? '<p class="note">Running balances reconcile for all ' + bc.checked + ' rows (' + bc.order + '), so no transaction is missing between them.</p>' : '<div class="alert medium"><h3>' + line(bc.breakCount, 'gap') + ' in the running balance</h3><div class="small">Balance does not follow from the previous row at file line' + (bc.breaks.length > 1 ? 's ' : ' ') + bc.breaks.map(x => x.line).join(', ') + '. A row may be missing from the export, or the bank lists pending items separately.</div></div>';
+    if (list.skipped.length) h += '<h3 style="margin:10px 0 6px">Rows that cannot be imported</h3>' + table(['Line', 'Reason', 'Row as in the file'], list.skipped.map(x => ({ wrap: 2, cells: [String(x.line), esc(x.reason), '<code style="font-size:.78rem">' + esc(x.raw) + '</code>'] })));
+    if (dups.length) h += '<h3 style="margin:14px 0 6px">Already saved (' + dups.length + ')</h3><p class="note">Matched against transactions already in this account, using date, amount, description and running balance. Rows in this file are never compared with each other.</p><label class="check" style="margin:6px 0"><input type="checkbox" id="imDup"' + (includeDup ? ' checked' : '') + '> Import these as well</label>' + table(['Line', 'Date', 'Description', '#Amount', '#Balance', 'Why'], dups.slice(0, 50).map(t => ({ cells: [String(t.row), t.date, esc(t.description), (t.kind === 'income' ? '+' : '-') + R(t.amountCents), t.balanceCents == null ? '' : R(t.balanceCents), esc(t.duplicateWhy)] })));
+    h += '<h3 style="margin:14px 0 6px">Preview</h3>' + table(['Line', 'Date', 'Description', 'Category', '#Amount', '#Balance'], todo.slice(0, 15).map(t => ({ cells: [String(t.row), t.date, esc(t.description), esc(t.category), (t.kind === 'income' ? '+' : '-') + R(t.amountCents), t.balanceCents == null ? '' : R(t.balanceCents)] }))) + (todo.length > 15 ? '<p class="note">and ' + (todo.length - 15) + ' more.</p>' : '') + '<p class="note">Uncategorised spending is marked Other; add category rules in Settings to sort it automatically.</p>';
+    $('imPrev').innerHTML = h;
+    const d = $('imDup'); if (d) d.onchange = () => { includeDup = d.checked; prev(); };
+    $('dlgFoot').innerHTML = '<button type="button" class="btn" data-close>Cancel</button><button type="button" class="btn primary" id="imGo"' + (todo.length ? '' : ' disabled') + '>Import ' + todo.length + ' transactions</button>';
     $('imGo').onclick = async () => {
-      $('imGo').disabled = true;
-      try { const clean = fresh.map(t => { const x = Object.assign({}, t); delete x.duplicate; delete x.row; return x; }); const j = await api('famBulk', { col: 'transactions', list: clean }); closeDlg(); toast(j.imported + ' imported' + (j.skipped ? ', ' + j.skipped + ' skipped' : '')); await reload(true); }
-      catch (e) { $('dlgErr').textContent = e.message; $('imGo').disabled = false; }
+      $('imGo').disabled = true; $('dlgErr').textContent = '';
+      const batch = 'imp' + Date.now().toString(36), clean = todo.map(t => { const x = Object.assign({}, t); delete x.duplicate; delete x.duplicateWhy; x.importRow = x.row; delete x.row; x.importBatch = batch; return x; });
+      let done = 0;
+      try {
+        done = await importSave(clean, n => { $('imGo').textContent = 'Saving ' + n + ' of ' + clean.length + '...'; });
+        closeDlg(); toast(done + ' of ' + clean.length + ' transactions imported'); await reload(true);
+      } catch (e) {
+        done = e.saved || 0;
+        $('dlgErr').innerHTML = '<b>Import stopped after ' + done + ' of ' + clean.length + ' transactions.</b> ' + esc(e.message) + (e.code ? ' <span class="muted">(' + esc(e.code) + ')</span>' : '') + (done ? ' The ' + done + ' saved transactions will show as already saved if you run the import again, so retrying is safe.' : '');
+        $('imGo').disabled = false; $('imGo').textContent = 'Retry import';
+      }
     };
   };
   $('imMap').querySelectorAll('select').forEach(s => s.onchange = prev); $('imAcc').onchange = prev; prev();
+}
+/** Saves imported transactions in batches; resolves with the number saved, or rejects with e.saved set. */
+async function importSave(list, progress) {
+  let saved = 0;
+  for (let i = 0; i < list.length; i += 500) {
+    const part = list.slice(i, i + 500);
+    try { const j = await api('famBulk', { col: 'transactions', list: part }); if (j.skipped) { const e = new Error(j.skipped + ' rows in this batch were refused by the server as invalid.'); e.saved = saved + j.imported; throw e; } saved += j.imported; progress && progress(saved); }
+    catch (e) { if (e.saved == null) e.saved = saved; throw e; }
+  }
+  return saved;
 }
 
 /* ---------- Income (salaries and commission) ---------- */
