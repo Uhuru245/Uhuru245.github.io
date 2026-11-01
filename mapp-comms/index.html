@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>MAPP Associate Comms · MRET</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+:root { color-scheme: dark; }
+body { margin: 0; min-height: 100svh; display: grid; place-items: center; background: #07080b; color: #f3f1ec; font: 16px/1.6 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif; padding: 16px; }
+main { max-width: 440px; }
+h1 { font: 400 34px/1.1 'Instrument Serif', Georgia, serif; margin: 0 0 12px; }
+p { color: #b9bdc6; margin: 0 0 16px; }
+a { display: inline-flex; align-items: center; min-height: 46px; padding: 0 20px; background: #c9a55c; color: #1a1408; text-decoration: none; font-weight: 600; }
+.k { font: 600 12px/1 system-ui, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #c9a55c; margin-bottom: 18px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="k">MRET · Private tool</div>
+  <h1>MAPP Associate Comms</h1>
+  <p id="msg">Opening...</p>
+  <p id="act"></p>
+</main>
+<script>
+// The tool's address is never written into this public page. It is given only to the site owner's signed-in session
+// (www.mret.co.za, owner account), and the tool itself also requires your KW Google sign-in.
+(async function () {
+  var API = 'https://script.google.com/macros/s/AKfycbyIZKYDOIrlrEJeg2eSRvXGwQ24q4yiWHNwRrIgNYWVQLRzCTdqSNE0bpZQbWU9y0_r/exec', msg = document.getElementById('msg'), act = document.getElementById('act');
+  var mt = null; try { mt = JSON.parse(localStorage.getItem('mret.mt')); } catch (e) {}
+  function stop(t, link) { msg.textContent = t; act.innerHTML = link ? '<a href="' + link[1] + '">' + link[0] + '</a>' : ''; }
+  if (!mt) return stop('This tool is private. Sign in at www.mret.co.za with the owner account, then open it again.', ['Sign in', '/']);
+  try {
+    var r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ a: 'siteLoad', mt: mt }) }), j = await r.json();
+    var s = j.ok && j.content && (j.content.services || []).filter(function (x) { return x.id === 'mapp-comms'; })[0];
+    if (!s || !/^https:\/\/script\.google\.com\//.test(s.url)) return stop(j.ok ? 'This tool is private to the site owner.' : 'Your sign-in has ended. Sign in again at www.mret.co.za.', ['Go to www.mret.co.za', '/']);
+    msg.textContent = 'Opening MAPP Associate Comms. Google may ask you to sign in with your KW account.';
+    act.innerHTML = '<a href="' + s.url.replace(/"/g, '') + '">Open it</a>';
+    location.replace(s.url);
+  } catch (e) { stop('Could not reach MRET. Check your connection and try again.', ['Try again', '/mapp-comms/']); }
+})();
+</script>
+</body>
+</html>
