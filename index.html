@@ -1,330 +1,575 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-ZA">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Where would you like to go?</title>
-<meta name="description" content="One home for New Creation, the KW Edge Smart Agent Series, KW Edge tech support, coaching and portal intelligence.">
-<meta name="theme-color" content="#0E0F0D">
-<meta name="color-scheme" content="dark">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<title>MRET</title>
+<meta name="description" content="Real estate, agent training, tech support and the tools Uhuru Matlhaji builds for agents and families.">
+<meta name="theme-color" content="#07080b">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Literata:opsz,wght@7..72,500;7..72,600&display=swap">
-<script>
-  // Someone who installed New Creation on their phone before it moved should land straight in the app.
-  try { if (matchMedia('(display-mode: standalone)').matches || navigator.standalone) location.replace('/new-creation/'); } catch (e) {}
-</script>
-<style>
-  :root{--bg:#0E0F0D;--bg-2:#151714;--surface:#1B1E1B;--ink:#F3EFE6;--ink-2:#CFCBC1;--ink-3:#A6A298;--line:#2C302B;--gold:#E8C873;--gold-2:#F6DE9C;--glow:rgba(232,200,115,.5)}
-  *{box-sizing:border-box}
-  html{-webkit-text-size-adjust:100%;background:var(--bg);overflow-x:clip}
-  body{margin:0;min-height:100vh;color:var(--ink);font:16px/1.55 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;
-    background:radial-gradient(120% 70% at 50% 108%,rgba(232,200,115,.10),transparent 60%),radial-gradient(80% 50% at 50% -10%,rgba(255,255,255,.05),transparent 70%),var(--bg)}
-  a{color:inherit}
-  .wrap{max-width:720px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) 16px calc(36px + env(safe-area-inset-bottom))}
-  .mark{display:flex;align-items:center;gap:12px}
-  .mono{width:42px;height:42px;border-radius:13px;background:var(--ink);color:var(--bg);display:grid;place-items:center;font:600 17px/1 Literata,Georgia,serif}
-  .who{font-size:13.5px;color:var(--ink-3);font-weight:500;line-height:1.35}
-  .who b{display:block;color:var(--ink);font-size:15.5px;font-weight:600}
+<link rel="preconnect" href="https://lh3.googleusercontent.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Instrument+Serif&display=swap">
+<style>[hidden] { display: none !important; }
+:root {
+  --bg: #07080b; --bg-2: #0a0f1a; --navy: #0d1626; --navy-2: #121d31;
+  --ink: #f3f1ec; --ink-2: #b9bdc6; --ink-3: #868c98; --line: rgba(243, 241, 236, .12); --line-2: rgba(243, 241, 236, .22);
+  --gold: #c9a55c; --gold-2: #e2c88f; --gold-ink: #1a1408;
+  --serif: 'Instrument Serif', 'Times New Roman', serif; --sans: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --wrap: 1240px; --gut: clamp(16px, 4vw, 48px); --ease: cubic-bezier(.2, .7, .2, 1);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 17px/1.6 var(--sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+img { display: block; max-width: 100%; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 2px; }
+.skip { position: absolute; left: 12px; top: -60px; z-index: 100; background: var(--gold); color: var(--gold-ink); padding: 10px 14px; font-weight: 600; text-decoration: none; }
+.skip:focus { top: 12px; }
+.wrap { width: 100%; max-width: var(--wrap); margin: 0 auto; padding: 0 var(--gut); }
+.eyebrow { display: inline-flex; align-items: center; gap: 12px; font: 600 12px/1 var(--sans); letter-spacing: .18em; text-transform: uppercase; color: var(--gold); }
+.eyebrow::before { content: ''; width: 28px; height: 1px; background: currentColor; opacity: .7; }
+h1, h2, h3 { font-weight: 400; margin: 0; letter-spacing: -.01em; }
+.display { font: 400 clamp(44px, 7.2vw, 104px)/.98 var(--serif); letter-spacing: -.02em; text-wrap: balance; }
+.h2 { font: 400 clamp(34px, 4.6vw, 64px)/1.02 var(--serif); text-wrap: balance; }
+.lede { color: var(--ink-2); font-size: clamp(17px, 1.4vw, 20px); max-width: 38em; }
+.btn { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 22px; border: 1px solid var(--line-2); color: var(--ink); text-decoration: none; font: 600 15px/1 var(--sans); letter-spacing: .01em; transition: background .25s var(--ease), border-color .25s, color .25s; }
+.btn:hover { border-color: var(--ink); }
+.btn.gold { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); }
+.btn.gold:hover { background: var(--gold-2); border-color: var(--gold-2); }
+.btn .arr { transition: transform .25s var(--ease); }
+.btn:hover .arr { transform: translateX(3px); }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
 
-  .intro{text-align:center;margin:clamp(6px,3vh,44px) 0 0}
-  @media (max-width:520px){.gift.seal{width:46px;height:46px}h1{margin-top:6px}.lede{margin-top:4px}}
-  .gift{width:30px;height:30px;color:var(--gold);filter:drop-shadow(0 0 14px var(--glow));animation:bob 3.2s ease-in-out infinite}
-  .gift.seal{width:58px;height:58px;filter:drop-shadow(0 0 16px rgba(232,200,115,.35))}
-  h1{font:600 clamp(27px,6.6vw,40px)/1.12 Literata,Georgia,serif;margin:10px auto 0;color:var(--gold);text-shadow:0 0 28px rgba(232,200,115,.25);max-width:14ch}
-  .lede{color:var(--ink-2);margin:8px auto 0;max-width:40ch;font-size:15px}
+/* header */
+.hdr { position: fixed; inset: 0 0 auto; z-index: 50; transition: background .35s, border-color .35s, backdrop-filter .35s; border-bottom: 1px solid transparent; }
+.hdr.solid { background: rgba(7, 8, 11, .82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom-color: var(--line); }
+.hdr .wrap { display: flex; align-items: center; gap: 28px; height: 72px; }
+.brand { display: flex; align-items: baseline; gap: 10px; text-decoration: none; margin-right: auto; }
+.brand b { font: 400 28px/1 var(--serif); letter-spacing: .02em; }
+.brand span { font-size: 12px; color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
+.nav { display: flex; gap: 26px; }
+.nav a { text-decoration: none; font-size: 14.5px; color: var(--ink-2); padding: 6px 0; border-bottom: 1px solid transparent; transition: color .2s, border-color .2s; }
+.nav a:hover, .nav a[aria-current="true"] { color: var(--ink); border-bottom-color: var(--gold); }
+.menu-btn { display: none; background: none; border: 1px solid var(--line-2); color: var(--ink); height: 42px; padding: 0 14px; font: 600 14px var(--sans); cursor: pointer; }
+.sheet { position: fixed; inset: 0; z-index: 60; background: var(--bg); display: flex; flex-direction: column; padding: 18px var(--gut) 32px; transform: translateY(-100%); visibility: hidden; transition: transform .45s var(--ease), visibility 0s .45s; }
+.sheet.open { transform: none; visibility: visible; transition: transform .45s var(--ease); }
+.sheet .top { display: flex; justify-content: space-between; align-items: center; height: 54px; }
+.sheet nav { display: flex; flex-direction: column; margin-top: 28px; border-top: 1px solid var(--line); }
+.sheet nav a { font: 400 34px/1.1 var(--serif); text-decoration: none; padding: 16px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+.sheet nav a small { font: 500 12px var(--sans); color: var(--ink-3); letter-spacing: .12em; text-transform: uppercase; }
 
-  /* ---------- the fan of cards: white travel-style cards over an old map ---------- */
-  .atlas{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;
-    background:radial-gradient(60% 45% at 50% 52%,rgba(201,146,72,.20),transparent 70%),radial-gradient(120% 80% at 50% 50%,#1B140C 0%,#0D0A07 70%,#070605 100%)}
-  .atlas svg{position:absolute;inset:-5%;width:110%;height:110%;opacity:.38}
-  .stage{--cw:min(232px,60vw);position:relative;overflow-x:clip;height:calc(var(--cw) / .6 + 44px);margin:14px -16px 0;touch-action:pan-y;user-select:none;-webkit-user-select:none}
-  .card{--accent:#2C664E;position:absolute;left:50%;top:10px;width:var(--cw);aspect-ratio:.6;margin-left:calc(var(--cw) / -2);border-radius:24px;border:0;padding:0;cursor:grab;color:#16181B;text-align:left;font:inherit;
-    background:#F7F6F3;box-shadow:0 24px 50px rgba(0,0,0,.55),0 2px 0 rgba(255,255,255,.6) inset;
-    transition:transform .5s cubic-bezier(.2,.8,.2,1),opacity .5s,filter .5s,box-shadow .3s;will-change:transform;touch-action:none;overflow:hidden}
-  .card .in{position:absolute;inset:0;display:flex;flex-direction:column}
-  .card .art{position:relative;flex:none;height:41%;margin:7px 7px 0;border-radius:18px 18px 26px 26px;overflow:hidden;background:var(--accent)}
-  .card .art svg{display:block;width:100%;height:100%}
-  .card .tag{position:absolute;left:9px;top:9px;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:rgba(10,10,10,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:4px 8px;border-radius:999px}
-  .card .body{flex:1;display:flex;flex-direction:column;padding:11px 14px 13px;min-height:0}
-  .card h2{font:700 17px/1.2 Inter,system-ui,sans-serif;margin:0;letter-spacing:-.01em}
-  .card .loc{display:flex;align-items:center;gap:4px;margin-top:3px;font-size:11px;color:#5D6168;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .card .loc svg{flex:none;width:11px;height:11px;color:#16181B}
-  .card .dl{margin-top:9px;font-size:11.5px;font-weight:700}
-  .card p{margin:2px 0 0;font-size:11px;line-height:1.42;color:#4A4E55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;flex:none}
-  .card h2,.card .loc,.card .dl,.card .stats,.card .foot{flex:none}
-  @media (max-width:520px){.card p{-webkit-line-clamp:2}}
-  .card .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:auto;padding-top:8px;text-align:center}
-  .card .stats small,.card .foot small{display:block;font-size:10px;color:#6B6F76;font-weight:500}
-  .card .stats b{display:block;margin-top:1px;font-size:13px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap}
-  .card .foot{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin-top:9px}
-  .card .foot b{display:block;font-size:16px;font-weight:700;line-height:1.15}
-  .card .go{flex:none;width:38px;height:38px;border-radius:50%;background:#16181B;color:#fff;display:grid;place-items:center;box-shadow:0 6px 14px rgba(0,0,0,.25)}
-  .card .go svg{width:18px;height:18px}
-  .card:focus-visible{outline:3px solid var(--gold);outline-offset:4px}
-  .card.dragging{transition:none;cursor:grabbing;box-shadow:0 30px 60px rgba(0,0,0,.6),0 0 0 3px var(--gold),0 0 40px var(--glow)}
-  .c-faith{--accent:#2A7C5C}
-  .c-train{--accent:#C2272D}
-  .c-support{--accent:#1D669E}
-  .c-coach{--accent:#7E5B12}
-  .c-desk{--accent:#4A5E78}
-  .c-portal{--accent:#0B6E8A}
-  .c-family{--accent:#16614F}
-  .c-mos{--accent:#1E4D6B}
-  .c-one{--accent:#0E6E6E}
+/* hero */
+.hero { position: relative; min-height: 100svh; display: flex; align-items: flex-end; isolation: isolate; overflow: hidden; }
+.hero .media { position: absolute; inset: 0; z-index: -2; }
+.hero .media img, .hero .media .art { width: 100%; height: 100%; object-fit: cover; }
+.hero .media img { animation: settle 2.4s var(--ease) both; }
+@keyframes settle { from { transform: scale(1.06); opacity: .4; } to { transform: none; opacity: 1; } }
+.hero::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(7, 8, 11, .55) 0%, rgba(7, 8, 11, .05) 32%, rgba(7, 8, 11, .35) 62%, rgba(7, 8, 11, .96) 100%), linear-gradient(90deg, rgba(7, 8, 11, .7), rgba(7, 8, 11, 0) 65%); }
+.hero .wrap { padding-top: 140px; padding-bottom: clamp(48px, 9vh, 96px); }
+.hero .display { max-width: 12.5em; margin-top: 22px; }
+.hero .lede { margin-top: 26px; }
+.hero-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+.scroll-cue { font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.scroll-cue i { width: 1px; height: 40px; background: linear-gradient(var(--gold), transparent); display: block; }
 
-  .nav-row{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:2px}
-  .arrow{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);display:grid;place-items:center;cursor:pointer}
-  .arrow:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-  .arrow svg{width:20px;height:20px}
-  .dots{display:flex;gap:7px}
-  .dots i{width:7px;height:7px;border-radius:50%;background:#4A4E47;transition:all .3s}
-  .dots i.on{width:20px;border-radius:7px;background:var(--gold)}
+/* art fallback (no photograph chosen yet) */
+.art { position: relative; background: radial-gradient(120% 90% at var(--ax, 70%) var(--ay, 20%), #1b2a45 0%, #0d1626 45%, #07080b 100%); overflow: hidden; }
+.art svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.art::after { content: ''; position: absolute; inset: 0; background: radial-gradient(60% 40% at var(--ax, 70%) var(--ay, 20%), rgba(201, 165, 92, .16), transparent 70%); }
 
-  /* ---------- the slot you drop a card into ---------- */
-  .slot-wrap{display:flex;flex-direction:column;align-items:center;margin-top:14px}
-  .slot{position:relative;width:min(220px,58vw);height:60px;border-radius:18px;border:2px dashed rgba(232,200,115,.45);display:grid;place-items:center;transition:all .25s ease}
-  .slot svg{width:28px;height:28px;color:var(--gold);opacity:.8;animation:nudge 1.8s ease-in-out infinite}
-  .slot.hot{border-style:solid;border-color:var(--gold);box-shadow:0 0 0 6px rgba(232,200,115,.12),0 0 50px var(--glow);transform:scale(1.04)}
-  .hint{margin:12px 0 0;font-size:14px;color:var(--ink-3);min-height:1.5em;text-align:center}
-  .hint b{color:var(--gold);font-weight:600}
-  .open-btn{margin-top:10px;min-height:46px;padding:0 22px;border-radius:999px;border:0;background:var(--gold);color:#1A1405;font:600 15px/1 Inter,system-ui,sans-serif;cursor:pointer}
-  .open-btn:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
-  .open-btn[disabled]{background:#3A3B36;color:var(--ink-3);cursor:default}
+/* sections */
+section.blk { padding: clamp(80px, 12vw, 160px) 0; position: relative; }
+section.blk + section.blk { border-top: 1px solid var(--line); }
+.blk-head { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 32px clamp(24px, 6vw, 96px); align-items: end; margin-bottom: clamp(40px, 6vw, 72px); }
+.blk-head .h2 { margin-top: 18px; }
+.blk-head .lede { margin: 0; }
 
-  /* ---------- opening ---------- */
-  .veil{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--bg);opacity:0;pointer-events:none;transition:opacity .35s}
-  .veil.on{opacity:1;pointer-events:auto}
-  .veil .msg{text-align:center}
-  .veil .msg svg{width:40px;height:40px;color:var(--gold);filter:drop-shadow(0 0 18px var(--glow));animation:pulse 1s ease-in-out infinite}
-  .veil .msg p{font:600 22px/1.3 Literata,Georgia,serif;color:var(--gold);margin:12px 0 0}
-  .spark{position:fixed;z-index:60;width:8px;height:8px;border-radius:2px;pointer-events:none}
+/* featured: interactive panel */
+.feat { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: clamp(24px, 5vw, 72px); align-items: stretch; }
+.feat-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); counter-reset: f; }
+.feat-list li { border-bottom: 1px solid var(--line); }
+.feat-list a { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 4px 18px; align-items: baseline; padding: 26px 4px; text-decoration: none; transition: padding .35s var(--ease), background .35s; }
+.feat-list a::before { counter-increment: f; content: counter(f, decimal-leading-zero); font: 500 12px var(--sans); color: var(--ink-3); letter-spacing: .1em; grid-row: span 2; padding-top: 10px; }
+.feat-list .t { font: 400 clamp(26px, 2.6vw, 36px)/1.1 var(--serif); }
+.feat-list .d { grid-column: 2; color: var(--ink-3); font-size: 15px; max-width: 34em; transition: color .3s; }
+.feat-list .go { grid-row: span 2; align-self: center; color: var(--ink-3); transition: color .3s, transform .35s var(--ease); }
+.feat-list a:hover, .feat-list a.on { padding-left: 14px; background: linear-gradient(90deg, rgba(201, 165, 92, .07), transparent 70%); }
+.feat-list a:hover .d, .feat-list a.on .d { color: var(--ink-2); }
+.feat-list a:hover .go, .feat-list a.on .go { color: var(--gold); transform: translateX(4px); }
+.feat-stage { position: relative; min-height: 460px; overflow: hidden; background: var(--navy); }
+.feat-stage > figure { position: absolute; inset: 0; margin: 0; opacity: 0; transition: opacity .7s var(--ease); }
+.feat-stage > figure.on { opacity: 1; }
+.feat-stage img, .feat-stage .art { width: 100%; height: 100%; object-fit: cover; }
+.feat-stage figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 24px; background: linear-gradient(transparent, rgba(7, 8, 11, .85)); font-size: 13px; color: var(--ink-2); letter-spacing: .04em; }
 
-  /* ---------- plain list (works without JavaScript, and for screen readers) ---------- */
-  .list{margin-top:clamp(34px,6vh,56px);border-top:1px solid var(--line);padding-top:18px}
-  .list h3{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px;font-weight:600}
-  .list a,.list div{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);text-decoration:none;min-height:52px}
-  .list a:hover b{color:var(--gold)}
-  .list a:focus-visible{outline:3px solid var(--gold);outline-offset:2px;border-radius:8px}
-  .list .sw{width:12px;height:12px;border-radius:4px;flex:none}
-  .list b{font-weight:600}
-  .list span{color:var(--ink-3);font-size:14px;margin-left:auto;white-space:nowrap}
-  footer .trainer{display:inline-flex;align-items:center;gap:5px;color:var(--ink-3);text-decoration:none;font-size:12px;min-height:24px}
-  footer .trainer:hover{color:var(--ink);text-decoration:underline}
-  footer .trainer:focus-visible{outline:3px solid var(--gold);outline-offset:2px;border-radius:4px}
-  footer .trainer svg{width:12px;height:12px}
-  footer{margin-top:26px;color:var(--ink-3);font-size:13px;display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between}
-  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* pillars */
+.pillar { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: clamp(28px, 6vw, 88px); align-items: center; }
+.pillar.flip { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+.pillar.flip .pm { order: 2; }
+.pm { position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: var(--navy); }
+.pm img, .pm .art { width: 100%; height: 100%; object-fit: cover; transition: transform 1.4s var(--ease); }
+.pillar:hover .pm img { transform: scale(1.025); }
+.pm .tagline { position: absolute; left: 20px; top: 20px; font: 500 11px var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--ink-2); background: rgba(7, 8, 11, .55); padding: 7px 10px; backdrop-filter: blur(6px); }
+.pt .h2 { margin: 18px 0 22px; }
+.svc { list-style: none; margin: 30px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.svc li { border-bottom: 1px solid var(--line); }
+.svc a, .svc .soon-row { display: flex; justify-content: space-between; gap: 16px; padding: 15px 0; text-decoration: none; align-items: baseline; }
+.svc a:hover .n { color: var(--gold-2); }
+.svc .n { font-weight: 600; transition: color .2s; }
+.svc .m { font-size: 13px; color: var(--ink-3); white-space: nowrap; }
+.svc-soon { margin-top: 18px; font-size: 14px; color: var(--ink-3); }
+.svc-soon b { color: var(--ink-2); font-weight: 600; }
+.st { font: 600 11px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; padding: 5px 8px; border: 1px solid var(--line-2); color: var(--ink-2); white-space: nowrap; }
+.st.live { border-color: rgba(201, 165, 92, .55); color: var(--gold-2); }
+.st.soon { color: var(--ink-3); border-style: dashed; }
 
-  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
-  @keyframes nudge{0%,100%{transform:translateY(-3px)}50%{transform:translateY(4px)}}
-  @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.12);opacity:.75}}
-  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
-  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-  @media (min-width:900px){h1{max-width:none}.lede{max-width:none}.stage{--cw:250px;margin-inline:-120px}.card h2{font-size:19px}.card p{font-size:12px}.card .loc{font-size:12px}}
-  body{background:transparent}
+/* directory */
+.dir-tools { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; margin-bottom: 28px; }
+.search { position: relative; }
+.search input { width: 100%; height: 60px; background: transparent; border: 0; border-bottom: 1px solid var(--line-2); color: var(--ink); font: 400 clamp(22px, 2.4vw, 30px) var(--serif); padding: 0 40px 0 0; }
+.search input::placeholder { color: var(--ink-3); }
+.search input:focus { outline: none; border-bottom-color: var(--gold); }
+.search svg { position: absolute; right: 4px; top: 20px; color: var(--ink-3); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { background: none; border: 1px solid var(--line); color: var(--ink-2); height: 38px; padding: 0 14px; font: 500 14px var(--sans); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: border-color .2s, color .2s, background .2s; }
+.chip:hover { border-color: var(--line-2); color: var(--ink); }
+.chip[aria-pressed="true"] { border-color: var(--gold); color: var(--ink); background: rgba(201, 165, 92, .08); }
+.chip .c { font-size: 12px; color: var(--ink-3); }
+.chip[aria-pressed="true"] .c { color: var(--gold-2); }
+.dir-sum { font-size: 14px; color: var(--ink-3); margin: 6px 0 0; }
+.dir { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.dir li { border-bottom: 1px solid var(--line); }
+.dir .row { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 5fr) 150px 110px; gap: 20px; padding: 20px 0; align-items: center; text-decoration: none; }
+.dir a.row:hover .tt { color: var(--gold-2); }
+.dir .tt { font: 400 24px/1.15 var(--serif); transition: color .2s; }
+.dir .cat { display: block; font: 500 12px var(--sans); color: var(--ink-3); letter-spacing: .1em; text-transform: uppercase; margin-top: 6px; }
+.dir .dd { color: var(--ink-2); font-size: 15px; }
+.dir .acc { font-size: 13px; color: var(--ink-3); }
+.dir .row > :last-child { justify-self: end; }
+.dir .soon { opacity: .72; }
+.dir-empty { padding: 40px 0; color: var(--ink-2); border-bottom: 1px solid var(--line); }
+
+/* contact */
+.contact { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: clamp(28px, 6vw, 88px); align-items: end; }
+.contact .big { font: 400 clamp(28px, 4vw, 54px)/1.1 var(--serif); text-decoration: none; border-bottom: 1px solid var(--gold); word-break: break-word; }
+.contact .big:hover { color: var(--gold-2); }
+.cdl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 14px 24px; font-size: 16px; border-top: 1px solid var(--line); padding-top: 22px; }
+.cdl dt { color: var(--ink-3); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; padding-top: 2px; }
+.cdl dd { margin: 0; }
+.cdl a { text-decoration: none; border-bottom: 1px solid var(--line-2); }
+.cdl a:hover { border-color: var(--gold); }
+
+/* footer */
+.ftr { border-top: 1px solid var(--line); padding: 64px 0 40px; background: linear-gradient(180deg, var(--bg), var(--bg-2)); }
+.ftr .cols { display: grid; grid-template-columns: minmax(0, 4fr) repeat(2, minmax(0, 3fr)); gap: 40px; }
+.ftr h2 { font: 600 12px var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 16px; }
+.ftr ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.ftr a { text-decoration: none; color: var(--ink-2); }
+.ftr a:hover { color: var(--ink); }
+.ftr .note { color: var(--ink-3); font-size: 14px; max-width: 30em; }
+.ftr .legal { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--ink-3); }
+.pv-bar { position: fixed; z-index: 70; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--gold); color: var(--gold-ink); font: 600 13px var(--sans); padding: 10px 16px; letter-spacing: .04em; box-shadow: 0 10px 30px rgba(0, 0, 0, .4); }
+
+/* reveal */
+.rv { opacity: 0; transform: translateY(18px); transition: opacity .9s var(--ease), transform .9s var(--ease); }
+.rv.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .rv { opacity: 1; transform: none; }
+}
+
+/* tablet */
+@media (max-width: 1080px) {
+  .nav { gap: 18px; } .nav a { font-size: 14px; }
+  .dir .row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+  .dir .acc { display: none; }
+}
+@media (max-width: 920px) {
+  .nav { display: none; } .menu-btn { display: inline-flex; align-items: center; }
+  .blk-head, .feat, .pillar, .pillar.flip, .contact { grid-template-columns: minmax(0, 1fr); }
+  .pillar.flip .pm { order: 0; }
+  .pm { aspect-ratio: 16 / 11; }
+  .feat-stage { min-height: 0; aspect-ratio: 16 / 10; order: -1; }
+  .ftr .cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .ftr .cols > :first-child { grid-column: 1 / -1; }
+}
+/* phone */
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  .brand span { display: none; }
+  .hero .wrap { padding-top: 110px; }
+  .hero .btn { flex: 1 1 100%; justify-content: center; }
+  .scroll-cue { display: none; }
+  .feat-list a { grid-template-columns: 30px minmax(0, 1fr) auto; padding: 20px 0; }
+  .feat-list a:hover, .feat-list a.on { padding-left: 0; }
+  .dir .row { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; }
+  .dir .dd { grid-column: 1 / -1; grid-row: 2; font-size: 14.5px; }
+  .dir .row > :last-child { grid-column: 2; grid-row: 1; align-self: start; }
+  .cdl { grid-template-columns: minmax(0, 1fr); gap: 4px; } .cdl dd { margin-bottom: 12px; }
+  .ftr .cols { grid-template-columns: minmax(0, 1fr); }
+}
 </style>
 </head>
 <body>
-<div class="atlas" aria-hidden="true"><svg viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice"><defs><pattern id="dots" width="14" height="14" patternUnits="userSpaceOnUse"><circle cx="7" cy="7" r="1.6" fill="#C9924A" opacity=".55"/></pattern><clipPath id="land"><path d="M80 140c40-40 140-60 210-40 40 12 60 50 40 80-20 30-70 30-90 60-20 34 10 70-20 96-30 26-80 0-100-36-22-40-80-60-60-110 6-16 10-36 20-50Z"/><path d="M250 330c40-10 80 10 90 50 12 48-10 120-40 150-24 24-50-10-56-50-8-50-34-130 6-150Z"/><path d="M450 120c50-30 150-40 230-20 90 22 200 10 250 60 30 30 10 70-40 80-60 12-80 50-130 60-40 8-60-30-100-20-30 8-30 50-70 50-50 0-50-60-90-80-40-20-90-90-50-130Z"/><path d="M470 300c40-20 100-10 120 30 20 40 0 90-20 130-16 32-50 50-74 20-26-32-20-80-40-110-14-22-6-60 14-70Z"/><path d="M780 400c30-14 90-10 110 20 18 28-10 60-50 66-40 6-80-10-80-40 0-20 4-38 20-46Z"/></clipPath></defs><rect width="1000" height="600" fill="url(#dots)" clip-path="url(#land)"/><g fill="none" stroke="#C9924A" stroke-opacity=".18"><ellipse cx="500" cy="300" rx="480" ry="290"/><path d="M20 300h960M500 10v580M100 120c260 60 540 60 800 0M100 480c260-60 540-60 800 0"/></g><g transform="translate(90 500)" fill="none" stroke="#C9924A" stroke-opacity=".5"><circle r="34"/><circle r="22" stroke-opacity=".3"/><path d="M0-48 6-6 0 48-6 6Z M-48 0 -6-6 48 0-6 6Z" fill="#C9924A" fill-opacity=".35"/></g></svg></div>
-<div class="wrap">
+<div id="app"><noscript><p style="padding:24px">This site needs JavaScript to show its sections. Direct links: <a href="/one-on-one/">Book a 1-on-1</a>, <a href="/smart-agent-series/">Smart Agent Series</a>, <a href="/smart-agent-series/tickets/">Tech support ticket</a>, <a href="/millionaire-os/">Millionaire OS</a>, <a href="/new-creation/">New Creation</a>.</p></noscript></div>
+<script>/* MRET site content: default content, validation and helpers.
+ * The same file runs in the Apps Script server, the public site and the admin dashboard. */
+var CMSX = (function () {
+  var STATUS = ['live', 'beta', 'soon'];
+  var ACCESS = ['public', 'members', 'owner'];
+  var SECTION_TYPES = ['featured', 'pillar', 'directory', 'contact'];
+  var LIMITS = { short: 120, text: 900, url: 600, services: 80, categories: 16, sections: 16, social: 12, links: 16 };
 
-  <main>
-  <section class="intro" aria-labelledby="t">
-    <svg class="gift seal" viewBox="0 0 64 64" role="img" aria-label="Uhuru Matlhaji">
-      <circle cx="32" cy="32" r="29.5" fill="rgba(232,200,115,.08)" stroke="currentColor" stroke-width="1.6"/>
-      <circle cx="32" cy="32" r="25.5" fill="none" stroke="currentColor" stroke-width=".6" opacity=".55"/>
-      <path d="M19 26.5 32 15.5l13 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M38.5 18.6v-2.8h3v5.3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>
-      <text x="32" y="44" text-anchor="middle" fill="currentColor" font-family="Literata, Georgia, serif" font-weight="600" font-size="17" letter-spacing=".5">UM</text>
-    </svg>
-    <h1 id="t">Where would you like to go?</h1>
-    <p class="lede">Swipe to choose a space, then drag it down to open it.</p>
-  </section>
+  var DEFAULT = {
+    meta: { title: 'MRET', description: 'Real estate, agent training, tech support and the tools Uhuru Matlhaji builds for agents and families.' },
+    brand: { name: 'MRET', tagline: 'Millionaire Real Estate Team' },
+    hero: {
+      eyebrow: 'Uhuru Matlhaji',
+      heading: 'Property, people and the systems behind them.',
+      text: 'Sell or buy with a clear plan, learn the technology that runs a modern agency, get help when something breaks, and use the tools built here for agents and households.',
+      image: null,
+      primary: { label: 'Book a 1-on-1', url: '/one-on-one/' },
+      secondary: { label: 'Browse everything', url: '#directory' }
+    },
+    sections: [
+      { id: 'available', type: 'featured', visible: true, eyebrow: 'Available now', heading: 'Start here', text: 'These services are open today.' },
+      { id: 'real-estate', type: 'pillar', cat: 'real-estate', visible: true, eyebrow: 'Real Estate', heading: 'Selling or buying a home', text: 'A priced, marketed and well-communicated sale, or a buyer journey with the finance and viewings in order. The full real estate pages are being prepared; until then, get in touch directly.', image: null, primary: { label: 'Get in touch', url: '#contact' }, secondary: null },
+      { id: 'academy', type: 'pillar', cat: 'academy', visible: true, eyebrow: 'Academy', heading: 'Training and one-on-one sessions', text: 'Hands-on technology and AI sessions for estate agents, and private sessions to work through your own listings, database and leads.', image: null, primary: { label: 'Book a 1-on-1', url: '/one-on-one/' }, secondary: { label: 'Smart Agent Series', url: '/smart-agent-series/' } },
+      { id: 'support', type: 'pillar', cat: 'support', visible: true, eyebrow: 'Tech Support', heading: 'When something stops working', text: 'Try the suggested fixes for MAPP, Command, listings and email first. If the problem remains, log a ticket that already holds the details needed to solve it.', image: null, primary: { label: 'Log a support ticket', url: '/smart-agent-series/tickets/' }, secondary: null },
+      { id: 'millionaire-os', type: 'pillar', cat: 'apps', visible: true, eyebrow: 'Millionaire OS', heading: 'A financial plan for your household', text: 'Budgets, debit orders, debt and goals for individuals, couples and families, encrypted on your own device. Currently in private beta.', image: null, primary: { label: 'Open Millionaire OS', url: '/millionaire-os/' }, secondary: null },
+      { id: 'new-creation', type: 'pillar', cat: 'faith', visible: true, eyebrow: 'New Creation', heading: 'Read the whole Bible together', text: 'A community programme that reads the whole Bible in 93 days, with narrated audio and daily check-ins.', image: null, primary: { label: 'Go to New Creation', url: '/new-creation/' }, secondary: null },
+      { id: 'directory', type: 'directory', visible: true, eyebrow: 'Directory', heading: 'Everything in one place', text: 'Search every service and tool, or filter by area.' },
+      { id: 'contact', type: 'contact', visible: true, eyebrow: 'Contact', heading: 'Talk to Uhuru', text: 'For property, training or support questions.' }
+    ],
+    categories: [
+      { id: 'real-estate', name: 'Real Estate' },
+      { id: 'academy', name: 'Academy' },
+      { id: 'support', name: 'Tech Support' },
+      { id: 'apps', name: 'Millionaire OS' },
+      { id: 'faith', name: 'New Creation' },
+      { id: 'workspace', name: 'Private tools' }
+    ],
+    services: [
+      { id: 'one-on-one', cat: 'academy', title: 'Book a 1-on-1', desc: 'Work through your listings, database and leads with Uhuru. One session per person per day.', url: '/one-on-one/', status: 'live', access: 'public', featured: true },
+      { id: 'smart-agent', cat: 'academy', title: 'Smart Agent Series', desc: 'Three hands-on technology and AI sessions for estate agents at KW Edge.', url: '/smart-agent-series/', status: 'live', access: 'public', featured: true },
+      { id: 'support', cat: 'support', title: 'Tech support ticket', desc: 'Suggested fixes for MAPP, Command, listings and email, then a ready-filled ticket.', url: '/smart-agent-series/tickets/', status: 'live', access: 'public', featured: true },
+      { id: 'new-creation', cat: 'faith', title: 'New Creation', desc: 'Read the whole Bible together in 93 days, with narrated audio and daily check-ins.', url: '/new-creation/', status: 'live', access: 'members', featured: true },
+      { id: 'millionaire-os', cat: 'apps', title: 'Millionaire OS', desc: 'Budgets, debit orders, debt and goals, encrypted on your device. Private beta.', url: '/millionaire-os/', status: 'beta', access: 'members', featured: false },
+      { id: 'sellers', cat: 'real-estate', title: 'Seller services', desc: 'Market analysis, a launch plan and weekly seller reports.', url: '', status: 'soon', access: 'public', featured: false },
+      { id: 'buyers', cat: 'real-estate', title: 'Buyer services', desc: 'Needs analysis, finance guidance, viewings and offer support.', url: '', status: 'soon', access: 'public', featured: false },
+      { id: 'team', cat: 'real-estate', title: 'Millionaire Real Estate Team', desc: 'Meet the team and see how a home is marketed.', url: '', status: 'soon', access: 'public', featured: false },
+      { id: 'cap-planner', cat: 'workspace', title: 'Cap Planner', desc: 'Cap tracking, deal pipelines, coaching diary and OP reports.', url: '/cap-planner/', status: 'live', access: 'owner', featured: false },
+      { id: 'portal-edge', cat: 'workspace', title: 'Portal Edge', desc: 'Portal leads with a 15-minute clock, listing checks and ROI.', url: '/portal-edge/', status: 'live', access: 'owner', featured: false },
+      { id: 'family', cat: 'workspace', title: 'Family OS', desc: 'Household plan, debit orders and goals.', url: '/family/', status: 'live', access: 'owner', featured: false },
+      { id: 'my-desk', cat: 'workspace', title: 'My Desk', desc: 'Today\'s calendar, inbox and open tickets.', url: 'https://claude.ai/artifact/RG3efsKgsGfmLXg7CF5NLL', status: 'live', access: 'owner', featured: false }
+    ],
+    contact: { email: 'uhuru.matlhaji@kwsa.co.za', phone: '', whatsapp: '', office: '', hours: '' },
+    social: [],
+    footer: { note: '' }
+  };
 
-  <div class="stage" id="stage" role="group" aria-roledescription="carousel" aria-label="Spaces">
-    <button class="card c-faith" data-i="0" data-sp="new-creation" data-href="/new-creation/" data-name="New Creation">
-      <span class="in"><span class="art"><svg viewBox="0 0 240 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="fa1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0F3D2C"/><stop offset=".55" stop-color="#3F8A63"/><stop offset="1" stop-color="#F2C46B"/></linearGradient><radialGradient id="fa2" cx=".5" cy=".78" r=".5"><stop offset="0" stop-color="#FFF4D0"/><stop offset=".35" stop-color="#F7D58A" stop-opacity=".8"/><stop offset="1" stop-color="#F7D58A" stop-opacity="0"/></radialGradient></defs><rect width="240" height="150" fill="url(#fa1)"/><circle cx="120" cy="118" r="80" fill="url(#fa2)"/><g stroke="#FFF2C9" stroke-opacity=".35" stroke-width="2"><path d="M120 108 64 18M120 108 92 8M120 108l28-100M120 108l56-90M120 108l84-60M120 108 36 48"/></g><circle cx="120" cy="108" r="17" fill="#FFF6DA"/><path d="M0 122c40-14 80-14 120-6s80 6 120-8v42H0Z" fill="#1E5A40"/><path d="M0 134c50-10 100-6 140 0s70 2 100-6v22H0Z" fill="#123C2A"/><g transform="translate(120 128)"><path d="M-46 4c16-8 32-8 46-2 14-6 30-6 46 2v14c-16-7-32-7-46-1-14-6-30-6-46 1Z" fill="#F7F1E1"/><path d="M0 6v13" stroke="#C9B98E" stroke-width="1.4"/><path d="M-38 7c10-4 22-4 31 0M-38 11c10-4 22-4 31 0M7 7c9-4 21-4 31 0M7 11c9-4 21-4 31 0" stroke="#B9A879" stroke-width=".9" fill="none"/></g></svg><span class="tag">Faith</span></span>
-        <span class="body"><h2>New Creation</h2><span class="loc"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2Z"/></svg>Bible reading circle &middot; Online</span><span class="dl">Description</span><p>Read the whole Bible together, Genesis to Revelation, with narrated audio, daily check-ins and the original Hebrew and Greek words.</p>
-          <span class="stats"><span><small>Days</small><b>93</b></span><span><small>Ends</small><b>24 Dec</b></span><span><small>Audio</small><b>Narrated</b></span></span><span class="foot"><span><small>Open to</small><b>Everyone</b></span><span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 11h10.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H5Z"/></svg></span></span></span></span>
-    </button>
-    <button class="card c-train" data-i="1" data-sp="smart-agent" data-href="/smart-agent-series/" data-name="the Smart Agent Series">
-      <span class="in"><span class="art"><svg viewBox="0 0 240 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="tr1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2A0608"/><stop offset=".6" stop-color="#9E1E24"/><stop offset="1" stop-color="#F08A5D"/></linearGradient></defs><rect width="240" height="150" fill="url(#tr1)"/><circle cx="182" cy="44" r="16" fill="#FFD9B5" opacity=".9"/><g fill="#3A0B0D"><rect x="6" y="70" width="26" height="80"/><rect x="34" y="52" width="22" height="98"/><rect x="58" y="80" width="30" height="70"/><rect x="150" y="60" width="24" height="90"/><rect x="176" y="76" width="28" height="74"/><rect x="206" y="48" width="30" height="102"/></g><g fill="#FFD27A" opacity=".85"><rect x="38" y="60" width="4" height="5"/><rect x="47" y="60" width="4" height="5"/><rect x="38" y="72" width="4" height="5"/><rect x="47" y="84" width="4" height="5"/><rect x="11" y="80" width="4" height="5"/><rect x="21" y="92" width="4" height="5"/><rect x="211" y="58" width="4" height="5"/><rect x="221" y="58" width="4" height="5"/><rect x="211" y="72" width="4" height="5"/><rect x="226" y="86" width="4" height="5"/><rect x="155" y="70" width="4" height="5"/><rect x="164" y="84" width="4" height="5"/><rect x="182" y="86" width="4" height="5"/><rect x="192" y="98" width="4" height="5"/></g><path d="M86 150V104l34-28 34 28v46Z" fill="#1A0405"/><path d="M78 108l42-36 42 36" fill="none" stroke="#FFE3B8" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><rect x="100" y="112" width="40" height="27" rx="3" fill="#2B2E35"/><rect x="103" y="115" width="34" height="21" rx="1.5" fill="#7FD3E6"/><path d="M110 132l7-8 5 5 4-4 7 7" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><rect x="96" y="139" width="48" height="4" rx="2" fill="#D9DCE2"/></svg><span class="tag">KW Edge training</span></span>
-        <span class="body"><h2>Smart Agent Series</h2><span class="loc"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2Z"/></svg>KW Edge &middot; Pretoria</span><span class="dl">Description</span><p>Hands-on technology and AI sessions for estate agents: smarter listings, a database that makes deals, and lead capture.</p>
-          <span class="stats"><span><small>Sessions</small><b>3</b></span><span><small>Each</small><b>2 hrs</b></span><span><small>Style</small><b>Hands-on</b></span></span><span class="foot"><span><small>Built for</small><b>Estate agents</b></span><span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 11h10.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H5Z"/></svg></span></span></span></span>
-    </button>
-    <button class="card c-one" data-i="2" data-sp="one-on-one" data-href="/one-on-one/" data-name="a 1-on-1 with Uhuru">
-      <span class="in"><span class="art"><svg viewBox="0 0 240 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="oo1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0A3A3B"/><stop offset=".65" stop-color="#127A7A"/><stop offset="1" stop-color="#F2C46B"/></linearGradient><radialGradient id="oo2" cx=".5" cy=".35" r=".45"><stop offset="0" stop-color="#FFE9B0" stop-opacity=".55"/><stop offset="1" stop-color="#FFE9B0" stop-opacity="0"/></radialGradient></defs><rect width="240" height="150" fill="url(#oo1)"/><rect width="240" height="150" fill="url(#oo2)"/><g fill="none" stroke="#FFF3D6" stroke-width="1.6" stroke-linecap="round" opacity=".9"><path d="M120 16v8M108 20l4 6M132 20l-4 6"/></g><path d="M112 30h16l-2 10h-12Z" fill="#FFF3D6"/><path d="M120 40v6" stroke="#FFF3D6" stroke-width="1.5"/><path d="M0 122h240v28H0Z" fill="#0B2E2F"/><rect x="62" y="96" width="116" height="8" rx="3" fill="#E9DCC0"/><path d="M76 104l-6 34M164 104l6 34" stroke="#C9B48C" stroke-width="5" stroke-linecap="round"/><g transform="translate(36 70)"><rect x="0" y="0" width="22" height="34" rx="6" fill="#C2272D"/><rect x="-2" y="30" width="30" height="9" rx="4" fill="#9E1E24"/><path d="M4 39v28M24 39v28" stroke="#5A1013" stroke-width="4" stroke-linecap="round"/></g><g transform="translate(182 70)"><rect x="0" y="0" width="22" height="34" rx="6" fill="#E8C873"/><rect x="-6" y="30" width="30" height="9" rx="4" fill="#C9A44A"/><path d="M-2 39v28M18 39v28" stroke="#7E5B12" stroke-width="4" stroke-linecap="round"/></g><rect x="98" y="76" width="44" height="21" rx="3" fill="#11161F"/><rect x="101" y="79" width="38" height="15" rx="1.5" fill="#BFE9EC"/><path d="M106 90l6-6 4 4 4-3 6 5" fill="none" stroke="#127A7A" stroke-width="1.6" stroke-linejoin="round"/><path d="M92 97h56" stroke="#D9DCE2" stroke-width="3" stroke-linecap="round"/><g transform="translate(150 86)"><rect x="0" y="0" width="11" height="11" rx="2" fill="#FFFFFF"/><path d="M11 3h3a2.5 2.5 0 0 1 0 5h-3" fill="none" stroke="#FFFFFF" stroke-width="1.6"/><path d="M3 -3c0-3 3-3 3-6M7-3c0-3 3-3 3-6" fill="none" stroke="#FFF3D6" stroke-width="1" opacity=".7"/></g><rect x="74" y="88" width="16" height="9" rx="1.5" fill="#F7F1E1"/><path d="M76 91h12M76 94h8" stroke="#B9A879" stroke-width=".8"/></svg><span class="tag">KW Edge agents</span></span>
-        <span class="body"><h2>Book a 1-on-1</h2><span class="loc"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2Z"/></svg>KW Edge office or Google Meet</span><span class="dl">Description</span><p>Sit with Uhuru and work on your real listings, database and leads. Smart prep emails help you arrive ready and relaxed.</p>
-          <span class="stats"><span><small>With</small><b>Uhuru</b></span><span><small>Pace</small><b>Yours</b></span><span><small>Prep</small><b>Emailed</b></span></span><span class="foot"><span><small>For</small><b>KW Edge agents</b></span><span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 11h10.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H5Z"/></svg></span></span></span></span>
-    </button>
-    <button class="card c-support" data-i="3" data-sp="support" data-href="/smart-agent-series/tickets/" data-name="a support ticket">
-      <span class="in"><span class="art"><svg viewBox="0 0 240 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="su1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0B2742"/><stop offset=".6" stop-color="#2678B5"/><stop offset="1" stop-color="#8ED0F0"/></linearGradient></defs><rect width="240" height="150" fill="url(#su1)"/><g fill="#fff" opacity=".08"><circle cx="30" cy="30" r="40"/><circle cx="214" cy="126" r="54"/></g><rect x="62" y="44" width="116" height="74" rx="7" fill="#11161F"/><rect x="68" y="50" width="104" height="62" rx="3" fill="#EAF4FB"/><rect x="74" y="58" width="48" height="12" rx="6" fill="#2678B5"/><rect x="118" y="76" width="48" height="12" rx="6" fill="#C7D7E4"/><rect x="74" y="94" width="34" height="12" rx="6" fill="#2678B5"/><path d="M48 118h144l8 12H40Z" fill="#C9D3DD"/><rect x="104" y="120" width="32" height="4" rx="2" fill="#8C98A6"/><g transform="translate(186 36)"><circle r="18" fill="#FFFFFF"/><path d="M-8 1l6 6 11-12" fill="none" stroke="#2A9D6E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g><g transform="translate(46 34) rotate(-30)" fill="#F4C25B"><rect x="-3" y="-2" width="6" height="26" rx="3"/><path d="M-9-10a9 9 0 1 0 18 0l-5 2-4-5-4 5Z"/></g></svg><span class="tag">KW Edge agents</span></span>
-        <span class="body"><h2>Tech support ticket</h2><span class="loc"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2Z"/></svg>MAPP &middot; Command &middot; Listings &middot; Email</span><span class="dl">Description</span><p>Answer a few quick questions, try the fixes it suggests, and log a ticket that is already filled in. No sign-in needed.</p>
-          <span class="stats"><span><small>Days</small><b>Mon&ndash;Fri</b></span><span><small>Hours</small><b>08&ndash;17</b></span><span><small>Critical</small><b>Same day</b></span></span><span class="foot"><span><small>For</small><b>KW Edge agents</b></span><span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 11h10.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H5Z"/></svg></span></span></span></span>
-    </button>
-    <button class="card c-coach" data-i="4" data-sp="coaching" data-href="/cap-planner/" data-name="the Cap Planner">
-      <span class="in"><span class="art"><svg viewBox="0 0 240 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="co1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2C1F06"/><stop offset=".6" stop-color="#8A6418"/><stop offset="1" stop-color="#F3D27D"/></linearGradient><linearGradient id="co2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF1C2"/><stop offset="1" stop-color="#E6B94A"/></linearGradient></defs><rect width="240" height="150" fill="url(#co1)"/><g stroke="#fff" stroke-opacity=".12"><path d="M0 40h240M0 70h240M0 100h240"/></g><path d="M30 150l60-74 26 30 40-62 54 106Z" fill="#3A2A0B"/><path d="M156 44l12 18-12-6-10 8Z" fill="#F7F1E1" opacity=".8"/><path d="M156 44V18" stroke="#FFF1C2" stroke-width="2"/><path d="M156 18h20l-5 6 5 6h-20Z" fill="#C2272D"/><g fill="url(#co2)"><rect x="40" y="112" width="18" height="38" rx="3"/><rect x="64" y="98" width="18" height="52" rx="3"/><rect x="88" y="82" width="18" height="68" rx="3"/><rect x="112" y="68" width="18" height="82" rx="3"/></g><path d="M38 108l26-14 24-16 26-14" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="1 6"/><circle cx="196" cy="34" r="12" fill="#FFF1C2" opacity=".85"/></svg><span class="tag">KW Edge coaching</span></span>
-        <span class="body"><h2>Cap Planner</h2><span class="loc"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2Z"/></svg>KW Edge associates</span><span class="dl">Description</span><p>Cap tracking, deal pipelines, coaching diary and OP reports for KW Edge associates. Private: Uhuru signs in with his PIN.</p>
-          <span class="stats"><span><small>Tracks</small><b>Cap</b></span><span><small>Plans</small><b>Pipeline</b></span><span><small>Reports</small><b>OP</b></span></span><span class="foot"><span><small>Access</small><b>Private</b></span><span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 11h10.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H5Z"/></svg></span></span></span></span>
-    </button>
-    <button class="card c-portal" data-i="5" data-sp="portal-edge" data-href="/portal-edge/" data-name="Portal Edge">
-      <span class="in"><span class="art"><svg viewBox="0 0 240 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="pe1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#062431"/><stop offset=".65" stop-color="#0B6E8A"/><stop offset="1" stop-color="#7FD3E6"/></linearGradient></defs><rect width="240" height="150" fill="url(#pe1)"/><g stroke="#fff" stroke-opacity=".1"><path d="M0 30h240M0 60h240M0 90h240M0 120h240M40 0v150M80 0v150M120 0v150M160 0v150M200 0v150"/></g><g transform="translate(26 34)"><rect width="58" height="80" rx="6" fill="#F7F6F3"/><rect width="58" height="12" rx="6" fill="#C2272D"/><rect y="6" width="58" height="6" fill="#C2272D"/><path d="M10 50l19-16 19 16v20H10Z" fill="#0B6E8A"/><rect x="24" y="56" width="10" height="14" fill="#F7F6F3"/><rect x="8" y="20" width="42" height="4" rx="2" fill="#C9CFD8"/></g><g transform="translate(91 24)"><rect width="58" height="80" rx="6" fill="#F7F6F3"/><rect width="58" height="12" rx="6" fill="#1F6FB2"/><rect y="6" width="58" height="6" fill="#1F6FB2"/><path d="M10 52l19-16 19 16v20H10Z" fill="#0B6E8A"/><rect x="24" y="58" width="10" height="14" fill="#F7F6F3"/><rect x="8" y="20" width="42" height="4" rx="2" fill="#C9CFD8"/></g><g transform="translate(156 34)"><rect width="58" height="80" rx="6" fill="#F7F6F3"/><rect width="58" height="12" rx="6" fill="#2E8B57"/><rect y="6" width="58" height="6" fill="#2E8B57"/><path d="M10 50l19-16 19 16v20H10Z" fill="#0B6E8A"/><rect x="24" y="56" width="10" height="14" fill="#F7F6F3"/><rect x="8" y="20" width="42" height="4" rx="2" fill="#C9CFD8"/></g><path d="M55 120c20 16 40 18 65 18s45-2 65-18" fill="none" stroke="#E8C873" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 6"/><circle cx="120" cy="138" r="7" fill="#E8C873"/><path d="M116.5 138l2.5 2.5 4.5-5" fill="none" stroke="#062431" stroke-width="2" stroke-linecap="round"/></svg><span class="tag">Private &middot; Uhuru only</span></span>
-        <span class="body"><h2>Portal Edge</h2><span class="loc"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2Z"/></svg>Property24, Private Property, ImmoAfrica</span><span class="dl">Description</span><p>Every portal lead in one inbox with a 15-minute clock, listing health checks, weekly seller reports and portal ROI.</p>
-          <span class="stats"><span><small>Leads</small><b>15 min</b></span><span><small>Sellers</small><b>Weekly</b></span><span><small>Spend</small><b>ROI</b></span></span><span class="foot"><span><small>Access</small><b>Private</b></span><span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 11h10.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H5Z"/></svg></span></span></span></span>
-    </button>
-    <button class="card c-family" data-i="6" data-sp="family" data-href="/family/" data-name="the Family OS">
-      <span class="in"><span class="art"><svg viewBox="0 0 240 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="fm1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0F1D1A"/><stop offset=".62" stop-color="#16614F"/><stop offset="1" stop-color="#D8B45C"/></linearGradient></defs><rect width="240" height="150" fill="url(#fm1)"/><g stroke="#fff" stroke-opacity=".08"><path d="M0 40h240M0 75h240M0 110h240"/></g><path d="M22 128C60 120 80 98 110 92s52-20 70-42 34-28 44-30" fill="none" stroke="#E8C873" stroke-width="3" stroke-linecap="round"/><g fill="#E8C873"><circle cx="110" cy="92" r="4"/><circle cx="180" cy="50" r="4"/><circle cx="224" cy="20" r="7"/></g><path d="M220.5 20l2.5 2.5 4.5-5" fill="none" stroke="#0F1D1A" stroke-width="2" stroke-linecap="round"/><g transform="translate(34 58)"><path d="M0 26 26 4l26 22" fill="none" stroke="#F7F1E1" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 24v26h36V24" fill="#F7F1E1"/><rect x="21" y="34" width="10" height="16" fill="#16614F"/></g><g fill="#F7F1E1"><circle cx="138" cy="112" r="6"/><rect x="132" y="119" width="12" height="20" rx="5"/><circle cx="156" cy="108" r="7"/><rect x="149" y="116" width="14" height="23" rx="6"/><circle cx="147" cy="122" r="4.5"/><rect x="142" y="127" width="10" height="12" rx="4"/></g><path d="M0 139h240v11H0Z" fill="#0B1513"/></svg><span class="tag">Private &middot; Family only</span></span>
-        <span class="body"><h2>Millionaire Family OS</h2><span class="loc"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2Z"/></svg>Household money &middot; Rand</span><span class="dl">Description</span><p>What we can spend today, every debit order before it goes off, debt, goals for Kiana, and the road to our first R1 million.</p>
-          <span class="stats"><span><small>Spend</small><b>Today</b></span><span><small>Bills</small><b>Calendar</b></span><span><small>Target</small><b>R1m</b></span></span><span class="foot"><span><small>Access</small><b>Two PINs</b></span><span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 11h10.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H5Z"/></svg></span></span></span></span>
-    </button>
-    <button class="card c-mos" data-i="7" data-sp="millionaire-os" data-href="/millionaire-os/" data-name="Millionaire OS">
-      <span class="in"><span class="art"><svg viewBox="0 0 240 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="mo1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#101A2E"/><stop offset=".6" stop-color="#1E4D6B"/><stop offset="1" stop-color="#C9A44A"/></linearGradient></defs><rect width="240" height="150" fill="url(#mo1)"/><g stroke="#fff" stroke-opacity=".08"><path d="M0 36h240M0 72h240M0 108h240"/></g><g transform="translate(30 38)"><rect width="76" height="84" rx="8" fill="#F7F6F3"/><rect x="10" y="12" width="56" height="6" rx="3" fill="#C9CFD8"/><rect x="10" y="26" width="40" height="6" rx="3" fill="#C9CFD8"/><path d="M10 70l14-14 12 8 20-22" fill="none" stroke="#1E4D6B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g><g transform="translate(134 30)"><rect width="76" height="84" rx="8" fill="#F7F6F3"/><circle cx="24" cy="30" r="9" fill="#1E4D6B"/><circle cx="46" cy="30" r="9" fill="#C9A44A"/><circle cx="35" cy="48" r="7" fill="#6A8F3A"/><rect x="12" y="62" width="52" height="6" rx="3" fill="#C9CFD8"/></g><g transform="translate(104 100)"><circle r="16" fill="#0F1D1A"/><path d="M-6 0v-4a6 6 0 0 1 12 0v4" fill="none" stroke="#E8C873" stroke-width="2.4"/><rect x="-8" y="0" width="16" height="11" rx="2" fill="#E8C873"/></g></svg><span class="tag">New &middot; Beta</span></span>
-        <span class="body"><h2>Millionaire OS</h2><span class="loc"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2Z"/></svg>Individuals, couples &amp; families</span><span class="dl">Description</span><p>Private money management by subscription: budgets, debit orders, debt, goals and a road to your first million. Encrypted on your device.</p>
-          <span class="stats"><span><small>From</small><b>R79/m</b></span><span><small>Trial</small><b>14 days</b></span><span><small>Privacy</small><b>Encrypted</b></span></span><span class="foot"><span><small>Open to</small><b>Everyone</b></span><span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 11h10.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H5Z"/></svg></span></span></span></span>
-    </button>
-    <button class="card c-desk" data-i="8" data-sp="my-desk" data-href="https://claude.ai/artifact/RG3efsKgsGfmLXg7CF5NLL" data-name="My Desk">
-      <span class="in"><span class="art"><svg viewBox="0 0 240 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="de1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#141B26"/><stop offset="1" stop-color="#5A7090"/></linearGradient><radialGradient id="de2" cx=".3" cy=".55" r=".5"><stop offset="0" stop-color="#FFE7A8" stop-opacity=".55"/><stop offset="1" stop-color="#FFE7A8" stop-opacity="0"/></radialGradient></defs><rect width="240" height="150" fill="url(#de1)"/><rect width="240" height="150" fill="url(#de2)"/><path d="M0 118h240v32H0Z" fill="#2A3445"/><g transform="translate(46 118)"><path d="M0 0h24l-4-4H4Z" fill="#11161F"/><path d="M12-4V-44l22-18" stroke="#11161F" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M28-70l16 10-10 14-16-10Z" fill="#11161F"/><path d="M34-46l-26 34h40Z" fill="#FFE7A8" opacity=".25"/></g><rect x="104" y="36" width="96" height="74" rx="6" fill="#F7F6F3"/><rect x="104" y="36" width="96" height="16" rx="6" fill="#C2272D"/><rect x="104" y="46" width="96" height="6" fill="#C2272D"/><g fill="#C9CFD8"><rect x="112" y="58" width="12" height="10" rx="2"/><rect x="128" y="58" width="12" height="10" rx="2"/><rect x="144" y="58" width="12" height="10" rx="2"/><rect x="160" y="58" width="12" height="10" rx="2"/><rect x="176" y="58" width="12" height="10" rx="2"/><rect x="112" y="72" width="12" height="10" rx="2"/><rect x="128" y="72" width="12" height="10" rx="2"/><rect x="160" y="72" width="12" height="10" rx="2"/><rect x="176" y="72" width="12" height="10" rx="2"/><rect x="112" y="86" width="12" height="10" rx="2"/><rect x="128" y="86" width="12" height="10" rx="2"/><rect x="144" y="86" width="12" height="10" rx="2"/><rect x="160" y="86" width="12" height="10" rx="2"/></g><rect x="144" y="72" width="12" height="10" rx="2" fill="#4A5E78"/><rect x="176" y="86" width="12" height="10" rx="2" fill="#E8C873"/><rect x="124" y="114" width="56" height="5" rx="2.5" fill="#11161F" opacity=".5"/></svg><span class="tag">Private &middot; Uhuru only</span></span>
-        <span class="body"><h2>My Desk</h2><span class="loc"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2Z"/></svg>Uhuru&rsquo;s workspace</span><span class="dl">Description</span><p>Today&rsquo;s calendar, inbox and open support tickets, live in one place. Opens only for Uhuru.</p>
-          <span class="stats"><span><small>Calendar</small><b>Live</b></span><span><small>Inbox</small><b>Live</b></span><span><small>Tickets</small><b>Live</b></span></span><span class="foot"><span><small>Access</small><b>Uhuru only</b></span><span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 11h10.2l-4.6-4.6L12 5l7 7-7 7-1.4-1.4 4.6-4.6H5Z"/></svg></span></span></span></span>
-    </button>
-  </div>
-
-  <div class="nav-row">
-    <button class="arrow" id="prev" aria-label="Previous space"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14.7 5.3 8 12l6.7 6.7 1.6-1.6L11.2 12l5.1-5.1Z"/></svg></button>
-    <div class="dots" id="dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-    <button class="arrow" id="next" aria-label="Next space"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9.3 5.3 16 12l-6.7 6.7-1.6-1.6 5.1-5.1-5.1-5.1Z"/></svg></button>
-  </div>
-
-  <div class="slot-wrap">
-    <div class="slot" id="slot" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 4h2v11.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6Z"/></svg></div>
-    <p class="hint" id="hint" aria-live="polite">Drag down to open</p>
-    <button class="open-btn" id="openBtn">Open New Creation</button>
-  </div>
-
-  <nav class="list" aria-label="All spaces">
-    <h3>Or choose from the list</h3>
-    <a href="/new-creation/" data-sp="new-creation"><i class="sw" style="background:#2F7457"></i><b>New Creation</b><span>Bible reading circle</span></a>
-    <a href="/smart-agent-series/" data-sp="smart-agent"><i class="sw" style="background:#C2272D"></i><b>Smart Agent Series</b><span>KW Edge training</span></a>
-    <a href="/one-on-one/" data-sp="one-on-one"><i class="sw" style="background:#127A7A"></i><b>Book a 1-on-1</b><span>With Uhuru</span></a>
-    <a href="/smart-agent-series/tickets/" data-sp="support"><i class="sw" style="background:#2F6A9E"></i><b>Tech support ticket</b><span>Mon–Fri, 08:00–17:00</span></a>
-    <a href="/cap-planner/" data-sp="coaching" rel="nofollow"><i class="sw" style="background:#9C7A2E"></i><b>Cap Planner</b><span>KW Edge coaching</span></a>
-    <a href="/portal-edge/" data-sp="portal-edge" rel="nofollow"><i class="sw" style="background:#0B6E8A"></i><b>Portal Edge</b><span>Portal leads and ROI</span></a>
-    <a href="/family/" data-sp="family" rel="nofollow"><i class="sw" style="background:#16614F"></i><b>Millionaire Family OS</b><span>Private, family only</span></a>
-    <a href="/millionaire-os/" data-sp="millionaire-os"><i class="sw" style="background:#1E4D6B"></i><b>Millionaire OS</b><span>Money app, 14-day trial</span></a>
-    <a href="https://claude.ai/artifact/RG3efsKgsGfmLXg7CF5NLL" data-sp="my-desk" rel="nofollow"><i class="sw" style="background:#4A5E78"></i><b>My Desk</b><span>Private, Uhuru only</span></a>
-  </nav>
-
-  </main>
-  <footer><span>www.mret.co.za</span><span>Visits are counted anonymously to improve this page.</span><a class="trainer" href="https://script.google.com/a/macros/kwsa.co.za/s/AKfycbzMLw7l-h1eZrf1_2ZWOBleNu1hw1Jcoq9Xytbg72xx0O6X3dNUhorQ3TfSJPln_zHfMg/exec" target="_blank" rel="nofollow noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.5 10V7.5a4.5 4.5 0 0 1 9 0V10H18a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1Zm2 0h5V7.5a2.5 2.5 0 0 0-5 0Z"/></svg>Trainer tools</a></footer>
-</div>
-
-<div class="veil" id="veil" aria-hidden="true"><div class="msg"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 26.5 32 15.5l13 11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><text x="32" y="44" text-anchor="middle" fill="currentColor" font-family="Literata, Georgia, serif" font-weight="600" font-size="17">UM</text></svg><p id="veilMsg">Opening…</p></div></div>
-
-<script>
-  // Anonymous activity for the site owner: page views and which space is opened, nothing personal.
-  (function () {
-    var API = 'https://script.google.com/macros/s/AKfycbxxYRo9bLIfhfOBmzIvKybE3s4G0n-r8M73d595aNBM8aFTZRzdnwpDzGf08yxssDUD/exec';
-    var test = /[?&]env=test\b/.test(location.search);
-    function rid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
-    var v, s; try { v = localStorage.getItem('gw.v') || rid(); localStorage.setItem('gw.v', v); s = sessionStorage.getItem('gw.s') || rid(); sessionStorage.setItem('gw.s', s); } catch (e) { v = v || rid(); s = s || rid(); }
-    var w = Math.min(screen.width, screen.height), touch = matchMedia('(pointer: coarse)').matches, d = !touch ? 'desktop' : w < 600 ? 'phone' : 'tablet';
-    var r = ''; try { r = document.referrer ? new URL(document.referrer).hostname : ''; } catch (e) {}
-    var mine = false; try { mine = localStorage.getItem('gw.ignore') === '1'; } catch (e) {}
-    window.gwTrack = function (e, sp, h) {
-      if (mine) return; // the owner's own device, switched off on the visitors page
-      var body = JSON.stringify({ fn: 'track', args: [{ e: e, sp: sp || '', h: h || '', v: v, s: s, d: d, r: r, w: screen.width + 'x' + screen.height }], env: test ? 'test' : 'prod' });
-      try { fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: body, keepalive: true, credentials: 'omit' }).catch(function () {}); } catch (x) {}
-    };
-    gwTrack('view');
-  })();
-</script>
-<script>
-(function () {
-  var cards = [].slice.call(document.querySelectorAll('.card')), n = cards.length, cur = 0;
-  var stage = document.getElementById('stage'), slot = document.getElementById('slot'), hint = document.getElementById('hint'), btn = document.getElementById('openBtn');
-  var dots = [].slice.call(document.querySelectorAll('#dots i')), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  try { var saved = Number(sessionStorage.getItem('gw.cur')); if (saved >= 0 && saved < n) cur = saved; } catch (e) {}
-
-  function layout() {
-    cards.forEach(function (c, i) {
-      var d = i - cur; if (d > n / 2) d -= n; if (d < -n / 2) d += n;
-      var a = Math.abs(d), x = (d < 0 ? -1 : 1) * (a === 0 ? 0 : a === 1 ? 62 : 108), s = a === 0 ? 1 : a === 1 ? 0.88 : 0.76, y = a === 0 ? 0 : a === 1 ? 18 : 34;
-      c.style.transform = 'translateX(' + x + '%) translateY(' + y + 'px) scale(' + s + ')';
-      c.style.zIndex = String(10 - a); c.style.opacity = a > 2 ? '0' : '1'; c.style.filter = a === 0 ? 'none' : a === 1 ? 'brightness(.82)' : 'brightness(.6)';
-      c.tabIndex = a === 0 ? 0 : -1; c.setAttribute('aria-hidden', a > 2 ? 'true' : 'false'); c.style.pointerEvents = a > 2 ? 'none' : '';
-      c.setAttribute('aria-label', (c.dataset.soon ? c.dataset.name + ', coming soon' : 'Open ' + c.dataset.name) + ' (' + (i + 1) + ' of ' + n + ')');
-    });
-    dots.forEach(function (d, i) { d.className = i === cur ? 'on' : ''; });
-    var c = cards[cur]; btn.disabled = !!c.dataset.soon;
-    btn.textContent = c.dataset.soon ? 'Coaching opens soon' : 'Open ' + c.querySelector('h2').textContent;
-    hint.innerHTML = c.dataset.soon ? 'Coaching is <b>coming soon</b>' : 'Drag down to open';
-    try { sessionStorage.setItem('gw.cur', String(cur)); } catch (e) {}
+  function str(v) { return typeof v === 'string'; }
+  function urlOk(u) {
+    if (u === '' || u == null) return true;
+    if (!str(u) || u.length > LIMITS.url || /[\s<>"']/.test(u)) return false;
+    return /^(https:\/\/|http:\/\/|\/(?!\/)|#[A-Za-z0-9_-]*$|mailto:[^@]+@[^@]+$|tel:\+?[0-9 ()-]{5,20}$)/.test(u);
   }
-  function go(step) { cur = (cur + step + n) % n; layout(); }
-  document.getElementById('prev').onclick = function () { go(-1); };
-  document.getElementById('next').onclick = function () { go(1); };
-  stage.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight') { go(1); cards[cur].focus(); } else if (e.key === 'ArrowLeft') { go(-1); cards[cur].focus(); } });
-  btn.onclick = function () { open(cards[cur], 'button'); };
+  function idOk(v) { return str(v) && /^[a-z0-9][a-z0-9-]{0,40}$/.test(v); }
+  function imgOk(im) { return im == null || (typeof im === 'object' && idOk(String(im.id || '').toLowerCase()) && (im.alt == null || (str(im.alt) && im.alt.length <= 300))); }
 
-  function sparks(x, y) {
-    if (reduce) return; var colors = ['#E8C873', '#F6DE9C', '#FFFFFF', '#C2272D', '#2F7457', '#2F6A9E'];
-    for (var i = 0; i < 26; i++) { (function () {
-      var s = document.createElement('i'); s.className = 'spark'; s.style.left = x + 'px'; s.style.top = y + 'px'; s.style.background = colors[i % colors.length]; document.body.appendChild(s);
-      var ang = Math.random() * Math.PI * 2, dist = 70 + Math.random() * 120, dx = Math.cos(ang) * dist, dy = Math.sin(ang) * dist - 40;
-      s.animate([{ transform: 'translate(0,0) rotate(0)', opacity: 1 }, { transform: 'translate(' + dx + 'px,' + dy + 'px) rotate(' + (Math.random() * 540) + 'deg)', opacity: 0 }], { duration: 900 + Math.random() * 400, easing: 'cubic-bezier(.2,.7,.3,1)' }).onfinish = function () { s.remove(); };
-    })(); }
-  }
-  function open(c, how) {
-    if (window.gwTrack) gwTrack(c.dataset.soon ? 'soon' : 'open', c.dataset.sp, how);
-    if (c.dataset.soon) { var inn = c.querySelector('.in'); if (!reduce && inn.animate) inn.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-8px)' }, { transform: 'translateX(8px)' }, { transform: 'translateX(0)' }], { duration: 360 }); hint.innerHTML = 'Coaching is <b>coming soon</b>. Check back here.'; return; }
-    var r = slot.getBoundingClientRect(); sparks(r.left + r.width / 2, r.top + r.height / 2);
-    document.getElementById('veilMsg').textContent = 'Opening ' + c.querySelector('h2').textContent + '…';
-    hint.innerHTML = '<b>Opening ' + c.querySelector('h2').textContent + '…</b>';
-    setTimeout(function () { document.getElementById('veil').classList.add('on'); }, reduce ? 0 : 450);
-    setTimeout(function () { location.href = c.dataset.href; }, reduce ? 150 : 1100);
-  }
-
-  // Swipe sideways to change card; drag the front card down into the slot to open it; tap to open.
-  var drag = null;
-  cards.forEach(function (c, i) {
-    c.addEventListener('click', function (e) { if (drag && drag.moved) return; if (i !== cur) { cur = i; layout(); return; } open(c, 'tap'); });
-    c.addEventListener('pointerdown', function (e) {
-      if (e.button !== 0) return;
-      drag = { c: c, i: i, x0: e.clientX, y0: e.clientY, dx: 0, dy: 0, moved: false, mode: null, base: c.style.transform };
-      c.setPointerCapture(e.pointerId);
-    });
-    c.addEventListener('pointermove', function (e) {
-      if (!drag || drag.c !== c) return; drag.dx = e.clientX - drag.x0; drag.dy = e.clientY - drag.y0;
-      if (!drag.mode && Math.hypot(drag.dx, drag.dy) > 8) { drag.moved = true; drag.mode = (i === cur && drag.dy > Math.abs(drag.dx)) ? 'down' : 'side'; if (drag.mode === 'down') c.classList.add('dragging'); }
-      if (drag.mode === 'down') {
-        var dy = Math.max(0, drag.dy); c.style.transform = 'translate(' + drag.dx * 0.4 + 'px,' + dy + 'px) rotate(' + drag.dx * 0.03 + 'deg) scale(' + Math.max(0.6, 1 - dy / 900) + ')';
-        var hot = overSlot(c); slot.classList.toggle('hot', hot);
-        if (!cards[cur].dataset.soon) hint.innerHTML = hot ? '<b>Release to open!</b>' : 'Drag down to open';
-      } else if (drag.mode === 'side') { stage.style.transform = 'translateX(' + drag.dx * 0.25 + 'px)'; }
-    });
-    function end() {
-      if (!drag || drag.c !== c) return; var d = drag;
-      if (d.mode === 'down') { c.classList.remove('dragging'); var hot = overSlot(c); slot.classList.remove('hot');
-        if (hot) { var r = slot.getBoundingClientRect(), cr = c.getBoundingClientRect();
-          c.style.transform = 'translate(' + (r.left + r.width / 2 - (cr.left + cr.width / 2) + d.dx * 0.4) + 'px,' + (r.top + r.height / 2 - (cr.top + cr.height / 2) + Math.max(0, d.dy)) + 'px) scale(.62)';
-          if (c.dataset.soon) setTimeout(function () { layout(); open(c, 'drag'); }, 350); else open(c, 'drag'); }
-        else layout(); }
-      else if (d.mode === 'side') { stage.style.transform = ''; if (Math.abs(d.dx) > 50) go(d.dx < 0 ? 1 : -1); }
-      setTimeout(function () { drag = null; }, 0);
+  /** Returns a list of readable problems; empty means the content can be saved. strict = checks for publishing. */
+  function validate(c, strict) {
+    var e = [];
+    function t(path, v, max, req) {
+      if (v == null || v === '') { if (req) e.push(path + ' is required.'); return; }
+      if (!str(v)) e.push(path + ' must be text.'); else if (v.length > max) e.push(path + ' is longer than ' + max + ' characters.');
     }
-    c.addEventListener('pointerup', end); c.addEventListener('pointercancel', function () { if (drag) { drag.mode === 'side' ? (stage.style.transform = '') : layout(); drag = null; slot.classList.remove('hot'); } });
-  });
-  function overSlot(c) { var a = c.getBoundingClientRect(), b = slot.getBoundingClientRect(); var cy = a.top + a.height * 0.75; return cy > b.top && a.left < b.right && a.right > b.left; }
-  // Coming back with the browser's back button: hide the opening screen again.
-  [].forEach.call(document.querySelectorAll('.list a[data-sp]'), function (a) { a.addEventListener('click', function () { if (window.gwTrack) gwTrack('open', a.dataset.sp, 'list'); }); });
-  addEventListener('pageshow', function () { document.getElementById('veil').classList.remove('on'); layout(); });
-  layout();
+    function link(path, l, req) {
+      if (l == null) { if (req) e.push(path + ' needs a button.'); return; }
+      if (typeof l !== 'object') return e.push(path + ' is not a button.');
+      t(path + ' label', l.label, 40, !!l.url);
+      if (!urlOk(l.url)) e.push(path + ' link "' + String(l.url).slice(0, 60) + '" is not a valid link. Use https://..., /page/, #section, mailto: or tel:.');
+      if (strict && l.label && !l.url) e.push(path + ' has a label but no link.');
+    }
+    if (!c || typeof c !== 'object') return ['Content is missing.'];
+    c.meta = c.meta || {}; c.brand = c.brand || {}; c.hero = c.hero || {}; c.contact = c.contact || {}; c.footer = c.footer || {};
+    t('Site title', c.meta.title, 70, true); t('Site description', c.meta.description, 300);
+    t('Brand name', c.brand.name, 40, true); t('Tagline', c.brand.tagline, LIMITS.short);
+    t('Hero eyebrow', c.hero.eyebrow, 60); t('Hero heading', c.hero.heading, 140, true); t('Hero text', c.hero.text, LIMITS.text);
+    if (!imgOk(c.hero.image)) e.push('Hero image is invalid.');
+    link('Hero primary button', c.hero.primary); link('Hero secondary button', c.hero.secondary);
+    if (!Array.isArray(c.categories) || !c.categories.length) e.push('Add at least one category.');
+    else if (c.categories.length > LIMITS.categories) e.push('Too many categories.');
+    var cats = {};
+    (c.categories || []).forEach(function (k, i) { if (!idOk(k.id)) e.push('Category ' + (i + 1) + ' has an invalid id.'); else if (cats[k.id]) e.push('Category id "' + k.id + '" is used twice.'); cats[k.id] = 1; t('Category ' + (i + 1) + ' name', k.name, 40, true); });
+    if (!Array.isArray(c.services)) e.push('Services are missing.');
+    else {
+      if (c.services.length > LIMITS.services) e.push('Too many services.');
+      var sids = {};
+      c.services.forEach(function (s, i) {
+        var p = 'Service "' + (s.title || i + 1) + '"';
+        if (!idOk(s.id)) e.push(p + ' has an invalid id.'); else if (sids[s.id]) e.push(p + ': id "' + s.id + '" is used twice.'); sids[s.id] = 1;
+        t(p + ' title', s.title, 80, true); t(p + ' description', s.desc, 300);
+        if (!cats[s.cat]) e.push(p + ' is in a category that does not exist.');
+        if (STATUS.indexOf(s.status) < 0) e.push(p + ' needs an availability.');
+        if (ACCESS.indexOf(s.access) < 0) e.push(p + ' needs an access level.');
+        if (!urlOk(s.url)) e.push(p + ' link is not valid.');
+        if (strict && s.status !== 'soon' && !s.url) e.push(p + ' is marked available but has no link.');
+        if (!imgOk(s.image)) e.push(p + ' image is invalid.');
+      });
+    }
+    if (!Array.isArray(c.sections) || !c.sections.length) e.push('Add at least one homepage section.');
+    else {
+      if (c.sections.length > LIMITS.sections) e.push('Too many sections.');
+      var secIds = {};
+      c.sections.forEach(function (s, i) {
+        var p = 'Section "' + (s.heading || i + 1) + '"';
+        if (!idOk(s.id)) e.push(p + ' has an invalid id.'); else if (secIds[s.id]) e.push(p + ': id "' + s.id + '" is used twice.'); secIds[s.id] = 1;
+        if (SECTION_TYPES.indexOf(s.type) < 0) e.push(p + ' has an unknown type.');
+        t(p + ' eyebrow', s.eyebrow, 60); t(p + ' heading', s.heading, 140, true); t(p + ' text', s.text, LIMITS.text);
+        if (s.type === 'pillar' && s.cat && !cats[s.cat]) e.push(p + ' points to a category that does not exist.');
+        if (!imgOk(s.image)) e.push(p + ' image is invalid.');
+        link(p + ' primary button', s.primary); link(p + ' secondary button', s.secondary);
+      });
+    }
+    ['email', 'phone', 'whatsapp', 'office', 'hours'].forEach(function (k) { t('Contact ' + k, c.contact[k], 160); });
+    if (c.contact.email && !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(c.contact.email)) e.push('Contact email is not a valid address.');
+    if (c.contact.phone && !/^\+?[0-9 ()-]{6,20}$/.test(c.contact.phone)) e.push('Contact phone may only hold digits, spaces, brackets, dashes and a leading +.');
+    if (c.contact.whatsapp && !/^\+?[0-9 ]{6,20}$/.test(c.contact.whatsapp)) e.push('WhatsApp number may only hold digits, spaces and a leading +.');
+    if (!Array.isArray(c.social)) c.social = [];
+    if (c.social.length > LIMITS.social) e.push('Too many social links.');
+    c.social.forEach(function (s, i) { t('Social link ' + (i + 1) + ' label', s.label, 30, true); if (!s.url || !/^https:\/\//.test(s.url) || !urlOk(s.url)) e.push('Social link ' + (i + 1) + ' must start with https://.'); });
+    t('Footer note', c.footer.note, 300);
+    if (JSON.stringify(c).length > 200000) e.push('The content is too large.');
+    return e;
+  }
+  /** Every image id the content refers to. */
+  function imageIds(c) {
+    var out = {};
+    function add(im) { if (im && im.id) out[im.id] = 1; }
+    if (!c) return [];
+    add(c.hero && c.hero.image);
+    (c.sections || []).forEach(function (s) { add(s.image); });
+    (c.services || []).forEach(function (s) { add(s.image); });
+    return Object.keys(out);
+  }
+  function counts(c, publicOnly) {
+    var n = {}, total = 0;
+    (c.services || []).forEach(function (s) { if (publicOnly && s.hidden) return; n[s.cat] = (n[s.cat] || 0) + 1; total++; });
+    n._all = total; return n;
+  }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  return { DEFAULT: DEFAULT, validate: validate, urlOk: urlOk, imageIds: imageIds, counts: counts, clone: clone, STATUS: STATUS, ACCESS: ACCESS, SECTION_TYPES: SECTION_TYPES };
 })();
+if (typeof module !== 'undefined') module.exports = CMSX;
 </script>
-<script>
-  // Clean up the copy of New Creation that briefly lived at this address, so this page always shows fresh.
-  if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(function (rs) { rs.forEach(function (r) { if (new URL(r.scope).pathname === '/') r.unregister(); }); }).catch(function () {});
+<script>window.MRET_BAKED = {"no": 1, "content": {"meta": {"title": "MRET", "description": "Real estate, agent training, tech support and the tools Uhuru Matlhaji builds for agents and families."}, "brand": {"name": "MRET", "tagline": "Millionaire Real Estate Team"}, "hero": {"eyebrow": "Uhuru Matlhaji", "heading": "Property, people and the systems behind them.", "text": "Sell or buy with a clear plan, learn the technology that runs a modern agency, get help when something breaks, and use the tools built here for agents and households.", "image": null, "primary": {"label": "Book a 1-on-1", "url": "/one-on-one/"}, "secondary": {"label": "Browse everything", "url": "#directory"}}, "sections": [{"id": "available", "type": "featured", "visible": true, "eyebrow": "Available now", "heading": "Start here", "text": "These services are open today."}, {"id": "real-estate", "type": "pillar", "cat": "real-estate", "visible": true, "eyebrow": "Real Estate", "heading": "Selling or buying a home", "text": "A priced, marketed and well-communicated sale, or a buyer journey with the finance and viewings in order. The full real estate pages are being prepared; until then, get in touch directly.", "image": null, "primary": {"label": "Get in touch", "url": "#contact"}, "secondary": null}, {"id": "academy", "type": "pillar", "cat": "academy", "visible": true, "eyebrow": "Academy", "heading": "Training and one-on-one sessions", "text": "Hands-on technology and AI sessions for estate agents, and private sessions to work through your own listings, database and leads.", "image": null, "primary": {"label": "Book a 1-on-1", "url": "/one-on-one/"}, "secondary": {"label": "Smart Agent Series", "url": "/smart-agent-series/"}}, {"id": "support", "type": "pillar", "cat": "support", "visible": true, "eyebrow": "Tech Support", "heading": "When something stops working", "text": "Try the suggested fixes for MAPP, Command, listings and email first. If the problem remains, log a ticket that already holds the details needed to solve it.", "image": null, "primary": {"label": "Log a support ticket", "url": "/smart-agent-series/tickets/"}, "secondary": null}, {"id": "millionaire-os", "type": "pillar", "cat": "apps", "visible": true, "eyebrow": "Millionaire OS", "heading": "A financial plan for your household", "text": "Budgets, debit orders, debt and goals for individuals, couples and families, encrypted on your own device. Currently in private beta.", "image": null, "primary": {"label": "Open Millionaire OS", "url": "/millionaire-os/"}, "secondary": null}, {"id": "new-creation", "type": "pillar", "cat": "faith", "visible": true, "eyebrow": "New Creation", "heading": "Read the whole Bible together", "text": "A community programme that reads the whole Bible in 93 days, with narrated audio and daily check-ins.", "image": null, "primary": {"label": "Go to New Creation", "url": "/new-creation/"}, "secondary": null}, {"id": "directory", "type": "directory", "visible": true, "eyebrow": "Directory", "heading": "Everything in one place", "text": "Search every service and tool, or filter by area."}, {"id": "contact", "type": "contact", "visible": true, "eyebrow": "Contact", "heading": "Talk to Uhuru", "text": "For property, training or support questions."}], "categories": [{"id": "real-estate", "name": "Real Estate"}, {"id": "academy", "name": "Tech"}, {"id": "support", "name": "Tech Support"}, {"id": "apps", "name": "Millionaire OS"}, {"id": "faith", "name": "New Creation"}, {"id": "workspace", "name": "Private tools"}], "services": [{"id": "one-on-one", "cat": "academy", "title": "Book a 1-on-1", "desc": "Work through your listings, database and leads with Uhuru. One session per person per day.", "url": "/one-on-one/", "status": "live", "access": "public", "featured": true}, {"id": "smart-agent", "cat": "academy", "title": "Smart Agent Series", "desc": "Three hands-on technology and AI sessions for estate agents at KW Edge.", "url": "/smart-agent-series/", "status": "live", "access": "public", "featured": true}, {"id": "support", "cat": "support", "title": "Tech support ticket", "desc": "Suggested fixes for MAPP, Command, listings and email, then a ready-filled ticket.", "url": "/smart-agent-series/tickets/", "status": "live", "access": "public", "featured": true}, {"id": "new-creation", "cat": "faith", "title": "New Creation", "desc": "Read the whole Bible together in 93 days, with narrated audio and daily check-ins.", "url": "/new-creation/", "status": "live", "access": "members", "featured": true}, {"id": "millionaire-os", "cat": "apps", "title": "Millionaire OS", "desc": "Budgets, debit orders, debt and goals, encrypted on your device. Private beta.", "url": "/millionaire-os/", "status": "beta", "access": "members", "featured": true}, {"id": "sellers", "cat": "real-estate", "title": "Seller services", "desc": "Market analysis, a launch plan and weekly seller reports.", "url": "", "status": "soon", "access": "public", "featured": false}, {"id": "buyers", "cat": "real-estate", "title": "Buyer services", "desc": "Needs analysis, finance guidance, viewings and offer support.", "url": "", "status": "soon", "access": "public", "featured": false}, {"id": "team", "cat": "real-estate", "title": "Millionaire Real Estate Team", "desc": "Meet the team and see how a home is marketed.", "url": "", "status": "soon", "access": "public", "featured": false}, {"id": "cap-planner", "cat": "workspace", "title": "Cap Planner", "desc": "Cap tracking, deal pipelines, coaching diary and OP reports.", "url": "/cap-planner/", "status": "live", "access": "owner", "featured": false}, {"id": "portal-edge", "cat": "workspace", "title": "Portal Edge", "desc": "Portal leads with a 15-minute clock, listing checks and ROI.", "url": "/portal-edge/", "status": "live", "access": "owner", "featured": false}, {"id": "family", "cat": "workspace", "title": "Family OS", "desc": "Household plan, debit orders and goals.", "url": "/family/", "status": "live", "access": "owner", "featured": false}, {"id": "my-desk", "cat": "workspace", "title": "My Desk", "desc": "Today's calendar, inbox and open tickets.", "url": "https://claude.ai/artifact/RG3efsKgsGfmLXg7CF5NLL", "status": "live", "access": "owner", "featured": false}], "contact": {"email": "uhuru.matlhaji@kwsa.co.za", "phone": "", "whatsapp": "", "office": "", "hours": ""}, "social": [{"label": "Instagram", "url": "https://www.instagram.com/uhurumatlhaji?mdxt=MXVhamg2Nzk3OGE0dQ%3D%3D&utm_source=qr"}], "footer": {"note": ""}}};</script>
+<script>'use strict';
+/* MRET public site. Renders published content only. In preview mode it renders a draft handed over by the admin window of the same site. */
+const SITE_API = 'https://script.google.com/macros/s/AKfycbyIZKYDOIrlrEJeg2eSRvXGwQ24q4yiWHNwRrIgNYWVQLRzCTdqSNE0bpZQbWU9y0_r/exec';
+const PREVIEW = /[?&]preview\b/.test(location.search);
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const safeUrl = u => (u && CMSX.urlOk(u) ? u : '');
+const ARROW = '<svg class="arr" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>';
+const ACCESS_LABEL = { public: 'Open to everyone', members: 'Members sign in', owner: 'Private, owner only' };
+const STATUS_LABEL = { live: 'Available', beta: 'Beta', soon: 'Coming soon' };
+let C = null, view = { q: '', cat: '' };
+
+/* ---------- images ---------- */
+function hash(s) { let h = 7; for (const ch of String(s)) h = (h * 31 + ch.codePointAt(0)) >>> 0; return h; }
+/** Original line composition used until a photograph is chosen. */
+function art(seed, label) {
+  const h = hash(seed), r = n => ((h >>> n) & 255) / 255;
+  const ax = Math.round(30 + r(0) * 50), ay = Math.round(10 + r(8) * 40);
+  let g = '';
+  const cols = 5 + (h % 4), base = 1000;
+  for (let i = 0; i <= cols; i++) { const x = Math.round(i * base / cols + (r(i % 24) - .5) * 40); g += '<line x1="' + x + '" y1="' + Math.round(240 + r(i) * 300) + '" x2="' + x + '" y2="1250" />'; }
+  for (let j = 0; j < 7; j++) { const y = 380 + j * 130; g += '<line x1="0" y1="' + y + '" x2="1000" y2="' + (y - 60 - r(j) * 80) + '" />'; }
+  const arc = '<circle cx="' + ax * 10 + '" cy="' + ay * 12 + '" r="' + Math.round(180 + r(16) * 160) + '" fill="none" stroke="rgba(201,165,92,.45)" stroke-width="1"/>';
+  return '<div class="art" role="img" aria-label="' + esc(label || 'Decorative composition') + '" style="--ax:' + ax + '%;--ay:' + ay + '%"><svg viewBox="0 0 1000 1250" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><g stroke="rgba(243,241,236,.07)" stroke-width="1">' + g + '</g>' + arc + '</svg></div>';
+}
+function pic(im, opt) {
+  opt = opt || {};
+  if (!im || !im.src || !im.src.length) return art(opt.seed || 'x', opt.label);
+  const src = im.src.slice().sort((a, b) => a.w - b.w), mid = src.find(s => s.w >= 960) || src[src.length - 1];
+  const pos = Math.round((im.fx == null ? .5 : im.fx) * 100) + '% ' + Math.round((im.fy == null ? .5 : im.fy) * 100) + '%';
+  return '<img src="' + esc(mid.url) + '" srcset="' + src.map(s => esc(s.url) + ' ' + s.w + 'w').join(', ') + '" sizes="' + esc(opt.sizes || '100vw') + '" alt="' + esc(im.alt || '') + '"' + (im.w ? ' width="' + im.w + '" height="' + im.h + '"' : '') + ' style="object-position:' + pos + '"' + (opt.eager ? ' fetchpriority="high"' : ' loading="lazy" decoding="async"') + '>';
+}
+function button(l, cls) { const u = l && safeUrl(l.url); if (!u || !l.label) return ''; const ext = /^https?:/.test(u); return '<a class="btn ' + (cls || '') + '" href="' + esc(u) + '"' + (ext ? ' rel="noopener"' : '') + '>' + esc(l.label) + ARROW + '</a>'; }
+function svcHref(s) { return s.status === 'soon' ? '' : safeUrl(s.url); }
+
+/* ---------- sections ---------- */
+const catName = id => ((C.categories || []).find(c => c.id === id) || {}).name || '';
+const live = () => (C.services || []).filter(s => !s.hidden);
+function renderHero() {
+  const h = C.hero || {};
+  return '<section class="hero" id="top" aria-labelledby="heroTitle"><div class="media">' + pic(h.image, { eager: true, seed: 'hero', label: 'Decorative composition' }) + '</div><div class="wrap"><div class="rv in">'
+    + (h.eyebrow ? '<span class="eyebrow">' + esc(h.eyebrow) + '</span>' : '') + '<h1 class="display" id="heroTitle">' + esc(h.heading) + '</h1>'
+    + (h.text ? '<p class="lede">' + esc(h.text) + '</p>' : '') + '<div class="hero-foot"><div class="actions">' + button(h.primary, 'gold') + button(h.secondary) + '</div><a class="scroll-cue" href="#main"><i></i>Scroll</a></div></div></div></section>';
+}
+function head(s, idp) {
+  return '<div class="blk-head rv"><div>' + (s.eyebrow ? '<span class="eyebrow">' + esc(s.eyebrow) + '</span>' : '') + '<h2 class="h2" id="' + idp + '">' + esc(s.heading) + '</h2></div>' + (s.text ? '<p class="lede">' + esc(s.text) + '</p>' : '') + '</div>';
+}
+function renderFeatured(s) {
+  let list = live().filter(x => x.featured && x.status !== 'soon');
+  if (!list.length) list = live().filter(x => x.status === 'live').slice(0, 4);
+  if (!list.length) return '';
+  const pillarFor = x => (C.sections || []).find(p => p.type === 'pillar' && p.cat === x.cat);
+  const imgFor = x => x.image || (pillarFor(x) || {}).image;
+  const items = list.map((x, i) => { const u = svcHref(x); return '<li><a href="' + esc(u) + '" data-i="' + i + '"' + (i === 0 ? ' class="on"' : '') + (/^https?:/.test(u) ? ' rel="noopener"' : '') + '><span class="t">' + esc(x.title) + '</span><span class="go">' + ARROW + '</span><span class="d">' + esc(x.desc) + '</span></a></li>'; }).join('');
+  const stage = list.map((x, i) => '<figure data-i="' + i + '"' + (i === 0 ? ' class="on"' : '') + ' aria-hidden="' + (i ? 'true' : 'false') + '">' + pic(imgFor(x), { seed: x.id, sizes: '(max-width: 920px) 100vw, 45vw', label: '' }) + '<figcaption>' + esc(catName(x.cat)) + ' · ' + esc(STATUS_LABEL[x.status]) + ' · ' + esc(ACCESS_LABEL[x.access]) + '</figcaption></figure>').join('');
+  return '<section class="blk" id="' + esc(s.id) + '" aria-labelledby="h-' + esc(s.id) + '"><div class="wrap">' + head(s, 'h-' + esc(s.id)) + '<div class="feat rv"><ul class="feat-list">' + items + '</ul><div class="feat-stage">' + stage + '</div></div></div></section>';
+}
+function renderPillar(s, n) {
+  const svc = live().filter(x => x.cat === s.cat), avail = svc.filter(x => x.status !== 'soon'), soon = svc.filter(x => x.status === 'soon');
+  const rows = avail.map(x => { const u = svcHref(x); return '<li><a href="' + esc(u) + '"' + (/^https?:/.test(u) ? ' rel="noopener"' : '') + '><span class="n">' + esc(x.title) + '</span><span class="m">' + (x.status === 'beta' ? '<span class="st">Beta</span> ' : '') + esc(ACCESS_LABEL[x.access]) + '</span></a></li>'; }).join('');
+  const later = soon.length ? '<p class="svc-soon"><b>Coming soon:</b> ' + soon.map(x => esc(x.title)).join(', ') + '.</p>' : '';
+  return '<section class="blk" id="' + esc(s.id) + '" aria-labelledby="h-' + esc(s.id) + '"><div class="wrap"><div class="pillar' + (n % 2 ? ' flip' : '') + '"><div class="pm rv">' + pic(s.image, { seed: s.id, sizes: '(max-width: 920px) 100vw, 58vw', label: '' }) + '</div><div class="pt rv">'
+    + (s.eyebrow ? '<span class="eyebrow">' + esc(s.eyebrow) + '</span>' : '') + '<h2 class="h2" id="h-' + esc(s.id) + '">' + esc(s.heading) + '</h2>' + (s.text ? '<p class="lede">' + esc(s.text) + '</p>' : '')
+    + '<div class="actions">' + button(s.primary, 'gold') + button(s.secondary) + '</div>' + (rows ? '<ul class="svc">' + rows + '</ul>' : '') + later + '</div></div></div></section>';
+}
+function renderDirectory(s) {
+  return '<section class="blk" id="' + esc(s.id) + '" aria-labelledby="h-' + esc(s.id) + '"><div class="wrap">' + head(s, 'h-' + esc(s.id))
+    + '<div class="dir-tools"><div class="search"><label for="q" class="sr" style="position:absolute;left:-9999px">Search the directory</label><input id="q" type="search" placeholder="Search services and tools" autocomplete="off"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="1.5"/></svg></div>'
+    + '<div class="chips" id="chips" role="group" aria-label="Filter by area"></div><p class="dir-sum" id="dirSum" aria-live="polite"></p></div><ul class="dir" id="dir"></ul></div></section>';
+}
+function matches(x, q) { if (!q) return true; const hay = (x.title + ' ' + x.desc + ' ' + catName(x.cat) + ' ' + STATUS_LABEL[x.status] + ' ' + ACCESS_LABEL[x.access]).toLowerCase(); return q.toLowerCase().split(/\s+/).filter(Boolean).every(w => hay.includes(w)); }
+const ORDER = { live: 0, beta: 1, soon: 2 }, ACC_ORDER = { public: 0, members: 1, owner: 2 };
+function drawDirectory() {
+  const box = $('#dir'); if (!box) return;
+  const all = live(), hit = all.filter(x => matches(x, view.q)), cats = (C.categories || []).filter(c => all.some(x => x.cat === c.id));
+  if (view.cat && !cats.some(c => c.id === view.cat)) view.cat = '';
+  const chip = (id, name, n) => '<button type="button" class="chip" data-cat="' + esc(id) + '" aria-pressed="' + (view.cat === id) + '">' + esc(name) + ' <span class="c">' + n + '</span></button>';
+  $('#chips').innerHTML = chip('', 'All', hit.length) + cats.map(c => chip(c.id, c.name, hit.filter(x => x.cat === c.id).length)).join('');
+  const shown = hit.filter(x => !view.cat || x.cat === view.cat).sort((a, b) => (ORDER[a.status] - ORDER[b.status]) || (ACC_ORDER[a.access] - ACC_ORDER[b.access]));
+  $('#dirSum').textContent = shown.length + (shown.length === 1 ? ' entry' : ' entries') + (view.cat ? ' in ' + catName(view.cat) : '') + (view.q ? ' matching "' + view.q + '"' : '') + '.';
+  box.innerHTML = shown.length ? shown.map(x => {
+    const u = svcHref(x), tag = u ? 'a' : 'div';
+    return '<li><' + tag + ' class="row' + (x.status === 'soon' ? ' soon' : '') + '"' + (u ? ' href="' + esc(u) + '"' + (/^https?:/.test(u) ? ' rel="noopener"' : '') : '') + '><span><span class="tt">' + esc(x.title) + '</span><span class="cat">' + esc(catName(x.cat)) + '</span></span><span class="dd">' + esc(x.desc) + '</span><span class="acc">' + esc(ACCESS_LABEL[x.access]) + '</span><span class="st ' + x.status + '">' + esc(STATUS_LABEL[x.status]) + '</span></' + tag + '></li>';
+  }).join('') : '<li class="dir-empty">Nothing matches that search. Try another word, or <button type="button" class="chip" id="clearQ">clear the search</button></li>';
+  document.querySelectorAll('#chips .chip').forEach(b => b.onclick = () => { view.cat = b.dataset.cat; drawDirectory(); });
+  const cq = $('#clearQ'); if (cq) cq.onclick = () => { view.q = ''; $('#q').value = ''; drawDirectory(); $('#q').focus(); };
+}
+function renderContact(s) {
+  const k = C.contact || {}, rows = [];
+  if (k.phone) rows.push(['Phone', '<a href="tel:' + esc(k.phone.replace(/[^+\d]/g, '')) + '">' + esc(k.phone) + '</a>']);
+  if (k.whatsapp) rows.push(['WhatsApp', '<a href="https://wa.me/' + esc(k.whatsapp.replace(/\D/g, '')) + '" rel="noopener">' + esc(k.whatsapp) + '</a>']);
+  if (k.office) rows.push(['Office', esc(k.office)]);
+  if (k.hours) rows.push(['Hours', esc(k.hours)]);
+  (C.social || []).forEach(x => { if (safeUrl(x.url)) rows.push([x.label, '<a href="' + esc(x.url) + '" rel="noopener">' + esc(x.url.replace(/^https:\/\/(www\.)?/, '').replace(/\/$/, '')) + '</a>']); });
+  if (!k.email && !rows.length) return '';
+  return '<section class="blk" id="' + esc(s.id) + '" aria-labelledby="h-' + esc(s.id) + '"><div class="wrap"><div class="contact"><div class="rv">' + (s.eyebrow ? '<span class="eyebrow">' + esc(s.eyebrow) + '</span>' : '') + '<h2 class="h2" id="h-' + esc(s.id) + '" style="margin:18px 0 26px">' + esc(s.heading) + '</h2>' + (s.text ? '<p class="lede" style="margin-bottom:28px">' + esc(s.text) + '</p>' : '')
+    + (k.email ? '<a class="big" href="mailto:' + esc(k.email) + '">' + esc(k.email) + '</a>' : '') + '</div>' + (rows.length ? '<dl class="cdl rv">' + rows.map(r => '<dt>' + esc(r[0]) + '</dt><dd>' + r[1] + '</dd>').join('') + '</dl>' : '<div></div>') + '</div></div></section>';
+}
+const NAV_TYPES = { pillar: 1, directory: 1 };
+function renderHeader(secs) {
+  const links = secs.filter(s => NAV_TYPES[s.type]).map(s => [s.id, s.eyebrow || s.heading]);
+  const nav = links.map(l => '<a href="#' + esc(l[0]) + '">' + esc(l[1]) + '</a>').join('');
+  return '<a class="skip" href="#main">Skip to content</a><header class="hdr" id="hdr"><div class="wrap"><a class="brand" href="#top" aria-label="' + esc(C.brand.name) + ', back to the top"><b>' + esc(C.brand.name) + '</b><span>' + esc(C.brand.tagline || '') + '</span></a><nav class="nav" aria-label="Sections">' + nav + '</nav><button type="button" class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="sheet">Menu</button></div></header>'
+    + '<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Menu"><div class="top"><span class="brand"><b>' + esc(C.brand.name) + '</b></span><button type="button" class="menu-btn" style="display:inline-flex" id="menuClose">Close</button></div><nav aria-label="Sections">' + links.map(l => '<a href="#' + esc(l[0]) + '">' + esc(l[1]) + '<small>' + (live().filter(x => (secs.find(s => s.id === l[0]) || {}).cat === x.cat).length || '') + '</small></a>').join('') + '</nav></div>';
+}
+function renderFooter(secs) {
+  const sectionLinks = secs.filter(s => s.type !== 'featured').map(s => '<li><a href="#' + esc(s.id) + '">' + esc(s.eyebrow || s.heading) + '</a></li>').join('');
+  const dest = live().filter(x => x.status !== 'soon' && x.access !== 'owner' && svcHref(x)).map(x => '<li><a href="' + esc(svcHref(x)) + '">' + esc(x.title) + '</a></li>').join('');
+  return '<footer class="ftr"><div class="wrap"><div class="cols"><div><a class="brand" href="#top"><b>' + esc(C.brand.name) + '</b></a><p class="note">' + esc(C.footer && C.footer.note || C.brand.tagline || '') + '</p></div><nav aria-label="On this page"><h2>On this page</h2><ul>' + sectionLinks + '</ul></nav><nav aria-label="Services"><h2>Go to</h2><ul>' + dest + '</ul></nav></div><div class="legal"><span>&copy; ' + new Date().getFullYear() + ' ' + esc(C.brand.name) + '</span><span>' + (PREVIEW ? 'Draft preview' : 'Visits are counted anonymously to improve this page.') + '</span><a href="https://script.google.com/a/macros/kwsa.co.za/s/AKfycbzMLw7l-h1eZrf1_2ZWOBleNu1hw1Jcoq9Xytbg72xx0O6X3dNUhorQ3TfSJPln_zHfMg/exec" target="_blank" rel="nofollow noopener">Trainer tools (sign-in)</a></div></div></footer>';
+}
+function render(content) {
+  C = content;
+  const secs = (C.sections || []).filter(s => s.visible !== false);
+  let body = '';
+  let n = 0;
+  secs.forEach(s => {
+    if (s.type === 'featured') body += renderFeatured(s);
+    else if (s.type === 'pillar') body += renderPillar(s, n++);
+    else if (s.type === 'directory') body += renderDirectory(s);
+    else if (s.type === 'contact') body += renderContact(s);
+  });
+  document.title = C.meta && C.meta.title || C.brand.name;
+  const md = document.querySelector('meta[name="description"]'); if (md && C.meta) md.setAttribute('content', C.meta.description || '');
+  $('#app').innerHTML = renderHeader(secs) + renderHero() + '<main id="main" tabindex="-1">' + body + '</main>' + renderFooter(secs) + (PREVIEW ? '<div class="pv-bar" role="status">Draft preview. Visitors do not see this.</div>' : '');
+  wire();
+}
+
+/* ---------- behaviour ---------- */
+let io;
+function wire() {
+  const hdr = $('#hdr'), onScroll = () => hdr.classList.toggle('solid', window.scrollY > 40); onScroll(); window.onscroll = onScroll;
+  const sheet = $('#sheet'), mb = $('#menuBtn');
+  const close = () => { sheet.classList.remove('open'); mb.setAttribute('aria-expanded', 'false'); document.body.style.overflow = ''; mb.focus(); };
+  mb.onclick = () => { sheet.classList.add('open'); mb.setAttribute('aria-expanded', 'true'); document.body.style.overflow = 'hidden'; setTimeout(() => $('#menuClose').focus(), 50); };
+  $('#menuClose').onclick = close;
+  sheet.querySelectorAll('nav a').forEach(a => a.addEventListener('click', () => { sheet.classList.remove('open'); mb.setAttribute('aria-expanded', 'false'); document.body.style.overflow = ''; }));
+  sheet.onkeydown = e => {
+    if (e.key === 'Escape') close();
+    if (e.key === 'Tab') { const f = [...sheet.querySelectorAll('a,button')], first = f[0], last = f[f.length - 1]; if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); } else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); } }
+  };
+  // featured panel
+  document.querySelectorAll('.feat-list a').forEach(a => { const on = () => { document.querySelectorAll('.feat-list a').forEach(x => x.classList.toggle('on', x === a)); document.querySelectorAll('.feat-stage figure').forEach(f => { const m = f.dataset.i === a.dataset.i; f.classList.toggle('on', m); f.setAttribute('aria-hidden', String(!m)); }); }; a.addEventListener('mouseenter', on); a.addEventListener('focus', on); });
+  // directory
+  const q = $('#q'); if (q) { q.value = view.q; q.oninput = () => { view.q = q.value.trim(); drawDirectory(); }; drawDirectory(); }
+  // section highlight in nav
+  const navLinks = [...document.querySelectorAll('.nav a')];
+  if (io) io.disconnect();
+  if ('IntersectionObserver' in window) {
+    io = new IntersectionObserver(es => es.forEach(e => {
+      if (e.target.classList.contains('rv') && e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      if (e.target.tagName === 'SECTION' && e.isIntersecting) navLinks.forEach(a => a.setAttribute('aria-current', String(a.getAttribute('href') === '#' + e.target.id)));
+    }), { rootMargin: '0px 0px -12% 0px', threshold: .12 });
+    document.querySelectorAll('.rv:not(.in), main section').forEach(el => io.observe(el));
+  } else document.querySelectorAll('.rv').forEach(el => el.classList.add('in'));
+  if (location.hash && location.hash.length > 1 && !wire.jumped) { wire.jumped = true; const t = document.getElementById(location.hash.slice(1)); if (t) setTimeout(() => t.scrollIntoView(), 30); }
+}
+
+/* ---------- loading published content ---------- */
+const store = { get() { try { return JSON.parse(localStorage.getItem('mret.pub')); } catch (e) { return null; } }, set(v) { try { localStorage.setItem('mret.pub', JSON.stringify(v)); } catch (e) {} } };
+async function start() {
+  if (PREVIEW) {
+    render(CMSX.clone(CMSX.DEFAULT));
+    window.addEventListener('message', e => {
+      if (e.origin !== location.origin || !e.data || e.data.type !== 'mret-preview') return;
+      const y = window.scrollY; render(e.data.content); window.scrollTo(0, y);
+    });
+    (window.opener || window.parent).postMessage({ type: 'mret-preview-ready' }, location.origin);
+    return;
+  }
+  const cached = store.get(), baked = window.MRET_BAKED;
+  let shown = cached && cached.content ? cached : baked && baked.content ? baked : { no: 0, content: CMSX.clone(CMSX.DEFAULT) };
+  render(shown.content);
+  if (!/^https:/.test(SITE_API)) return;
+  try {
+    const r = await fetch(SITE_API + '?a=pub&t=' + Date.now(), { cache: 'no-store' }), j = await r.json();
+    if (j.ok && j.content && j.no !== shown.no) { store.set({ no: j.no, content: j.content }); const y = window.scrollY; render(j.content); window.scrollTo(0, y); }
+    else if (j.ok && j.content) store.set({ no: j.no, content: j.content });
+  } catch (e) { /* keep the copy already shown */ }
+}
+/* ---------- carried over from the previous homepage ---------- */
+// Anonymous activity for the site owner: page views and which space is opened, nothing personal.
+const TRACK_API = 'https://script.google.com/macros/s/AKfycbxxYRo9bLIfhfOBmzIvKybE3s4G0n-r8M73d595aNBM8aFTZRzdnwpDzGf08yxssDUD/exec';
+const SPACE_OF = { 'one-on-one': 'one-on-one', 'smart-agent': 'smart-agent', support: 'support', 'new-creation': 'new-creation', 'millionaire-os': 'millionaire-os', 'cap-planner': 'coaching', 'portal-edge': 'portal-edge', family: 'family', 'my-desk': 'my-desk' };
+function track(e, sp, h) {
+  if (PREVIEW || !/(^|\.)mret\.co\.za$/.test(location.hostname)) return;
+  let v, s, mine = false;
+  const rid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+  try { v = localStorage.getItem('gw.v') || rid(); localStorage.setItem('gw.v', v); s = sessionStorage.getItem('gw.s') || rid(); sessionStorage.setItem('gw.s', s); mine = localStorage.getItem('gw.ignore') === '1'; } catch (x) { v = v || rid(); s = s || rid(); }
+  if (mine) return;
+  const w = Math.min(screen.width, screen.height), touch = matchMedia('(pointer: coarse)').matches, d = !touch ? 'desktop' : w < 600 ? 'phone' : 'tablet';
+  let r = ''; try { r = document.referrer ? new URL(document.referrer).hostname : ''; } catch (x) {}
+  const body = JSON.stringify({ fn: 'track', args: [{ e, sp: sp || '', h: h || '', v, s, d, r, w: screen.width + 'x' + screen.height }], env: /[?&]env=test\b/.test(location.search) ? 'test' : 'prod' });
+  try { fetch(TRACK_API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body, keepalive: true, credentials: 'omit' }).catch(() => {}); } catch (x) {}
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest && e.target.closest('a[href]'); if (!a || !C) return;
+  const href = a.getAttribute('href'), svc = (C.services || []).find(x => x.url && x.url === href);
+  if (svc && SPACE_OF[svc.id]) track('open', SPACE_OF[svc.id], a.closest('#dir') ? 'directory' : a.closest('.feat') ? 'featured' : a.closest('footer') ? 'footer' : 'section');
+});
+// Clean up the copy of New Creation that once lived at this address, so this page always shows fresh.
+if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => { if (new URL(r.scope).pathname === '/') r.unregister(); })).catch(() => {});
+start();
+track('view');
 </script>
 </body>
 </html>
