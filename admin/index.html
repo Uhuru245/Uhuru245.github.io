@@ -143,55 +143,13 @@ var CMSX = (function () {
   var STATUS = ['live', 'beta', 'soon'];
   var ACCESS = ['public', 'members', 'owner'];
   var SECTION_TYPES = ['featured', 'pillar', 'directory', 'contact'];
+  /** Account types people choose when they sign up. The owner (site admin) always sees everything. */
+  var TYPES = [['agent', 'Estate agent'], ['client', 'Buying or selling a home'], ['community', 'New Creation member'], ['other', 'Something else']];
+  var AUDIENCES = ['all'].concat(TYPES.map(function (t) { return t[0]; }));
   var LIMITS = { short: 120, text: 900, url: 600, services: 80, categories: 16, sections: 16, social: 12, links: 16 };
 
-  var DEFAULT = {
-    meta: { title: 'MRET', description: 'Real estate, agent training, tech support and the tools Uhuru Matlhaji builds for agents and families.' },
-    brand: { name: 'MRET', tagline: 'Millionaire Real Estate Team' },
-    hero: {
-      eyebrow: 'Uhuru Matlhaji',
-      heading: 'Property, people and the systems behind them.',
-      text: 'Sell or buy with a clear plan, learn the technology that runs a modern agency, get help when something breaks, and use the tools built here for agents and households.',
-      image: null,
-      primary: { label: 'Book a 1-on-1', url: '/one-on-one/' },
-      secondary: { label: 'Browse everything', url: '#directory' }
-    },
-    sections: [
-      { id: 'available', type: 'featured', visible: true, eyebrow: 'Available now', heading: 'Start here', text: 'These services are open today.' },
-      { id: 'real-estate', type: 'pillar', cat: 'real-estate', visible: true, eyebrow: 'Real Estate', heading: 'Selling or buying a home', text: 'A priced, marketed and well-communicated sale, or a buyer journey with the finance and viewings in order. The full real estate pages are being prepared; until then, get in touch directly.', image: null, primary: { label: 'Get in touch', url: '#contact' }, secondary: null },
-      { id: 'academy', type: 'pillar', cat: 'academy', visible: true, eyebrow: 'Academy', heading: 'Training and one-on-one sessions', text: 'Hands-on technology and AI sessions for estate agents, and private sessions to work through your own listings, database and leads.', image: null, primary: { label: 'Book a 1-on-1', url: '/one-on-one/' }, secondary: { label: 'Smart Agent Series', url: '/smart-agent-series/' } },
-      { id: 'support', type: 'pillar', cat: 'support', visible: true, eyebrow: 'Tech Support', heading: 'When something stops working', text: 'Try the suggested fixes for MAPP, Command, listings and email first. If the problem remains, log a ticket that already holds the details needed to solve it.', image: null, primary: { label: 'Log a support ticket', url: '/smart-agent-series/tickets/' }, secondary: null },
-      { id: 'millionaire-os', type: 'pillar', cat: 'apps', visible: true, eyebrow: 'Millionaire OS', heading: 'A financial plan for your household', text: 'Budgets, debit orders, debt and goals for individuals, couples and families, encrypted on your own device. Currently in private beta.', image: null, primary: { label: 'Open Millionaire OS', url: '/millionaire-os/' }, secondary: null },
-      { id: 'new-creation', type: 'pillar', cat: 'faith', visible: true, eyebrow: 'New Creation', heading: 'Read the whole Bible together', text: 'A community programme that reads the whole Bible in 93 days, with narrated audio and daily check-ins.', image: null, primary: { label: 'Go to New Creation', url: '/new-creation/' }, secondary: null },
-      { id: 'directory', type: 'directory', visible: true, eyebrow: 'Directory', heading: 'Everything in one place', text: 'Search every service and tool, or filter by area.' },
-      { id: 'contact', type: 'contact', visible: true, eyebrow: 'Contact', heading: 'Talk to Uhuru', text: 'For property, training or support questions.' }
-    ],
-    categories: [
-      { id: 'real-estate', name: 'Real Estate' },
-      { id: 'academy', name: 'Academy' },
-      { id: 'support', name: 'Tech Support' },
-      { id: 'apps', name: 'Millionaire OS' },
-      { id: 'faith', name: 'New Creation' },
-      { id: 'workspace', name: 'Private tools' }
-    ],
-    services: [
-      { id: 'one-on-one', cat: 'academy', title: 'Book a 1-on-1', desc: 'Work through your listings, database and leads with Uhuru. One session per person per day.', url: '/one-on-one/', status: 'live', access: 'public', featured: true },
-      { id: 'smart-agent', cat: 'academy', title: 'Smart Agent Series', desc: 'Three hands-on technology and AI sessions for estate agents at KW Edge.', url: '/smart-agent-series/', status: 'live', access: 'public', featured: true },
-      { id: 'support', cat: 'support', title: 'Tech support ticket', desc: 'Suggested fixes for MAPP, Command, listings and email, then a ready-filled ticket.', url: '/smart-agent-series/tickets/', status: 'live', access: 'public', featured: true },
-      { id: 'new-creation', cat: 'faith', title: 'New Creation', desc: 'Read the whole Bible together in 93 days, with narrated audio and daily check-ins.', url: '/new-creation/', status: 'live', access: 'members', featured: true },
-      { id: 'millionaire-os', cat: 'apps', title: 'Millionaire OS', desc: 'Budgets, debit orders, debt and goals, encrypted on your device. Private beta.', url: '/millionaire-os/', status: 'beta', access: 'members', featured: false },
-      { id: 'sellers', cat: 'real-estate', title: 'Seller services', desc: 'Market analysis, a launch plan and weekly seller reports.', url: '', status: 'soon', access: 'public', featured: false },
-      { id: 'buyers', cat: 'real-estate', title: 'Buyer services', desc: 'Needs analysis, finance guidance, viewings and offer support.', url: '', status: 'soon', access: 'public', featured: false },
-      { id: 'team', cat: 'real-estate', title: 'Millionaire Real Estate Team', desc: 'Meet the team and see how a home is marketed.', url: '', status: 'soon', access: 'public', featured: false },
-      { id: 'cap-planner', cat: 'workspace', title: 'Cap Planner', desc: 'Cap tracking, deal pipelines, coaching diary and OP reports.', url: '/cap-planner/', status: 'live', access: 'owner', featured: false },
-      { id: 'portal-edge', cat: 'workspace', title: 'Portal Edge', desc: 'Portal leads with a 15-minute clock, listing checks and ROI.', url: '/portal-edge/', status: 'live', access: 'owner', featured: false },
-      { id: 'family', cat: 'workspace', title: 'Family OS', desc: 'Household plan, debit orders and goals.', url: '/family/', status: 'live', access: 'owner', featured: false },
-      { id: 'my-desk', cat: 'workspace', title: 'My Desk', desc: 'Today\'s calendar, inbox and open tickets.', url: 'https://claude.ai/artifact/RG3efsKgsGfmLXg7CF5NLL', status: 'live', access: 'owner', featured: false }
-    ],
-    contact: { email: 'uhuru.matlhaji@kwsa.co.za', phone: '', whatsapp: '', office: '', hours: '' },
-    social: [],
-    footer: { note: '' }
-  };
+  var DEFAULT = null; // default content stays on the server; this page is public
+
 
   function str(v) { return typeof v === 'string'; }
   function urlOk(u) {
@@ -241,6 +199,7 @@ var CMSX = (function () {
         if (!urlOk(s.url)) e.push(p + ' link is not valid.');
         if (strict && s.status !== 'soon' && !s.url) e.push(p + ' is marked available but has no link.');
         if (!imgOk(s.image)) e.push(p + ' image is invalid.');
+        if (s.who != null && (!Array.isArray(s.who) || s.who.some(function (w) { return AUDIENCES.indexOf(w) < 0; }))) e.push(p + ' has an unknown audience.');
       });
     }
     if (!Array.isArray(c.sections) || !c.sections.length) e.push('Add at least one homepage section.');
@@ -284,7 +243,20 @@ var CMSX = (function () {
     n._all = total; return n;
   }
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
-  return { DEFAULT: DEFAULT, validate: validate, urlOk: urlOk, imageIds: imageIds, counts: counts, clone: clone, STATUS: STATUS, ACCESS: ACCESS, SECTION_TYPES: SECTION_TYPES };
+  /** Who may see a service. Older content without "who" falls back to its access level. */
+  function whoOf(s) { return Array.isArray(s.who) ? s.who : s.access === 'owner' ? [] : ['all']; }
+  function canSee(s, type) { if (type === 'owner') return true; if (!type) return false; var w = whoOf(s); return w.indexOf('all') >= 0 || w.indexOf(type) >= 0; }
+  /** The content one signed-in person receives: only services meant for their account type, and only sections that still have something to show. */
+  function forViewer(content, type) {
+    var c = clone(content);
+    c.services = (c.services || []).filter(function (s) { return !s.hidden && canSee(s, type); });
+    var has = {}; c.services.forEach(function (s) { has[s.cat] = 1; });
+    var total = {}; (content.services || []).forEach(function (s) { if (!s.hidden) total[s.cat] = 1; });
+    c.sections = (c.sections || []).filter(function (s) { return s.type !== 'pillar' || !s.cat || !total[s.cat] || has[s.cat]; });
+    c.categories = (c.categories || []).filter(function (k) { return has[k.id] || !total[k.id]; });
+    return c;
+  }
+  return { TYPES: TYPES, AUDIENCES: AUDIENCES, whoOf: whoOf, canSee: canSee, forViewer: forViewer, DEFAULT: DEFAULT, validate: validate, urlOk: urlOk, imageIds: imageIds, counts: counts, clone: clone, STATUS: STATUS, ACCESS: ACCESS, SECTION_TYPES: SECTION_TYPES };
 })();
 if (typeof module !== 'undefined') module.exports = CMSX;
 </script>
@@ -332,7 +304,7 @@ async function boot() {
   const j = await api('cmsLoad');
   A.email = j.me; A.publishedNo = j.publishedNo; A.publishedRev = j.publishedRev; A.versions = j.versions; A.images = j.images;
   if (j.draft) { A.draft = j.draft; A.rev = j.rev; A.savedAt = j.savedAt; A.dirty = false; A.fresh = false; }
-  else { A.draft = CMSX.clone(CMSX.DEFAULT); A.rev = 0; A.dirty = true; A.fresh = true; }
+  else { A.draft = CMSX.clone(j.starter); A.rev = 0; A.dirty = true; A.fresh = true; }
   $('gate').hidden = true; $('app').hidden = false; $('who').textContent = A.email;
   render();
 }
@@ -361,9 +333,9 @@ function showErrors(title, list) { const b = $('errs'); b.hidden = false; b.inne
 function clearErrors() { $('errs').hidden = true; }
 
 /* ---------- navigation ---------- */
-const NAV = [['home', 'Homepage sections'], ['hero', 'Hero'], ['services', 'Services'], ['categories', 'Categories'], ['contact', 'Contact & site details'], ['images', 'Images'], ['versions', 'Published versions']];
+const NAV = [['home', 'Homepage sections'], ['hero', 'Hero'], ['services', 'Services'], ['categories', 'Categories'], ['contact', 'Contact & site details'], ['images', 'Images'], ['versions', 'Published versions'], ['members', 'Members']];
 function render() {
-  $('side').innerHTML = NAV.map(([k, l], i) => (i === 5 ? '<div class="sep">Library</div>' : '') + '<button type="button" data-nav="' + k + '"' + (A.view === k || (k === 'home' && /^sec:/.test(A.view)) ? ' aria-current="page"' : '') + '>' + esc(l) + '</button>').join('');
+  $('side').innerHTML = NAV.map(([k, l], i) => (i === 5 ? '<div class="sep">Library</div>' : i === 7 ? '<div class="sep">People</div>' : '') + '<button type="button" data-nav="' + k + '"' + (A.view === k || (k === 'home' && /^sec:/.test(A.view)) ? ' aria-current="page"' : '') + '>' + esc(l) + '</button>').join('');
   $('side').querySelectorAll('[data-nav]').forEach(b => b.onclick = () => { A.view = b.dataset.nav; render(); window.scrollTo(0, 0); });
   const v = A.view.startsWith('sec:') ? viewSection(A.view.slice(4)) : (VIEWS[A.view] || VIEWS.home)();
   $('main').innerHTML = (A.fresh ? '<div class="alert warn">This is the starting content, taken from the new design. Nothing is saved yet: review it, then press <b>Save draft</b>.</div>' : '') + '<div class="alert bad" id="errs" hidden></div>' + v;
@@ -404,10 +376,14 @@ function bind() {
   document.querySelectorAll('[data-imgedit]').forEach(b => b.onclick = () => imageDetail(b.dataset.imgedit));
   document.querySelectorAll('[data-act]').forEach(b => b.onclick = () => ACTS[b.dataset.act](b.dataset.arg, b));
   const dz = $('drop'); if (dz) wireDrop(dz, $('upFile'), () => render());
+  document.querySelectorAll('[data-mtype]').forEach(sel => sel.onchange = async () => { try { const j = await api('cmsMemberSet', { id: sel.dataset.mtype, type: sel.value }); Object.assign(A.members.find(m => m.id === j.member.id), j.member); toast('Saved. ' + j.member.name + ' now sees what that type sees.'); } catch (e) { toast(e.message); } });
+  document.querySelectorAll('[data-mblock]').forEach(b => b.onclick = async () => { const m = A.members.find(x => x.id === b.dataset.mblock); if (!m.blocked && !sure(b)) return; try { const j = await api('cmsMemberSet', { id: m.id, blocked: !m.blocked }); Object.assign(m, j.member); render(); toast(m.blocked ? 'Blocked and signed out everywhere.' : 'Unblocked.'); } catch (e) { toast(e.message); } });
 }
 
 /* ---------- views ---------- */
 const VIEWS = {};
+const WHO_LABEL = { all: 'Everyone signed in', agent: 'Estate agents', client: 'Buyers and sellers', community: 'New Creation members', other: 'Something else' };
+const whoText = s => { const w = CMSX.whoOf(s); return !w.length ? 'Only me' : w.includes('all') ? 'Everyone signed in' : w.map(x => WHO_LABEL[x]).join(', '); };
 const catOpts = () => A.draft.categories.map(c => [c.id, c.name]);
 VIEWS.home = () => {
   const d = A.draft, h = d.hero;
@@ -433,9 +409,9 @@ VIEWS.services = () => {
   const d = A.draft, counts = CMSX.counts(d);
   const rows = d.services.map((s, i) => '<tr><td><b>' + esc(s.title) + '</b><div class="small muted">' + esc(s.url || 'no link') + '</div></td><td>' + esc((d.categories.find(c => c.id === s.cat) || {}).name || 'Missing category') + '</td>'
     + '<td><select data-path="services.' + i + '.status" aria-label="Availability of ' + esc(s.title) + '">' + CMSX.STATUS.map(x => '<option value="' + x + '"' + (s.status === x ? ' selected' : '') + '>' + STATUS_LABEL[x] + '</option>').join('') + '</select></td>'
-    + '<td><input type="checkbox" data-path="services.' + i + '.featured" data-bool="1" aria-label="Feature ' + esc(s.title) + '"' + (s.featured ? ' checked' : '') + '></td><td>' + (s.hidden ? '<span class="tag">hidden</span>' : '') + '</td>'
+    + '<td class="small">' + esc(whoText(s)) + '</td><td><input type="checkbox" data-path="services.' + i + '.featured" data-bool="1" aria-label="Feature ' + esc(s.title) + '"' + (s.featured ? ' checked' : '') + '></td><td>' + (s.hidden ? '<span class="tag">hidden</span>' : '') + '</td>'
     + '<td><div class="row-acts"><button type="button" class="btn sm" data-act="svcUp" data-arg="' + i + '"' + (i ? '' : ' disabled') + ' aria-label="Move up">Up</button><button type="button" class="btn sm primary" data-act="svcEdit" data-arg="' + i + '">Edit</button></div></td></tr>').join('');
-  return '<div class="ph"><div><h1>Services</h1><p>' + d.services.length + ' services. Availability and Featured change the homepage and directory.</p></div><button type="button" class="btn primary" data-act="svcAdd">Add service</button></div><div class="card" style="overflow-x:auto"><table><thead><tr><th>Service</th><th>Category</th><th>Availability</th><th>Featured</th><th></th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>'
+  return '<div class="ph"><div><h1>Services</h1><p>' + d.services.length + ' services. Availability and Featured change the homepage and directory.</p></div><button type="button" class="btn primary" data-act="svcAdd">Add service</button></div><div class="card" style="overflow-x:auto"><table><thead><tr><th>Service</th><th>Category</th><th>Availability</th><th>Who sees it</th><th>Featured</th><th></th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>'
     + '<p class="small muted">Counts by category: ' + d.categories.map(c => esc(c.name) + ' ' + (counts[c.id] || 0)).join(' · ') + '</p>';
 };
 VIEWS.categories = () => {
@@ -463,11 +439,21 @@ function libItem(im, used, picking) {
 VIEWS.versions = () => '<div class="ph"><div><h1>Published versions</h1><p>Every publish is kept here (the latest 50). Restoring copies a version into the draft; it goes live only when you publish.</p></div></div><div class="card" style="overflow-x:auto">'
   + (A.versions.length ? '<table><thead><tr><th>Version</th><th>Published</th><th>By</th><th>Note</th><th></th></tr></thead><tbody>' + A.versions.map(v => '<tr><td><b>' + v.no + '</b> ' + (v.live ? '<span class="tag ok">live</span>' : '') + '</td><td>' + esc(new Date(v.at).toLocaleString('en-ZA')) + '</td><td>' + esc(v.by) + '</td><td>' + esc(v.note) + '</td><td><div class="row-acts"><button type="button" class="btn sm" data-act="verPreview" data-arg="' + v.no + '">Preview</button><button type="button" class="btn sm" data-act="verRestore" data-arg="' + v.no + '">Restore to draft</button></div></td></tr>').join('') + '</tbody></table>' : '<p class="muted">Nothing has been published yet.</p>') + '</div>';
 
+VIEWS.members = () => {
+  if (!A.members) { api('cmsMembers').then(j => { A.members = j.members; A.types = j.types; if (A.view === 'members') render(); }).catch(e => toast(e.message)); return '<div class="ph"><div><h1>Members</h1><p>Loading...</p></div></div>'; }
+  const tl = Object.fromEntries((A.types || []).concat([['owner', 'Owner (you)']]));
+  const rows = A.members.map(m => '<tr><td><b>' + esc(m.name) + '</b><div class="small muted">' + esc(m.email) + '</div></td><td>' + (m.type === 'owner' ? 'Owner (you)' : '<select data-mtype="' + m.id + '" aria-label="Account type for ' + esc(m.name) + '">' + A.types.map(t => '<option value="' + t[0] + '"' + (t[0] === m.type ? ' selected' : '') + '>' + esc(t[1]) + '</option>').join('') + '</select>') + '</td><td class="small">' + esc(new Date(m.createdAt).toLocaleDateString('en-ZA')) + '</td><td class="small">' + (m.lastSeen ? esc(new Date(m.lastSeen).toLocaleDateString('en-ZA')) : '') + '</td><td>' + (m.type === 'owner' ? '' : '<button type="button" class="btn sm ' + (m.blocked ? '' : 'danger') + '" data-mblock="' + m.id + '">' + (m.blocked ? 'Unblock' : 'Block') + '</button>') + '</td></tr>').join('');
+  const n = {}; A.members.forEach(m => { n[m.type] = (n[m.type] || 0) + 1; });
+  return '<div class="ph"><div><h1>Members</h1><p>' + A.members.length + ' accounts. People choose a type when they sign up; it decides which services they see. Change it here at any time.</p></div><button type="button" class="btn" data-act="memReload">Refresh</button></div>'
+    + '<p class="small muted">' + Object.keys(n).map(k => esc(tl[k] || k) + ': ' + n[k]).join(' · ') + '</p><div class="card" style="overflow-x:auto">' + (rows ? '<table><thead><tr><th>Person</th><th>Account type</th><th>Joined</th><th>Last visit</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>' : '<p class="muted">Nobody has signed up yet.</p>') + '</div>';
+};
+
 /* ---------- actions ---------- */
 const slug = t => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 36) || 'item';
 const uniq = (base, list) => { let id = base, n = 2; while (list.some(x => x.id === id)) id = base + '-' + n++; return id; };
 const move = (arr, i, d) => { const j = i + d; if (j < 0 || j >= arr.length) return; [arr[i], arr[j]] = [arr[j], arr[i]]; };
 const ACTS = {
+  memReload: () => { A.members = null; render(); },
   go: v => { A.view = v; render(); window.scrollTo(0, 0); },
   up: i => { move(A.draft.sections, +i, -1); markDirty(); render(); },
   down: i => { move(A.draft.sections, +i, 1); markDirty(); render(); },
@@ -506,6 +492,7 @@ function serviceDlg(i, s0) {
     + '<label class="f full">Link<span class="hint">Existing addresses such as /one-on-one/ keep working. Leave empty for coming-soon items.</span><input type="text" id="sv_url" value="' + esc(s.url) + '" placeholder="/page/ or https://..."></label>'
     + '<label class="f">Category<select id="sv_cat">' + o(catOpts(), s.cat) + '</select></label><label class="f">Availability<select id="sv_status">' + o(CMSX.STATUS.map(x => [x, STATUS_LABEL[x]]), s.status) + '</select></label>'
     + '<label class="f">Who can use it<select id="sv_access">' + o(CMSX.ACCESS.map(x => [x, ACCESS_LABEL[x]]), s.access) + '</select></label><span></span>'
+    + '<fieldset class="full" style="border:1px solid var(--line);border-radius:6px;padding:10px 12px"><legend class="small" style="font-weight:600">Who sees it on the site</legend><div class="small muted" style="margin-bottom:6px">Untick everything to keep it for you alone.</div>' + CMSX.AUDIENCES.map(a => '<label class="check" style="margin-right:14px"><input type="checkbox" name="sv_who" value="' + a + '"' + (CMSX.whoOf(s).includes(a) ? ' checked' : '') + '> ' + esc(WHO_LABEL[a]) + '</label>').join('') + '</fieldset>'
     + '<label class="check"><input type="checkbox" id="sv_feat"' + (s.featured ? ' checked' : '') + '> Featured on the homepage</label><label class="check"><input type="checkbox" id="sv_hidden"' + (s.hidden ? ' checked' : '') + '> Hide from the site</label>'
     + '<div class="full"><div class="small" style="font-weight:600;margin-bottom:6px">Image for the featured panel (optional)</div><div class="row-acts" style="justify-content:flex-start"><span id="sv_img" class="small muted">' + (s.image ? esc((A.images.find(x => x.id === s.image.id) || {}).name || 'missing image') : 'Uses the image of its service area') + '</span><button type="button" class="btn sm" id="sv_pick">Choose</button><button type="button" class="btn sm" id="sv_clear">Clear</button></div></div>'
     + '<p class="alert bad full" id="sv_err" hidden></p></div>',
@@ -513,7 +500,7 @@ function serviceDlg(i, s0) {
     d => {
       $('sv_pick').onclick = () => { Object.assign(s, read()); d.close(); pickImage(id => { s.image = { id }; serviceDlg(i, s); }, () => serviceDlg(i, s)); };
       $('sv_clear').onclick = () => { s.image = null; $('sv_img').textContent = 'Uses the image of its service area'; };
-      const read = () => ({ title: $('sv_title').value.trim(), desc: $('sv_desc').value.trim(), url: $('sv_url').value.trim(), cat: $('sv_cat').value, status: $('sv_status').value, access: $('sv_access').value, featured: $('sv_feat').checked, hidden: $('sv_hidden').checked });
+      const read = () => ({ title: $('sv_title').value.trim(), desc: $('sv_desc').value.trim(), url: $('sv_url').value.trim(), cat: $('sv_cat').value, status: $('sv_status').value, access: $('sv_access').value, featured: $('sv_feat').checked, hidden: $('sv_hidden').checked, who: (w => w.includes('all') ? ['all'] : w)([...document.querySelectorAll('input[name="sv_who"]:checked')].map(x => x.value)) });
       $('sv_ok').onclick = () => {
         const x = Object.assign(s, read()); if (!x.image) delete x.image;
         if (!x.id) x.id = uniq(slug(x.title), A.draft.services);
@@ -684,7 +671,7 @@ $('pubBtn').onclick = () => {
 };
 async function verifyPublic(no) {
   for (let i = 0; i < 4; i++) {
-    try { const r = await fetch(CMS_API + '?a=pub&t=' + Date.now(), { cache: 'no-store' }), j = await r.json(); if (j.no === no) return true; } catch (e) {}
+    try { const j = await api('cmsPubCheck'); if (j.no === no) return true; } catch (e) {}
     await new Promise(ok => setTimeout(ok, 1500));
   }
   return false;

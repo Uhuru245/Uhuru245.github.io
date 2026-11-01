@@ -211,65 +211,52 @@ section.blk + section.blk { border-top: 1px solid var(--line); }
   .cdl { grid-template-columns: minmax(0, 1fr); gap: 4px; } .cdl dd { margin-bottom: 12px; }
   .ftr .cols { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* account and sign-in gate */
+.acct { background: none; border: 1px solid var(--line-2); color: var(--ink-2); height: 36px; padding: 0 12px; font: 500 13px var(--sans); cursor: pointer; white-space: nowrap; }
+.acct:hover { color: var(--ink); border-color: var(--ink); }
+.sheet-me { margin-top: auto; color: var(--ink-3); font-size: 14px; display: grid; gap: 12px; }
+.gate { min-height: 100svh; display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); }
+.gate-art { position: relative; }
+.gate-art .art { position: absolute; inset: 0; }
+.gate-panel { padding: clamp(32px, 6vw, 88px) var(--gut); display: flex; flex-direction: column; justify-content: center; gap: 18px; max-width: 560px; }
+.gate-panel .brand { margin: 0 0 18px; }
+.gate-panel .lede { margin: 0; font-size: 16px; }
+.g-tabs { display: flex; border-bottom: 1px solid var(--line); margin-top: 8px; }
+.g-tab { background: none; border: 0; color: var(--ink-3); font: 600 14px var(--sans); padding: 12px 0; margin-right: 24px; border-bottom: 2px solid transparent; cursor: pointer; }
+.g-tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--gold); }
+#gForm { display: grid; gap: 16px; }
+.g-f { display: grid; gap: 6px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.g-f input { height: 50px; background: transparent; border: 0; border-bottom: 1px solid var(--line-2); color: var(--ink); font: 400 18px var(--sans); letter-spacing: 0; text-transform: none; padding: 0; }
+.g-f input:focus { outline: none; border-bottom-color: var(--gold); }
+.g-types { border: 0; padding: 0; margin: 4px 0 0; display: grid; gap: 8px; }
+.g-types legend { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+.g-types label { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); cursor: pointer; font-size: 15px; }
+.g-types label:has(input:checked) { border-color: var(--gold); background: rgba(201, 165, 92, .07); }
+.g-types input { accent-color: var(--gold); }
+.g-go { justify-content: center; margin-top: 6px; }
+.g-msg { min-height: 1.2em; margin: 0; color: var(--gold-2); font-size: 14px; }
+.g-note { margin: 0; color: var(--ink-2); }
+.g-link { background: none; border: 0; color: var(--ink-3); text-decoration: underline; cursor: pointer; font: 14px var(--sans); justify-self: start; padding: 0; }
+.g-small { font-size: 12.5px; color: var(--ink-3); margin: 6px 0 0; }
+@media (max-width: 920px) { .gate { grid-template-columns: minmax(0, 1fr); } .gate-art { height: 140px; } .acct { display: none; } }
 </style>
 </head>
 <body>
-<div id="app"><noscript><p style="padding:24px">This site needs JavaScript to show its sections. Direct links: <a href="/one-on-one/">Book a 1-on-1</a>, <a href="/smart-agent-series/">Smart Agent Series</a>, <a href="/smart-agent-series/tickets/">Tech support ticket</a>, <a href="/millionaire-os/">Millionaire OS</a>, <a href="/new-creation/">New Creation</a>.</p></noscript></div>
+<div id="app"><noscript><p style="padding:24px">MRET needs JavaScript to sign you in.</p></noscript></div>
 <script>/* MRET site content: default content, validation and helpers.
  * The same file runs in the Apps Script server, the public site and the admin dashboard. */
 var CMSX = (function () {
   var STATUS = ['live', 'beta', 'soon'];
   var ACCESS = ['public', 'members', 'owner'];
   var SECTION_TYPES = ['featured', 'pillar', 'directory', 'contact'];
+  /** Account types people choose when they sign up. The owner (site admin) always sees everything. */
+  var TYPES = [['agent', 'Estate agent'], ['client', 'Buying or selling a home'], ['community', 'New Creation member'], ['other', 'Something else']];
+  var AUDIENCES = ['all'].concat(TYPES.map(function (t) { return t[0]; }));
   var LIMITS = { short: 120, text: 900, url: 600, services: 80, categories: 16, sections: 16, social: 12, links: 16 };
 
-  var DEFAULT = {
-    meta: { title: 'MRET', description: 'Real estate, agent training, tech support and the tools Uhuru Matlhaji builds for agents and families.' },
-    brand: { name: 'MRET', tagline: 'Millionaire Real Estate Team' },
-    hero: {
-      eyebrow: 'Uhuru Matlhaji',
-      heading: 'Property, people and the systems behind them.',
-      text: 'Sell or buy with a clear plan, learn the technology that runs a modern agency, get help when something breaks, and use the tools built here for agents and households.',
-      image: null,
-      primary: { label: 'Book a 1-on-1', url: '/one-on-one/' },
-      secondary: { label: 'Browse everything', url: '#directory' }
-    },
-    sections: [
-      { id: 'available', type: 'featured', visible: true, eyebrow: 'Available now', heading: 'Start here', text: 'These services are open today.' },
-      { id: 'real-estate', type: 'pillar', cat: 'real-estate', visible: true, eyebrow: 'Real Estate', heading: 'Selling or buying a home', text: 'A priced, marketed and well-communicated sale, or a buyer journey with the finance and viewings in order. The full real estate pages are being prepared; until then, get in touch directly.', image: null, primary: { label: 'Get in touch', url: '#contact' }, secondary: null },
-      { id: 'academy', type: 'pillar', cat: 'academy', visible: true, eyebrow: 'Academy', heading: 'Training and one-on-one sessions', text: 'Hands-on technology and AI sessions for estate agents, and private sessions to work through your own listings, database and leads.', image: null, primary: { label: 'Book a 1-on-1', url: '/one-on-one/' }, secondary: { label: 'Smart Agent Series', url: '/smart-agent-series/' } },
-      { id: 'support', type: 'pillar', cat: 'support', visible: true, eyebrow: 'Tech Support', heading: 'When something stops working', text: 'Try the suggested fixes for MAPP, Command, listings and email first. If the problem remains, log a ticket that already holds the details needed to solve it.', image: null, primary: { label: 'Log a support ticket', url: '/smart-agent-series/tickets/' }, secondary: null },
-      { id: 'millionaire-os', type: 'pillar', cat: 'apps', visible: true, eyebrow: 'Millionaire OS', heading: 'A financial plan for your household', text: 'Budgets, debit orders, debt and goals for individuals, couples and families, encrypted on your own device. Currently in private beta.', image: null, primary: { label: 'Open Millionaire OS', url: '/millionaire-os/' }, secondary: null },
-      { id: 'new-creation', type: 'pillar', cat: 'faith', visible: true, eyebrow: 'New Creation', heading: 'Read the whole Bible together', text: 'A community programme that reads the whole Bible in 93 days, with narrated audio and daily check-ins.', image: null, primary: { label: 'Go to New Creation', url: '/new-creation/' }, secondary: null },
-      { id: 'directory', type: 'directory', visible: true, eyebrow: 'Directory', heading: 'Everything in one place', text: 'Search every service and tool, or filter by area.' },
-      { id: 'contact', type: 'contact', visible: true, eyebrow: 'Contact', heading: 'Talk to Uhuru', text: 'For property, training or support questions.' }
-    ],
-    categories: [
-      { id: 'real-estate', name: 'Real Estate' },
-      { id: 'academy', name: 'Academy' },
-      { id: 'support', name: 'Tech Support' },
-      { id: 'apps', name: 'Millionaire OS' },
-      { id: 'faith', name: 'New Creation' },
-      { id: 'workspace', name: 'Private tools' }
-    ],
-    services: [
-      { id: 'one-on-one', cat: 'academy', title: 'Book a 1-on-1', desc: 'Work through your listings, database and leads with Uhuru. One session per person per day.', url: '/one-on-one/', status: 'live', access: 'public', featured: true },
-      { id: 'smart-agent', cat: 'academy', title: 'Smart Agent Series', desc: 'Three hands-on technology and AI sessions for estate agents at KW Edge.', url: '/smart-agent-series/', status: 'live', access: 'public', featured: true },
-      { id: 'support', cat: 'support', title: 'Tech support ticket', desc: 'Suggested fixes for MAPP, Command, listings and email, then a ready-filled ticket.', url: '/smart-agent-series/tickets/', status: 'live', access: 'public', featured: true },
-      { id: 'new-creation', cat: 'faith', title: 'New Creation', desc: 'Read the whole Bible together in 93 days, with narrated audio and daily check-ins.', url: '/new-creation/', status: 'live', access: 'members', featured: true },
-      { id: 'millionaire-os', cat: 'apps', title: 'Millionaire OS', desc: 'Budgets, debit orders, debt and goals, encrypted on your device. Private beta.', url: '/millionaire-os/', status: 'beta', access: 'members', featured: false },
-      { id: 'sellers', cat: 'real-estate', title: 'Seller services', desc: 'Market analysis, a launch plan and weekly seller reports.', url: '', status: 'soon', access: 'public', featured: false },
-      { id: 'buyers', cat: 'real-estate', title: 'Buyer services', desc: 'Needs analysis, finance guidance, viewings and offer support.', url: '', status: 'soon', access: 'public', featured: false },
-      { id: 'team', cat: 'real-estate', title: 'Millionaire Real Estate Team', desc: 'Meet the team and see how a home is marketed.', url: '', status: 'soon', access: 'public', featured: false },
-      { id: 'cap-planner', cat: 'workspace', title: 'Cap Planner', desc: 'Cap tracking, deal pipelines, coaching diary and OP reports.', url: '/cap-planner/', status: 'live', access: 'owner', featured: false },
-      { id: 'portal-edge', cat: 'workspace', title: 'Portal Edge', desc: 'Portal leads with a 15-minute clock, listing checks and ROI.', url: '/portal-edge/', status: 'live', access: 'owner', featured: false },
-      { id: 'family', cat: 'workspace', title: 'Family OS', desc: 'Household plan, debit orders and goals.', url: '/family/', status: 'live', access: 'owner', featured: false },
-      { id: 'my-desk', cat: 'workspace', title: 'My Desk', desc: 'Today\'s calendar, inbox and open tickets.', url: 'https://claude.ai/artifact/RG3efsKgsGfmLXg7CF5NLL', status: 'live', access: 'owner', featured: false }
-    ],
-    contact: { email: 'uhuru.matlhaji@kwsa.co.za', phone: '', whatsapp: '', office: '', hours: '' },
-    social: [],
-    footer: { note: '' }
-  };
+  var DEFAULT = null; // default content stays on the server; this page is public
+
 
   function str(v) { return typeof v === 'string'; }
   function urlOk(u) {
@@ -319,6 +306,7 @@ var CMSX = (function () {
         if (!urlOk(s.url)) e.push(p + ' link is not valid.');
         if (strict && s.status !== 'soon' && !s.url) e.push(p + ' is marked available but has no link.');
         if (!imgOk(s.image)) e.push(p + ' image is invalid.');
+        if (s.who != null && (!Array.isArray(s.who) || s.who.some(function (w) { return AUDIENCES.indexOf(w) < 0; }))) e.push(p + ' has an unknown audience.');
       });
     }
     if (!Array.isArray(c.sections) || !c.sections.length) e.push('Add at least one homepage section.');
@@ -362,11 +350,24 @@ var CMSX = (function () {
     n._all = total; return n;
   }
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
-  return { DEFAULT: DEFAULT, validate: validate, urlOk: urlOk, imageIds: imageIds, counts: counts, clone: clone, STATUS: STATUS, ACCESS: ACCESS, SECTION_TYPES: SECTION_TYPES };
+  /** Who may see a service. Older content without "who" falls back to its access level. */
+  function whoOf(s) { return Array.isArray(s.who) ? s.who : s.access === 'owner' ? [] : ['all']; }
+  function canSee(s, type) { if (type === 'owner') return true; if (!type) return false; var w = whoOf(s); return w.indexOf('all') >= 0 || w.indexOf(type) >= 0; }
+  /** The content one signed-in person receives: only services meant for their account type, and only sections that still have something to show. */
+  function forViewer(content, type) {
+    var c = clone(content);
+    c.services = (c.services || []).filter(function (s) { return !s.hidden && canSee(s, type); });
+    var has = {}; c.services.forEach(function (s) { has[s.cat] = 1; });
+    var total = {}; (content.services || []).forEach(function (s) { if (!s.hidden) total[s.cat] = 1; });
+    c.sections = (c.sections || []).filter(function (s) { return s.type !== 'pillar' || !s.cat || !total[s.cat] || has[s.cat]; });
+    c.categories = (c.categories || []).filter(function (k) { return has[k.id] || !total[k.id]; });
+    return c;
+  }
+  return { TYPES: TYPES, AUDIENCES: AUDIENCES, whoOf: whoOf, canSee: canSee, forViewer: forViewer, DEFAULT: DEFAULT, validate: validate, urlOk: urlOk, imageIds: imageIds, counts: counts, clone: clone, STATUS: STATUS, ACCESS: ACCESS, SECTION_TYPES: SECTION_TYPES };
 })();
 if (typeof module !== 'undefined') module.exports = CMSX;
 </script>
-<script>window.MRET_BAKED = {"no": 1, "content": {"meta": {"title": "MRET", "description": "Real estate, agent training, tech support and the tools Uhuru Matlhaji builds for agents and families."}, "brand": {"name": "MRET", "tagline": "Millionaire Real Estate Team"}, "hero": {"eyebrow": "Uhuru Matlhaji", "heading": "Property, people and the systems behind them.", "text": "Sell or buy with a clear plan, learn the technology that runs a modern agency, get help when something breaks, and use the tools built here for agents and households.", "image": null, "primary": {"label": "Book a 1-on-1", "url": "/one-on-one/"}, "secondary": {"label": "Browse everything", "url": "#directory"}}, "sections": [{"id": "available", "type": "featured", "visible": true, "eyebrow": "Available now", "heading": "Start here", "text": "These services are open today."}, {"id": "real-estate", "type": "pillar", "cat": "real-estate", "visible": true, "eyebrow": "Real Estate", "heading": "Selling or buying a home", "text": "A priced, marketed and well-communicated sale, or a buyer journey with the finance and viewings in order. The full real estate pages are being prepared; until then, get in touch directly.", "image": null, "primary": {"label": "Get in touch", "url": "#contact"}, "secondary": null}, {"id": "academy", "type": "pillar", "cat": "academy", "visible": true, "eyebrow": "Academy", "heading": "Training and one-on-one sessions", "text": "Hands-on technology and AI sessions for estate agents, and private sessions to work through your own listings, database and leads.", "image": null, "primary": {"label": "Book a 1-on-1", "url": "/one-on-one/"}, "secondary": {"label": "Smart Agent Series", "url": "/smart-agent-series/"}}, {"id": "support", "type": "pillar", "cat": "support", "visible": true, "eyebrow": "Tech Support", "heading": "When something stops working", "text": "Try the suggested fixes for MAPP, Command, listings and email first. If the problem remains, log a ticket that already holds the details needed to solve it.", "image": null, "primary": {"label": "Log a support ticket", "url": "/smart-agent-series/tickets/"}, "secondary": null}, {"id": "millionaire-os", "type": "pillar", "cat": "apps", "visible": true, "eyebrow": "Millionaire OS", "heading": "A financial plan for your household", "text": "Budgets, debit orders, debt and goals for individuals, couples and families, encrypted on your own device. Currently in private beta.", "image": null, "primary": {"label": "Open Millionaire OS", "url": "/millionaire-os/"}, "secondary": null}, {"id": "new-creation", "type": "pillar", "cat": "faith", "visible": true, "eyebrow": "New Creation", "heading": "Read the whole Bible together", "text": "A community programme that reads the whole Bible in 93 days, with narrated audio and daily check-ins.", "image": null, "primary": {"label": "Go to New Creation", "url": "/new-creation/"}, "secondary": null}, {"id": "directory", "type": "directory", "visible": true, "eyebrow": "Directory", "heading": "Everything in one place", "text": "Search every service and tool, or filter by area."}, {"id": "contact", "type": "contact", "visible": true, "eyebrow": "Contact", "heading": "Talk to Uhuru", "text": "For property, training or support questions."}], "categories": [{"id": "real-estate", "name": "Real Estate"}, {"id": "academy", "name": "Tech"}, {"id": "support", "name": "Tech Support"}, {"id": "apps", "name": "Millionaire OS"}, {"id": "faith", "name": "New Creation"}, {"id": "workspace", "name": "Private tools"}], "services": [{"id": "one-on-one", "cat": "academy", "title": "Book a 1-on-1", "desc": "Work through your listings, database and leads with Uhuru. One session per person per day.", "url": "/one-on-one/", "status": "live", "access": "public", "featured": true}, {"id": "smart-agent", "cat": "academy", "title": "Smart Agent Series", "desc": "Three hands-on technology and AI sessions for estate agents at KW Edge.", "url": "/smart-agent-series/", "status": "live", "access": "public", "featured": true}, {"id": "support", "cat": "support", "title": "Tech support ticket", "desc": "Suggested fixes for MAPP, Command, listings and email, then a ready-filled ticket.", "url": "/smart-agent-series/tickets/", "status": "live", "access": "public", "featured": true}, {"id": "new-creation", "cat": "faith", "title": "New Creation", "desc": "Read the whole Bible together in 93 days, with narrated audio and daily check-ins.", "url": "/new-creation/", "status": "live", "access": "members", "featured": true}, {"id": "millionaire-os", "cat": "apps", "title": "Millionaire OS", "desc": "Budgets, debit orders, debt and goals, encrypted on your device. Private beta.", "url": "/millionaire-os/", "status": "beta", "access": "members", "featured": true}, {"id": "sellers", "cat": "real-estate", "title": "Seller services", "desc": "Market analysis, a launch plan and weekly seller reports.", "url": "", "status": "soon", "access": "public", "featured": false}, {"id": "buyers", "cat": "real-estate", "title": "Buyer services", "desc": "Needs analysis, finance guidance, viewings and offer support.", "url": "", "status": "soon", "access": "public", "featured": false}, {"id": "team", "cat": "real-estate", "title": "Millionaire Real Estate Team", "desc": "Meet the team and see how a home is marketed.", "url": "", "status": "soon", "access": "public", "featured": false}, {"id": "cap-planner", "cat": "workspace", "title": "Cap Planner", "desc": "Cap tracking, deal pipelines, coaching diary and OP reports.", "url": "/cap-planner/", "status": "live", "access": "owner", "featured": false}, {"id": "portal-edge", "cat": "workspace", "title": "Portal Edge", "desc": "Portal leads with a 15-minute clock, listing checks and ROI.", "url": "/portal-edge/", "status": "live", "access": "owner", "featured": false}, {"id": "family", "cat": "workspace", "title": "Family OS", "desc": "Household plan, debit orders and goals.", "url": "/family/", "status": "live", "access": "owner", "featured": false}, {"id": "my-desk", "cat": "workspace", "title": "My Desk", "desc": "Today's calendar, inbox and open tickets.", "url": "https://claude.ai/artifact/RG3efsKgsGfmLXg7CF5NLL", "status": "live", "access": "owner", "featured": false}], "contact": {"email": "uhuru.matlhaji@kwsa.co.za", "phone": "", "whatsapp": "", "office": "", "hours": ""}, "social": [{"label": "Instagram", "url": "https://www.instagram.com/uhurumatlhaji?mdxt=MXVhamg2Nzk3OGE0dQ%3D%3D&utm_source=qr"}], "footer": {"note": ""}}};</script>
+<script>window.MRET_BAKED = null;</script>
 <script>'use strict';
 /* MRET public site. Renders published content only. In preview mode it renders a draft handed over by the admin window of the same site. */
 const SITE_API = 'https://script.google.com/macros/s/AKfycbyIZKYDOIrlrEJeg2eSRvXGwQ24q4yiWHNwRrIgNYWVQLRzCTdqSNE0bpZQbWU9y0_r/exec';
@@ -469,8 +470,8 @@ const NAV_TYPES = { pillar: 1, directory: 1 };
 function renderHeader(secs) {
   const links = secs.filter(s => NAV_TYPES[s.type]).map(s => [s.id, s.eyebrow || s.heading]);
   const nav = links.map(l => '<a href="#' + esc(l[0]) + '">' + esc(l[1]) + '</a>').join('');
-  return '<a class="skip" href="#main">Skip to content</a><header class="hdr" id="hdr"><div class="wrap"><a class="brand" href="#top" aria-label="' + esc(C.brand.name) + ', back to the top"><b>' + esc(C.brand.name) + '</b><span>' + esc(C.brand.tagline || '') + '</span></a><nav class="nav" aria-label="Sections">' + nav + '</nav><button type="button" class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="sheet">Menu</button></div></header>'
-    + '<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Menu"><div class="top"><span class="brand"><b>' + esc(C.brand.name) + '</b></span><button type="button" class="menu-btn" style="display:inline-flex" id="menuClose">Close</button></div><nav aria-label="Sections">' + links.map(l => '<a href="#' + esc(l[0]) + '">' + esc(l[1]) + '<small>' + (live().filter(x => (secs.find(s => s.id === l[0]) || {}).cat === x.cat).length || '') + '</small></a>').join('') + '</nav></div>';
+  return '<a class="skip" href="#main">Skip to content</a><header class="hdr" id="hdr"><div class="wrap"><a class="brand" href="#top" aria-label="' + esc(C.brand.name) + ', back to the top"><b>' + esc(C.brand.name) + '</b><span>' + esc(C.brand.tagline || '') + '</span></a><nav class="nav" aria-label="Sections">' + nav + '</nav>' + (ME.me && !PREVIEW ? '<button type="button" class="acct" id="acctBtn" title="' + esc(ME.me.email) + '">' + esc(ME.me.name.split(' ')[0]) + ' · Sign out</button>' : '') + '<button type="button" class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="sheet">Menu</button></div></header>'
+    + '<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Menu"><div class="top"><span class="brand"><b>' + esc(C.brand.name) + '</b></span><button type="button" class="menu-btn" style="display:inline-flex" id="menuClose">Close</button></div><nav aria-label="Sections">' + links.map(l => '<a href="#' + esc(l[0]) + '">' + esc(l[1]) + '<small>' + (live().filter(x => (secs.find(s => s.id === l[0]) || {}).cat === x.cat).length || '') + '</small></a>').join('') + '</nav>' + (ME.me && !PREVIEW ? '<p class="sheet-me">Signed in as ' + esc(ME.me.name) + ' (' + esc(ME.me.email) + ')<button type="button" class="btn" id="acctBtn2">Sign out</button></p>' : '') + '</div>';
 }
 function renderFooter(secs) {
   const sectionLinks = secs.filter(s => s.type !== 'featured').map(s => '<li><a href="#' + esc(s.id) + '">' + esc(s.eyebrow || s.heading) + '</a></li>').join('');
@@ -497,6 +498,7 @@ function render(content) {
 /* ---------- behaviour ---------- */
 let io;
 function wire() {
+  ['#acctBtn', '#acctBtn2'].forEach(id => { const b = $(id); if (b) b.onclick = signOut; });
   const hdr = $('#hdr'), onScroll = () => hdr.classList.toggle('solid', window.scrollY > 40); onScroll(); window.onscroll = onScroll;
   const sheet = $('#sheet'), mb = $('#menuBtn');
   const close = () => { sheet.classList.remove('open'); mb.setAttribute('aria-expanded', 'false'); document.body.style.overflow = ''; mb.focus(); };
@@ -525,10 +527,63 @@ function wire() {
 }
 
 /* ---------- loading published content ---------- */
-const store = { get() { try { return JSON.parse(localStorage.getItem('mret.pub')); } catch (e) { return null; } }, set(v) { try { localStorage.setItem('mret.pub', JSON.stringify(v)); } catch (e) {} } };
+/* ---------- membership: www.mret.co.za is for signed-in members ---------- */
+const ME = { mt: null, me: null };
+const ls = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+async function post(a, extra) {
+  let j;
+  try { const r = await fetch(SITE_API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ a }, extra || {})) }); j = await r.json(); }
+  catch (e) { throw new Error('Could not reach MRET. Check your connection and try again.'); }
+  if (!j.ok) { const er = new Error(j.message || 'Something went wrong.'); er.code = j.error; throw er; }
+  return j;
+}
+const TYPES = [['agent', 'Estate agent'], ['client', 'Buying or selling a home'], ['community', 'New Creation member'], ['other', 'Something else']];
+function renderGate(msg) {
+  document.title = 'MRET · Sign in';
+  const mode = renderGate.mode || 'signup', step = renderGate.step || 'details';
+  const tab = (m, l) => '<button type="button" role="tab" class="g-tab" data-mode="' + m + '" aria-selected="' + (mode === m) + '">' + l + '</button>';
+  const details = mode === 'signup'
+    ? '<label class="g-f">Your name<input id="gName" autocomplete="name" required maxlength="80"></label><label class="g-f">Email<input id="gEmail" type="email" autocomplete="email" required></label><fieldset class="g-types"><legend>What describes you best?</legend>' + TYPES.map(t => '<label><input type="radio" name="gType" value="' + t[0] + '"> ' + esc(t[1]) + '</label>').join('') + '</fieldset><button class="btn gold g-go">Send me a code' + ARROW + '</button>'
+    : '<label class="g-f">Email<input id="gEmail" type="email" autocomplete="email" required></label><button class="btn gold g-go">Send me a code' + ARROW + '</button>';
+  const code = '<p class="g-note">We sent a 6-digit code to <b>' + esc(renderGate.email || '') + '</b>.</p><label class="g-f">Code<input id="gCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required></label><button class="btn gold g-go">' + (mode === 'signup' ? 'Create my account' : 'Sign in') + ARROW + '</button><button type="button" class="g-link" id="gBack">Use a different email</button>';
+  $('#app').innerHTML = '<main class="gate" id="main"><div class="gate-art">' + art('gate', '') + '</div><div class="gate-panel"><a class="brand" href="/"><b>MRET</b><span>Millionaire Real Estate Team</span></a>'
+    + '<h1 class="h2">' + (mode === 'signup' ? 'Create your account' : 'Welcome back') + '</h1><p class="lede">Sign in to see the services, training and tools that are meant for you. There is no password: we email you a one-time code.</p>'
+    + '<div class="g-tabs" role="tablist">' + tab('signup', 'New here') + tab('signin', 'I have an account') + '</div>'
+    + '<form id="gForm" novalidate>' + (step === 'code' ? code : details) + '<p class="g-msg" id="gMsg" role="status">' + esc(msg || '') + '</p></form>'
+    + '<p class="g-small">Your name, email and account type are kept to decide what you can see on this site. They are not shared.</p></div></main>';
+  document.querySelectorAll('.g-tab').forEach(b => b.onclick = () => { renderGate.mode = b.dataset.mode; renderGate.step = 'details'; renderGate(); });
+  const back = $('#gBack'); if (back) back.onclick = () => { renderGate.step = 'details'; renderGate(); };
+  const first = $('#gForm input'); if (first) first.focus();
+  $('#gForm').onsubmit = async e => {
+    e.preventDefault(); const b = $('.g-go'); b.disabled = true; $('#gMsg').textContent = '';
+    try {
+      if (renderGate.step === 'code') {
+        const j = await post('memVerify', { email: renderGate.email, code: $('#gCode').value });
+        ls.set('mret.mt', j.token); ME.mt = j.token; ME.me = j.me; renderGate.step = 'details'; await loadSite(true);
+      } else {
+        const email = $('#gEmail').value.trim(), extra = { email, mode };
+        if (mode === 'signup') { extra.name = $('#gName').value.trim(); const t = document.querySelector('input[name="gType"]:checked'); extra.type = t ? t.value : ''; if (extra.name.length < 2) throw new Error('Enter your name.'); if (!extra.type) throw new Error('Choose what describes you best.'); }
+        if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email)) throw new Error('Enter a valid email address.');
+        const j = await post('memStart', extra); renderGate.email = email; renderGate.step = 'code'; renderGate(mode === 'signin' ? j.message + ' If you have not signed up before, choose New here.' : j.message);
+      }
+    } catch (x) { const m = $('#gMsg'); if (m) m.textContent = x.message; b.disabled = false; }
+  };
+}
+function signOut() { ls.set('mret.mt', null); ls.set('mret.view', null); ME.mt = null; ME.me = null; renderGate.mode = 'signin'; renderGate.step = 'details'; renderGate('You are signed out.'); window.scrollTo(0, 0); }
+async function loadSite(fresh) {
+  const cached = ls.get('mret.view');
+  if (!fresh && cached && cached.content && cached.me) { ME.me = cached.me; render(cached.content); }
+  try {
+    const j = await post('siteLoad', { mt: ME.mt });
+    ME.me = j.me;
+    if (!j.content) { $('#app').innerHTML = '<main class="gate" id="main"><div class="gate-panel"><h1 class="h2">Nearly ready</h1><p class="lede">The site has not been published yet. Check back soon.</p><button type="button" class="btn" id="soBtn">Sign out</button></div></main>'; $('#soBtn').onclick = signOut; return; }
+    ls.set('mret.view', { no: j.no, me: j.me, content: j.content });
+    if (fresh || !cached || cached.no !== j.no || JSON.stringify(cached.me) !== JSON.stringify(j.me)) { const y = window.scrollY; render(j.content); if (!fresh) window.scrollTo(0, y); }
+  } catch (e) { if (e.code === 'signin') signOut(); else if (!cached) renderGate(e.message); }
+}
 async function start() {
   if (PREVIEW) {
-    render(CMSX.clone(CMSX.DEFAULT));
+    $('#app').innerHTML = '<p style="padding:40px">Loading preview...</p>';
     window.addEventListener('message', e => {
       if (e.origin !== location.origin || !e.data || e.data.type !== 'mret-preview') return;
       const y = window.scrollY; render(e.data.content); window.scrollTo(0, y);
@@ -536,20 +591,14 @@ async function start() {
     (window.opener || window.parent).postMessage({ type: 'mret-preview-ready' }, location.origin);
     return;
   }
-  const cached = store.get(), baked = window.MRET_BAKED;
-  let shown = cached && cached.content ? cached : baked && baked.content ? baked : { no: 0, content: CMSX.clone(CMSX.DEFAULT) };
-  render(shown.content);
-  if (!/^https:/.test(SITE_API)) return;
-  try {
-    const r = await fetch(SITE_API + '?a=pub&t=' + Date.now(), { cache: 'no-store' }), j = await r.json();
-    if (j.ok && j.content && j.no !== shown.no) { store.set({ no: j.no, content: j.content }); const y = window.scrollY; render(j.content); window.scrollTo(0, y); }
-    else if (j.ok && j.content) store.set({ no: j.no, content: j.content });
-  } catch (e) { /* keep the copy already shown */ }
+  ME.mt = ls.get('mret.mt');
+  if (!ME.mt) return renderGate();
+  await loadSite(false);
 }
 /* ---------- carried over from the previous homepage ---------- */
 // Anonymous activity for the site owner: page views and which space is opened, nothing personal.
 const TRACK_API = 'https://script.google.com/macros/s/AKfycbxxYRo9bLIfhfOBmzIvKybE3s4G0n-r8M73d595aNBM8aFTZRzdnwpDzGf08yxssDUD/exec';
-const SPACE_OF = { 'one-on-one': 'one-on-one', 'smart-agent': 'smart-agent', support: 'support', 'new-creation': 'new-creation', 'millionaire-os': 'millionaire-os', 'cap-planner': 'coaching', 'portal-edge': 'portal-edge', family: 'family', 'my-desk': 'my-desk' };
+const SPACE = id => /^cap-/.test(id) ? 'coaching' : id; // the visitor counter's name for the cap tool
 function track(e, sp, h) {
   if (PREVIEW || !/(^|\.)mret\.co\.za$/.test(location.hostname)) return;
   let v, s, mine = false;
@@ -564,7 +613,7 @@ function track(e, sp, h) {
 document.addEventListener('click', e => {
   const a = e.target.closest && e.target.closest('a[href]'); if (!a || !C) return;
   const href = a.getAttribute('href'), svc = (C.services || []).find(x => x.url && x.url === href);
-  if (svc && SPACE_OF[svc.id]) track('open', SPACE_OF[svc.id], a.closest('#dir') ? 'directory' : a.closest('.feat') ? 'featured' : a.closest('footer') ? 'footer' : 'section');
+  if (svc) track('open', SPACE(svc.id), a.closest('#dir') ? 'directory' : a.closest('.feat') ? 'featured' : a.closest('footer') ? 'footer' : 'section');
 });
 // Clean up the copy of New Creation that once lived at this address, so this page always shows fresh.
 if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => { if (new URL(r.scope).pathname === '/') r.unregister(); })).catch(() => {});
