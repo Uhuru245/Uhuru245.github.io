@@ -1773,6 +1773,282 @@ async function boot() {
 }
 boot();
 
+/* Paste reader: turns pasted financial text into proposed records. Runs entirely on this device.
+ * The AI reader (when switched on) returns the same shape; every figure is then checked against the pasted text here. */
+var PasteRead = (function () {
+  var LENDERS = ['FNB', 'First National Bank', 'Absa', 'Standard Bank', 'Nedbank', 'Capitec', 'Investec', 'SA Home Loans', 'WesBank', 'MFC', 'Discovery Bank', 'TymeBank', 'African Bank', 'Old Mutual', 'Sanlam', 'Bayport', 'Woolworths Financial Services', 'Edcon', 'RCS', 'Mr Price Money'];
+  var MONEY_RE = /(?:R\s?)?-?\(?\d{1,3}(?:[ , ]\d{3})*(?:[.,]\d{2})\)?(?:\s?(?:CR|DR|Cr|Dr))?|(?:R\s?)-?\d+(?:[.,]\d{2})?/g;
+  var DATE_RE = /\b(\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2}|\d{1,2}[-\/. ]\d{1,2}[-\/. ]\d{4}|\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{4})\b/i;
+  function money(tok) { if (typeof FC === 'undefined') return null; var t = String(tok).replace(/ /g, ' ').replace(/(\d) (\d{3})/g, '$1$2').replace(/(\d) (\d{3})/g, '$1$2'); var v = FC.parseMoney(t.replace(/^R\s?/i, '')); return v == null || !isFinite(v) ? null : v; }
+  function amounts(line) { var out = [], m; MONEY_RE.lastIndex = 0; while ((m = MONEY_RE.exec(line))) { var raw = m[0].trim(); if (!/[.,]\d{2}\b|^R/i.test(raw)) continue; var v = money(raw); if (v != null && v !== 0) out.push({ raw: raw, cents: v }); } return out; }
+  function dateIn(line) { var m = String(line).match(DATE_RE); return m ? FC.parseDate(m[1]) : null; }
+  /** Every amount written in the text, in cents (absolute values), so proposals can be checked against it. */
+  function figures(text) { var set = {}; String(text).split(/\r?\n/).forEach(function (l) { amounts(l).forEach(function (a) { set[Math.abs(a.cents)] = 1; }); var p = l.match(/(\d+(?:[.,]\d+)?)\s*%/g); (p || []).forEach(function (x) { set['%' + parseFloat(x.replace(',', '.'))] = 1; }); }); return set; }
+  function find(text, re) { var m = String(text).match(re); return m ? m : null; }
+  function amountAfter(text, re) {
+    var lines = String(text).split(/\r?\n/);
+    for (var i = 0; i < lines.length; i++) if (re.test(lines[i])) { var a = amounts(lines[i].slice(lines[i].search(re))); if (!a.length && lines[i + 1]) a = amounts(lines[i + 1]); if (a.length) return { cents: Math.abs(a[a.length - 1].cents), evidence: lines[i].trim().slice(0, 140) }; }
+    return null;
+  }
+  function lenderIn(text) { for (var i = 0; i < LENDERS.length; i++) if (new RegExp('\\b' + LENDERS[i].replace(/ /g, '\\s+') + '\\b', 'i').test(text)) return LENDERS[i]; return ''; }
+  /** Masks account, card and ID numbers before anything leaves the device. */
+  function redact(text) {
+    var n = 0;
+    var out = String(text).replace(/\b(?:\d[ -]?){9,19}\b/g, function (m) { var d = m.replace(/\D/g, ''); if (d.length < 9) return m; n++; return '[number ending ' + d.slice(-4) + ']'; });
+    return { text: out, masked: n };
+  }
+  function detect(text) {
+    var t = String(text);
+    if (/\bnett?\s*pay\b|take[- ]home|\bPAYE\b|\bUIF\b|pay\s*slip/i.test(t)) return 'payslip';
+    if (/outstanding balance|balance outstanding|capital (balance|outstanding)|amount owing|settlement amount|home loan|bond account|vehicle finance|loan statement|credit card statement/i.test(t)) return 'loan_statement';
+    if (/\binvoice\b|amount due|total due|tax invoice/i.test(t)) return 'invoice';
+    if (/debit order|stop order|monthly premium|subscription/i.test(t)) return 'debit_orders';
+    var dated = t.split(/\r?\n/).filter(function (l) { return dateIn(l) && amounts(l).length; }).length;
+    if (dated >= 2) return 'transactions';
+    if (t.split(/\r?\n/).filter(function (l) { return amounts(l).length; }).length >= 2) return 'debit_orders';
+    return 'other';
+  }
+  function guessCategory(desc) {
+    var d = String(desc).toLowerCase();
+    var map = [[/insur|assur|santam|outsurance|discovery insure|miway|king price|hollard|sanlam|old mutual|liberty|momentum/, 'Insurance'], [/medical|discovery health|bonitas|medihelp|fedhealth|pharm|clicks|dis-chem/, 'Health'], [/school|fees|creche|aftercare/, 'Kiana'], [/vodacom|mtn|telkom|cell c|rain|fibre|afrihost|internet|netflix|showmax|dstv|spotify|youtube/, 'Communication'], [/municipal|city of|eskom|prepaid elec|water/, 'Housing'], [/bond|home loan|rent|levy|body corporate/, 'Housing'], [/engen|shell|bp |sasol|caltex|total |fuel|petrol|uber|bolt|toll|e-toll/, 'Transport'], [/checkers|pick n pay|woolworths|spar|shoprite|food lover|makro/, 'Groceries and food'], [/church|tithe|offering|donation/, 'Giving']];
+    for (var i = 0; i < map.length; i++) if (map[i][0].test(d)) return map[i][1];
+    return '';
+  }
+  function cleanDesc(line) { return String(line).replace(DATE_RE, '').replace(MONEY_RE, '').replace(/\s{2,}/g, ' ').replace(/^[\s|,;:-]+|[\s|,;:-]+$/g, '').slice(0, 80); }
+  function readPayslip(t) {
+    var items = [], net = amountAfter(t, /\bnett?\s*(pay|salary|amount)\b|take[- ]home/i);
+    var emp = find(t, /(?:employer|company)\s*[:\-]\s*([^\n]{2,60})/i), payDate = find(t, /pay(?:ment)?\s*date\s*[:\-]?\s*([^\n]{6,20})/i);
+    var gross = amountAfter(t, /\bgross\b/i), paye = amountAfter(t, /\bPAYE\b|income tax/i);
+    var d = payDate ? FC.parseDate(payDate[1].trim()) : null;
+    if (net) items.push({ col: 'incomes', fields: { name: 'Salary' + (emp ? ': ' + emp[1].trim() : ''), kind: 'salary', amountCents: net.cents, frequency: 'monthly', payDay: d ? +d.slice(8, 10) : 25, netConfirmed: true, active: true }, evidence: net.evidence, note: [gross ? 'Gross ' + FC.fmt(gross.cents) : '', paye ? 'PAYE ' + FC.fmt(paye.cents) : ''].filter(Boolean).join(' · ') });
+    if (net && d) items.push({ col: 'transactions', fields: { date: d, kind: 'income', amountCents: net.cents, description: 'Salary' + (emp ? ' ' + emp[1].trim() : '') }, evidence: net.evidence, optional: true });
+    return items;
+  }
+  function readLoan(t) {
+    var bal = amountAfter(t, /outstanding balance|balance outstanding|capital (balance|outstanding)|amount owing|closing balance|current balance/i);
+    if (!bal) return [];
+    var rate = find(t, /(?:interest rate|rate of interest|annual rate)[^0-9\n]{0,30}(\d{1,2}(?:[.,]\d{1,3})?)\s*%/i);
+    var inst = amountAfter(t, /instal?ment|minimum (?:payment|amount) due|monthly repayment/i);
+    var asAt = find(t, /(?:statement date|as at|balance date|date)\s*[:\-]?\s*([^\n]{6,22})/i), d = asAt ? FC.parseDate(asAt[1].trim()) : null;
+    var lender = lenderIn(t), type = /home loan|bond|property/i.test(t) ? 'home' : /vehicle|car finance|wesbank|mfc/i.test(t) ? 'vehicle' : /credit card/i.test(t) ? 'credit_card' : /store|account card/i.test(t) ? 'store' : /personal loan/i.test(t) ? 'personal' : 'other';
+    var label = { home: 'Home loan', vehicle: 'Vehicle finance', credit_card: 'Credit card', store: 'Store account', personal: 'Personal loan', other: 'Loan' }[type];
+    var items = [{ col: 'debts', fields: { name: (lender ? lender + ' ' : '') + label.toLowerCase(), type: type, lender: lender, balanceCents: bal.cents, balanceDate: d || FC.todayISO(), aprPct: rate ? parseFloat(rate[1].replace(',', '.')) : null, minPaymentCents: inst ? inst.cents : 0, owner: 'shared', estate: 'joint' }, evidence: bal.evidence }];
+    if (inst) items.push({ col: 'bills', fields: { provider: (lender ? lender + ' ' : '') + label.toLowerCase(), amountCents: inst.cents, category: type === 'home' ? 'Housing' : type === 'vehicle' ? 'Transport' : 'Debt costs', frequency: 'monthly', dayOfMonth: 1, essential: true, active: true }, evidence: inst.evidence, optional: true, linkDebt: 0 });
+    return items;
+  }
+  function readInvoice(t) {
+    var due = amountAfter(t, /amount due|total due|balance due|total (?:incl|inc)|grand total|\btotal\b/i); if (!due) return [];
+    var from = find(t, /^\s*([A-Z][^\n]{2,50})$/m), dd = find(t, /(?:invoice date|date)\s*[:\-]?\s*([^\n]{6,22})/i), d = dd ? FC.parseDate(dd[1].trim()) : null;
+    var desc = 'Invoice' + (from ? ': ' + from[1].trim() : '');
+    return [{ col: 'transactions', fields: { date: d || FC.todayISO(), kind: 'expense', amountCents: due.cents, description: desc.slice(0, 80), category: guessCategory(t) || 'Other' }, evidence: due.evidence }];
+  }
+  function readLines(t, kind) {
+    var items = [];
+    String(t).split(/\r?\n/).forEach(function (line) {
+      var a = amounts(line); if (!a.length) return;
+      var d = dateIn(line), desc = cleanDesc(line); if (!desc || /^(total|balance|opening|closing|sub-?total)\b/i.test(desc)) return;
+      if (kind === 'transactions' && d) {
+        var amt = a[0], neg = amt.cents < 0 || /\bDR\b/i.test(amt.raw), inc = !neg && (/\bCR\b/i.test(amt.raw) || /salary|deposit|refund|interest received|transfer from|credit/i.test(desc));
+        items.push({ col: 'transactions', fields: { date: d, kind: inc ? 'income' : 'expense', amountCents: Math.abs(amt.cents), description: desc, category: inc ? '' : (guessCategory(desc) || 'Other') }, evidence: line.trim().slice(0, 140) });
+      } else if (kind !== 'transactions') {
+        var day = find(line, /(?:on the|day)\s*(\d{1,2})(?:st|nd|rd|th)?/i) || (d ? [0, d.slice(8, 10)] : null);
+        items.push({ col: 'bills', fields: { provider: desc, amountCents: Math.abs(a[0].cents), category: guessCategory(desc), frequency: /annual|yearly/i.test(line) ? 'annual' : 'monthly', dayOfMonth: day ? Math.min(31, Math.max(1, +day[1])) : 1, essential: true, active: true }, evidence: line.trim().slice(0, 140) });
+      }
+    });
+    return items;
+  }
+  /** Local reading: returns { kind, summary, items[] }. */
+  function read(text) {
+    var kind = detect(text), items;
+    if (kind === 'payslip') items = readPayslip(text);
+    else if (kind === 'loan_statement') items = readLoan(text);
+    else if (kind === 'invoice') items = readInvoice(text);
+    else if (kind === 'transactions') items = readLines(text, 'transactions');
+    else items = readLines(text, 'bills');
+    var label = { payslip: 'Payslip', loan_statement: 'Loan or account statement', invoice: 'Invoice', debit_orders: 'List of debit orders', transactions: 'Bank transactions', other: 'Not recognised' }[kind];
+    return { kind: kind, label: label, items: items, source: 'device' };
+  }
+  /** Checks every money figure in the proposals against the pasted text, so nothing invented is saved unnoticed. */
+  function verify(result, text) {
+    var f = figures(text);
+    (result.items || []).forEach(function (it) {
+      var bad = [];
+      ['amountCents', 'balanceCents', 'minPaymentCents'].forEach(function (k) { var v = it.fields[k]; if (v && !f[Math.abs(v)]) bad.push(k); });
+      if (it.fields.aprPct != null && it.fields.aprPct !== '' && !f['%' + Number(it.fields.aprPct)]) bad.push('aprPct');
+      it.unverified = bad;
+    });
+    return result;
+  }
+  return { read: read, verify: verify, redact: redact, detect: detect, figures: figures, amounts: amounts, guessCategory: guessCategory };
+})();
+
+
+/* ---------- Owner-only: private dashboard and paste reader ----------
+ * Shown only when this browser is signed in to www.mret.co.za as the site owner. The site server checks that on every call;
+ * the AI step runs only for the owner. This file is part of Family OS only, never of Millionaire OS. */
+const CMS_API = 'https://script.google.com/macros/s/AKfycbyIZKYDOIrlrEJeg2eSRvXGwQ24q4yiWHNwRrIgNYWVQLRzCTdqSNE0bpZQbWU9y0_r/exec';
+const OWNER = { ok: false, ai: false, checked: false };
+function siteToken() { try { return JSON.parse(localStorage.getItem('mret.mt')); } catch (e) { return null; } }
+async function cmsPost(a, extra) {
+  const r = await fetch(CMS_API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ a, mt: siteToken() }, extra || {})) });
+  const j = await r.json(); if (!j.ok) { const e = new Error(j.message || 'Something went wrong.'); e.code = j.error; throw e; } return j;
+}
+async function ownerCheck() {
+  if (S.demo || !siteToken()) { OWNER.checked = true; return; }
+  try { const j = await cmsPost('ownerPing'); OWNER.ok = true; OWNER.ai = !!j.ai; } catch (e) { OWNER.ok = false; }
+  OWNER.checked = true;
+  if (OWNER.ok && !NAV.some(n => n[0] === 'mine')) { NAV.unshift(['mine', 'My dashboard'], ['paste', 'Paste reader']); if (S.data) { renderNav(); if (/^#(mine|paste)$/.test(location.hash)) go(location.hash.slice(1)); } }
+}
+const ownerOnly = () => empty('This page is private to the site owner. Sign in at www.mret.co.za with the owner account in this browser, then reload.');
+
+/* ---------- My dashboard ---------- */
+VIEWS.mine = () => {
+  if (!OWNER.ok) return ownerOnly();
+  const d = S.c.dashboard, f = S.c.forecast, t = today();
+  const low = {}; f.events.forEach(e => { if (e.accountId && e.balanceAfterCents != null && (low[e.accountId] == null || e.balanceAfterCents < low[e.accountId].c)) low[e.accountId] = { c: e.balanceAfterCents, date: e.date, label: e.label }; });
+  const lows = Object.keys(low).map(k => [k, low[k]]).sort((a, b) => a[1].c - b[1].c);
+  const bal = FC.debtBalances(S.data, t), debts = S.data.debts.map(x => Object.assign({}, x, { balanceCents: bal[x.id] == null ? x.balanceCents : bal[x.id] })).filter(x => x.balanceCents > 0);
+  const plan = debts.length ? FC.debtPlan(debts, 0, 'avalanche', t) : null;
+  const ins = S.c.insights.filter(i => i.severity === 'high').concat(S.c.insights.filter(i => i.severity === 'medium')).slice(0, 4);
+  const cf = S.c.cashflow;
+  const k = [
+    kpi('Net worth', R(d.netWorthCents), d.netWorthChangeCents == null ? 'No earlier snapshot yet' : sgn(d.netWorthChangeCents) + ' since last month', null, true),
+    kpi('Available to spend', R(d.availableToSpendCents), 'After debit orders, essentials, savings and buffer, to ' + dShort(FC.monthEnd(d.month))),
+    kpi('Cash in spending accounts', R(d.spendableBalanceCents), 'Combined ' + R(d.combinedBalanceCents)),
+    kpi('Debt', R(d.debtCents), plan && plan.feasible ? 'Debt-free ' + dShort(plan.debtFreeDate) + ' at current payments' : debts.length ? 'Payments do not clear the debt' : 'No debt recorded'),
+    kpi('Emergency fund', d.emergencyMonths == null ? 'n/a' : d.emergencyMonths + ' months', R(d.emergencyCents) + ' · ' + esc(d.essentialBasis)),
+    kpi('Road to R1 million', d.millionProgressPct + '%', bar(d.millionProgressPct))
+  ].join('');
+  const up = d.upcoming.slice(0, 8).map(u => '<div class="row"><span>' + esc(u.provider) + '<small>' + dShort(u.date) + ' · ' + esc(accName(u.accountId)) + '</small></span><span class="r">' + R(u.amountCents) + '</span></div>').join('');
+  const lowRows = lows.slice(0, 4).map(([id, l]) => '<div class="row"><span>' + esc(accName(id) || 'Account') + '<small>lowest on ' + dShort(l.date) + ' after ' + esc(l.label) + '</small></span><span class="r ' + (l.c < 0 ? 'neg' : '') + '">' + R(l.c) + '</span></div>').join('');
+  return '<div class="toolbar no-print" style="justify-content:space-between"><p class="note" style="margin:0">Private to you. Figures come from your Family OS records as at ' + dShort(t) + '.</p><div class="toolbar">' + btn('Paste reader', 'gopaste', 'sm') + btn('Print', 'printmine', 'sm') + '</div></div>'
+    + '<div class="grid g3 kpis">' + k + '</div>'
+    + '<div class="split">' + card('This month', mName(d.month) + ' · ' + d.daysLeft + ' days left', '<div class="list"><div class="row"><span>Income received</span><span class="r">' + R(d.incomeReceivedCents) + ' <small style="display:inline">of ' + R(d.plannedIncomeCents) + ' planned</small></span></div><div class="row"><span>Spent against budget</span><span class="r">' + R(d.actualSpendCents) + ' <small style="display:inline">of ' + R(d.budgetCents) + '</small></span></div><div class="row"><span>Debit orders still to go off</span><span class="r">' + R(d.outstandingBillsCents) + '</span></div><div class="row"><span>Commission expected (after tax provision)</span><span class="r">' + R(d.pendingCommissionCents) + '</span></div>' + (cf && cf.plannedSurplusCents != null ? '<div class="row"><span>Planned surplus after goals</span><span class="r">' + sgn(cf.plannedSurplusCents) + '</span></div>' : '') + '</div>')
+    + card('Next 60 days', 'Lowest balance per account, from planned income and debit orders', lowRows ? '<div class="list">' + lowRows + '</div>' + (f.warnings.length ? '<div class="alert high" style="margin-top:10px"><h3>' + f.warnings.length + ' debit order' + (f.warnings.length === 1 ? '' : 's') + ' may bounce</h3><div class="small">First: ' + esc(f.warnings[0].label) + ' on ' + dShort(f.warnings[0].date) + ', short by ' + R(f.warnings[0].shortfallCents) + '.</div></div>' : '') : empty('Add accounts, income and debit orders to see the forecast.')) + '</div>'
+    + '<div class="split">' + card('Debit orders in the next 14 days', '', up ? '<div class="list">' + up + '</div>' : empty('None due.')) + card('What needs attention', '', ins.length ? ins.map(insightHtml).join('') : empty('Nothing urgent.')) + '</div>';
+};
+VIEWS.mine.after = () => { document.querySelectorAll('[data-act="gopaste"]').forEach(b => b.onclick = () => go('paste')); document.querySelectorAll('[data-act="printmine"]').forEach(b => b.onclick = () => window.print()); };
+
+/* ---------- Paste reader ---------- */
+const PR = { text: '', result: null, busy: '', err: '', acc: '' };
+const COL_LABEL = { incomes: 'Income', bills: 'Debit order', debts: 'Debt', transactions: 'Transaction' };
+const nrm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+function matchExisting(it) {
+  const f = it.fields;
+  if (it.col === 'debts') return S.data.debts.find(x => (f.lender && nrm(x.lender) === nrm(f.lender) && x.type === f.type) || nrm(x.name) === nrm(f.name)) || null;
+  if (it.col === 'bills') return S.data.bills.find(x => { const a = nrm(x.provider), b = nrm(f.provider); return a && b && (a.includes(b) || b.includes(a)); }) || null;
+  if (it.col === 'incomes') return S.data.incomes.find(x => nrm(x.name) === nrm(f.name)) || null;
+  if (it.col === 'transactions') { const acc = PR.acc; return S.data.transactions.find(x => x.accountId === acc && x.date === f.date && x.amountCents === f.amountCents && nrm(x.description) === nrm(f.description)) || null; }
+  return null;
+}
+/** Converts the AI's reading (amounts in rand) into the same shape as the on-device reader. */
+function fromAI(r) {
+  const c = v => v == null || v === '' ? null : FC.cents(String(v).replace(/[R\s]/g, '').replace(/,(?=\d{3}\b)/g, ''));
+  const items = (r.items || []).filter(i => COL_LABEL[i.col]).map(i => {
+    const f = Object.assign({}, i.fields || {}), out = {};
+    if (i.col === 'incomes') Object.assign(out, { name: f.name || 'Salary', kind: 'salary', amountCents: c(f.amount), frequency: 'monthly', payDay: +f.payDay || 25, netConfirmed: true, active: true });
+    if (i.col === 'bills') Object.assign(out, { provider: f.provider || '', amountCents: c(f.amount), dayOfMonth: Math.min(31, Math.max(1, +f.dayOfMonth || 1)), frequency: ['monthly', 'annual', 'quarterly', 'weekly'].includes(f.frequency) ? f.frequency : 'monthly', category: PasteRead.guessCategory(f.provider), essential: true, active: true });
+    if (i.col === 'debts') Object.assign(out, { name: f.name || ((f.lender || '') + ' loan').trim(), type: DEBT_TYPES.some(x => x[0] === f.type) ? f.type : 'other', lender: f.lender || '', balanceCents: c(f.balance), balanceDate: FC.parseDate(f.balanceDate || '') || today(), aprPct: f.aprPct == null || f.aprPct === '' ? null : Number(f.aprPct), minPaymentCents: c(f.minPayment) || 0, owner: 'shared', estate: 'joint' });
+    if (i.col === 'transactions') Object.assign(out, { date: FC.parseDate(f.date || '') || today(), kind: f.kind === 'income' ? 'income' : 'expense', amountCents: Math.abs(c(f.amount) || 0), description: String(f.description || '').slice(0, 80), category: f.kind === 'income' ? '' : (PasteRead.guessCategory(f.description) || 'Other') });
+    return { col: i.col, fields: out, evidence: String(i.evidence || '').slice(0, 160) };
+  });
+  return { kind: r.kind, label: { payslip: 'Payslip', loan_statement: 'Loan or account statement', invoice: 'Invoice', debit_orders: 'List of debit orders', transactions: 'Bank transactions', other: 'Not recognised' }[r.kind] || 'Document', summary: r.summary || '', items, source: 'ai' };
+}
+function prepare(res) {
+  PasteRead.verify(res, PR.text);
+  res.items.forEach(it => { it.pick = !it.optional && !(it.unverified && it.unverified.length); it.match = matchExisting(it); it.mode = it.match && it.col !== 'transactions' ? 'update' : 'new'; if (it.col === 'transactions' && it.match) it.pick = false; });
+  PR.result = res;
+}
+const F = {
+  incomes: [['name', 'Name', 'text'], ['amountCents', 'Take-home (R)', 'money'], ['payDay', 'Pay day', 'num']],
+  bills: [['provider', 'Provider', 'text'], ['amountCents', 'Amount (R)', 'money'], ['dayOfMonth', 'Day of month', 'num'], ['category', 'Category', 'cat']],
+  debts: [['name', 'Name', 'text'], ['type', 'Type', 'debt'], ['balanceCents', 'Balance (R)', 'money'], ['balanceDate', 'Balance date', 'date'], ['aprPct', 'Interest % a year', 'num'], ['minPaymentCents', 'Monthly payment (R)', 'money']],
+  transactions: [['date', 'Date', 'date'], ['description', 'Description', 'text'], ['kind', 'Type', 'kind'], ['amountCents', 'Amount (R)', 'money'], ['category', 'Category', 'cat']]
+};
+function itemField(i, k, label, type, v) {
+  const id = 'pr_' + i + '_' + k, opt = (list, val) => list.map(o => '<option value="' + esc(o[0]) + '"' + (String(o[0]) === String(val) ? ' selected' : '') + '>' + esc(o[1]) + '</option>').join('');
+  let ctl;
+  if (type === 'money') ctl = '<input id="' + id + '" data-pr="' + i + '" data-k="' + k + '" data-t="money" inputmode="decimal" value="' + (v == null ? '' : cR(v)) + '">';
+  else if (type === 'cat') ctl = '<select id="' + id + '" data-pr="' + i + '" data-k="' + k + '"><option value="">Choose</option>' + opt(CATS().map(c => [c[3], c[0]]), v) + '</select>';
+  else if (type === 'debt') ctl = '<select id="' + id + '" data-pr="' + i + '" data-k="' + k + '">' + opt(DEBT_TYPES, v) + '</select>';
+  else if (type === 'kind') ctl = '<select id="' + id + '" data-pr="' + i + '" data-k="' + k + '">' + opt([['expense', 'Expense'], ['income', 'Income']], v) + '</select>';
+  else ctl = '<input id="' + id + '" data-pr="' + i + '" data-k="' + k + '" data-t="' + type + '" type="' + (type === 'date' ? 'date' : 'text') + '"' + (type === 'num' ? ' inputmode="decimal"' : '') + ' value="' + esc(v == null ? '' : v) + '">';
+  return '<label>' + esc(label) + ctl + '</label>';
+}
+VIEWS.paste = () => {
+  if (!OWNER.ok) return ownerOnly();
+  if (!PR.acc) { const ch = S.data.accounts.find(a => a.type === 'cheque' && !a.closed) || S.data.accounts[0]; PR.acc = ch ? ch.id : ''; }
+  const red = PasteRead.redact(PR.text || '');
+  let h = card('Paste reader', 'Paste a payslip, bank statement lines, a bond or loan statement, an invoice or a list of debit orders. Nothing is saved until you choose what to keep.',
+    '<textarea id="prText" style="width:100%;min-height:200px;font:14px/1.5 ui-monospace,Menlo,monospace" placeholder="Paste text here">' + esc(PR.text) + '</textarea>'
+    + '<div class="toolbar" style="margin-top:10px">' + btn(PR.busy === 'device' ? 'Reading...' : 'Read on this device', 'prDevice', 'primary') + btn(PR.busy === 'ai' ? 'Reading with AI...' : 'Read with AI', 'prAI', '', OWNER.ai ? '' : ' disabled') + btn('Clear', 'prClear', 'sm') + '</div>'
+    + '<p class="note">On this device: nothing leaves your browser. With AI: the text is sent, with ' + (red.masked ? red.masked + ' account or ID number' + (red.masked === 1 ? '' : 's') + ' masked' : 'long account and ID numbers masked') + ', to Anthropic\'s Claude service through your private site server, and is not stored by MRET. '
+    + (OWNER.ai ? '' : '<b>AI reading is off</b> until you add your Claude API key in the MRET Site CMS script settings (ANTHROPIC_API_KEY).') + '</p>'
+    + (PR.err ? '<div class="alert medium"><div class="small">' + esc(PR.err) + '</div></div>' : ''));
+  const r = PR.result;
+  if (r) {
+    const sel = r.items.filter(x => x.pick).length;
+    h += card('Found: ' + r.label, (r.source === 'ai' ? 'Read with AI' : 'Read on this device') + ' · ' + r.items.length + ' item' + (r.items.length === 1 ? '' : 's') + (r.summary ? ' · ' + esc(r.summary) : ''),
+      (r.items.length ? '<div class="toolbar" style="margin-bottom:10px"><label>Account for transactions and debit orders<select id="prAcc">' + accOpts().map(a => '<option value="' + a[0] + '"' + (a[0] === PR.acc ? ' selected' : '') + '>' + esc(a[1]) + '</option>').join('') + '</select></label></div>'
+        + r.items.map((it, i) => '<div class="card" style="margin:0 0 10px;border-left:3px solid ' + (it.unverified && it.unverified.length ? 'var(--warn, #b7791f)' : 'var(--line)') + '"><label class="check" style="font-weight:600"><input type="checkbox" data-pick="' + i + '"' + (it.pick ? ' checked' : '') + '> ' + esc(COL_LABEL[it.col]) + (it.optional ? ' <span class="tag">optional</span>' : '') + '</label>'
+          + (it.match ? '<div class="small" style="margin:6px 0">' + (it.col === 'transactions' ? '<span class="tag estimated">already saved</span> The same transaction is already in this account.' : 'Matches <b>' + esc(it.match.name || it.match.provider) + '</b>. <label class="check" style="display:inline-flex"><input type="radio" name="m' + i + '" data-mode="' + i + '" value="update"' + (it.mode === 'update' ? ' checked' : '') + '> update it</label> <label class="check" style="display:inline-flex"><input type="radio" name="m' + i + '" data-mode="' + i + '" value="new"' + (it.mode === 'new' ? ' checked' : '') + '> add as new</label>') + '</div>' : '')
+          + '<div class="form" style="margin-top:8px">' + F[it.col].map(([k, l, t]) => itemField(i, k, l, t, it.fields[k])).join('') + '</div>'
+          + (it.evidence ? '<div class="small muted" style="margin-top:6px">From: <code>' + esc(it.evidence) + '</code></div>' : '')
+          + (it.note ? '<div class="small muted">' + esc(it.note) + '</div>' : '')
+          + (it.unverified && it.unverified.length ? '<div class="small" style="color:#9a5b00;margin-top:4px">Check this: ' + it.unverified.map(k => ({ amountCents: 'amount', balanceCents: 'balance', minPaymentCents: 'monthly payment', aprPct: 'interest rate' }[k])).join(', ') + ' not found in the pasted text, so it is not ticked.</div>' : '') + '</div>').join('')
+        + '<div class="toolbar">' + btn('Save ' + sel + ' selected', 'prSave', 'primary', sel ? '' : ' disabled') + '</div>' : empty('Nothing recognisable was found. Try pasting a smaller part, or use AI reading.')));
+  }
+  return h;
+};
+VIEWS.paste.after = () => {
+  const ta = $('prText'); if (ta) ta.oninput = () => { PR.text = ta.value; };
+  const on = (a, fn) => document.querySelectorAll('[data-act="' + a + '"]').forEach(b => b.onclick = fn);
+  on('prClear', () => { PR.text = ''; PR.result = null; PR.err = ''; render(); });
+  on('prDevice', () => { PR.text = $('prText').value; PR.err = ''; if (PR.text.trim().length < 10) { PR.err = 'Paste some text first.'; return render(); } prepare(PasteRead.read(PR.text)); render(); });
+  on('prAI', async () => {
+    PR.text = $('prText').value; PR.err = ''; if (PR.text.trim().length < 10) { PR.err = 'Paste some text first.'; return render(); }
+    PR.busy = 'ai'; render();
+    try { const j = await cmsPost('ownerAI', { text: PasteRead.redact(PR.text).text }); prepare(fromAI(j.result)); }
+    catch (e) { PR.err = e.message + (e.code === 'not_owner' ? '' : ' Showing the on-device reading instead.'); if (e.code !== 'not_owner') prepare(PasteRead.read(PR.text)); }
+    PR.busy = ''; render();
+  });
+  const acc = $('prAcc'); if (acc) acc.onchange = () => { PR.acc = acc.value; PR.result.items.forEach(it => { if (it.col === 'transactions') { it.match = matchExisting(it); if (it.match) it.pick = false; } }); render(); };
+  document.querySelectorAll('[data-pick]').forEach(c => c.onchange = () => { PR.result.items[+c.dataset.pick].pick = c.checked; render(); });
+  document.querySelectorAll('[data-mode]').forEach(c => c.onchange = () => { PR.result.items[+c.dataset.mode].mode = c.value; });
+  document.querySelectorAll('[data-pr]').forEach(el => el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => {
+    const it = PR.result.items[+el.dataset.pr], k = el.dataset.k, t = el.dataset.t;
+    it.fields[k] = t === 'money' ? (el.value.trim() === '' ? null : FC.cents(el.value)) : t === 'num' ? (el.value === '' ? null : Number(el.value)) : el.value;
+    if (t === 'money' || k === 'aprPct') it.unverified = (it.unverified || []).filter(x => x !== k);
+  }));
+  on('prSave', async () => {
+    const b = document.querySelector('[data-act="prSave"]'); b.disabled = true; PR.err = '';
+    const chosen = PR.result.items.filter(x => x.pick), done = [], tx = [], debtIds = {};
+    try {
+      for (const it of chosen.filter(x => x.col === 'debts')) {
+        const f = it.fields; if (!(f.balanceCents > 0)) throw new Error('Debt "' + f.name + '" needs a balance.');
+        const rec = it.mode === 'update' && it.match ? Object.assign({}, it.match, { balanceCents: f.balanceCents, balanceDate: f.balanceDate, aprPct: f.aprPct == null ? it.match.aprPct : f.aprPct, minPaymentCents: f.minPaymentCents || it.match.minPaymentCents }) : Object.assign({}, f, { notes: 'Added with the paste reader' });
+        const saved = await saveRec('debts', rec); debtIds[PR.result.items.indexOf(it)] = saved.id; done.push((it.mode === 'update' ? 'Updated ' : 'Added ') + saved.name);
+      }
+      for (const it of chosen.filter(x => x.col === 'bills')) {
+        const f = it.fields; if (!f.provider || !(f.amountCents > 0)) throw new Error('Each debit order needs a provider and an amount.');
+        const link = it.linkDebt != null ? debtIds[it.linkDebt] : undefined;
+        const rec = it.mode === 'update' && it.match ? Object.assign({}, it.match, { amountCents: f.amountCents, dayOfMonth: f.dayOfMonth || it.match.dayOfMonth, category: f.category || it.match.category }) : Object.assign({ owner: 'shared', accountId: PR.acc, startDate: FC.monthStart(FC.monthKey(today())) }, f, link ? { debtId: link } : {});
+        if (!rec.category) rec.category = 'Other';
+        const saved = await saveRec('bills', rec); done.push((it.mode === 'update' ? 'Updated ' : 'Added ') + saved.provider);
+      }
+      for (const it of chosen.filter(x => x.col === 'incomes')) {
+        const f = it.fields; if (!f.name || !(f.amountCents > 0)) throw new Error('Income needs a name and an amount.');
+        const rec = it.mode === 'update' && it.match ? Object.assign({}, it.match, { amountCents: f.amountCents, payDay: f.payDay || it.match.payDay, netConfirmed: true }) : Object.assign({ owner: S.me.role, accountId: PR.acc }, f);
+        const saved = await saveRec('incomes', rec); done.push((it.mode === 'update' ? 'Updated ' : 'Added ') + saved.name);
+      }
+      chosen.filter(x => x.col === 'transactions').forEach(it => { const t = Object.assign({ accountId: PR.acc, owner: 'shared' }, it.fields); if (t.kind === 'income') delete t.category; else if (!t.category) t.category = 'Other'; const e = FC.validateTxn(t); if (e.length) throw new Error('Transaction "' + t.description + '": ' + e.join(' ')); tx.push(t); });
+      if (tx.length) { const batch = 'paste' + Date.now().toString(36); const n = await importSave(tx.map((t, i) => Object.assign(t, { importBatch: batch, importRow: i + 1 })), null); done.push(n + ' transaction' + (n === 1 ? '' : 's')); await reload(true); }
+      PR.result = null; PR.text = ''; render(); toast('Saved: ' + done.join(', '));
+    } catch (e) { PR.err = (done.length ? 'Saved so far: ' + done.join(', ') + '. Then stopped: ' : '') + e.message; render(); }
+  });
+};
+ownerCheck();
+
 </script>
 </body>
 </html>
