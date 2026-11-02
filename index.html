@@ -82,7 +82,7 @@ h1, h2, h3 { font-weight: 700; margin: 0; letter-spacing: -.02em; }
 .brand .logo b { font: 700 15px/1 var(--display); background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .brand > b { font: 700 15px/1 var(--display); letter-spacing: .14em; }
 .brand > span:not(.logo) { font: 600 10.5px/1.2 var(--sans); letter-spacing: .18em; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; }
-.nav { display: flex; gap: 4px; }
+.nav { display: flex; gap: 2px; flex: 0 1 auto; min-width: 0; }
 .nav a { text-decoration: none; font: 600 13.5px/1 var(--sans); color: var(--ink-2); padding: 10px 12px; border-radius: 999px; transition: color .2s, background .2s; white-space: nowrap; }
 .nav a:hover, .nav a[aria-current="true"] { color: var(--ink); background: rgba(255, 255, 255, .14); box-shadow: 0 2px 10px -6px rgba(0, 0, 0, .4); }
 .menu-btn { display: none; background: rgba(255, 255, 255, .12); border: 1px solid var(--edge); color: var(--ink); height: 42px; padding: 0 16px; border-radius: 999px; font: 700 12px var(--sans); letter-spacing: .12em; text-transform: uppercase; cursor: pointer; }
@@ -269,7 +269,7 @@ section.blk:first-child { padding-top: 22px; }
   .portals li { animation: none; } .portal { animation: none; }
 }
 
-@media (max-width: 1640px) { .hdr .brand > span:not(.logo) { display: none; } }
+@media (max-width: 1200px) { .nav { display: none; } .menu-btn { display: inline-flex; align-items: center; } }
 /* tablet */
 @media (max-width: 1080px) {
   .nav a { padding: 10px 9px; font-size: 13px; }
@@ -612,7 +612,7 @@ const NAV_TYPES = { pillar: 1, directory: 1 };
 function renderHeader(secs) {
   const links = secs.filter(s => NAV_TYPES[s.type]).map(s => [s.id, s.eyebrow || s.heading]);
   const nav = links.map(l => '<a href="#' + esc(l[0]) + '">' + esc(l[1]) + '</a>').join('');
-  return '<a class="skip" href="#main">Skip to content</a><header class="hdr" id="hdr"><div class="wrap"><div class="bar"><a class="brand" href="#top" aria-label="' + esc(C.brand.name) + ', back to the top"><span class="logo"><b>' + esc((C.brand.name || 'M').charAt(0)) + '</b></span><b>' + esc(C.brand.name) + '</b><span>Digital Universe</span></a><nav class="nav" aria-label="Sections"><a href="#top">Universe</a>' + nav + '</nav>' + (ME.me && !PREVIEW ? '<button type="button" class="acct" id="acctBtn" title="' + esc(ME.me.email) + '">' + esc(ME.me.name.split(' ')[0]) + ' · Sign out</button>' : '') + '<button type="button" class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="sheet">Menu</button></div></div></header>'
+  return '<a class="skip" href="#main">Skip to content</a><header class="hdr" id="hdr"><div class="wrap"><div class="bar"><a class="brand" href="#top" aria-label="' + esc(C.brand.name) + ', back to the top"><span class="logo"><b>' + esc((C.brand.name || 'M').charAt(0)) + '</b></span><b>' + esc(C.brand.name) + '</b></a><nav class="nav" aria-label="Sections"><a href="#top">Universe</a>' + nav + '</nav>' + (ME.me && !PREVIEW ? '<button type="button" class="acct" id="acctBtn" title="' + esc(ME.me.email) + '">' + esc(ME.me.name.split(' ')[0]) + ' · Sign out</button>' : '') + '<button type="button" class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="sheet">Menu</button></div></div></header>'
     + '<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Menu"><div class="top"><span class="brand"><span class="logo"><b>' + esc((C.brand.name || 'M').charAt(0)) + '</b></span><b>' + esc(C.brand.name) + '</b></span><button type="button" class="menu-btn" style="display:inline-flex" id="menuClose">Close</button></div><nav aria-label="Sections">' + links.map(l => '<a href="#' + esc(l[0]) + '">' + esc(l[1]) + '<small>' + (live().filter(x => (secs.find(s => s.id === l[0]) || {}).cat === x.cat).length || '') + '</small></a>').join('') + '</nav>' + (ME.me && !PREVIEW ? '<p class="sheet-me">Signed in as ' + esc(ME.me.name) + ' (' + esc(ME.me.email) + ')<button type="button" class="btn" id="acctBtn2">Sign out</button></p>' : '') + '</div>';
 }
 function renderFooter(secs) {
