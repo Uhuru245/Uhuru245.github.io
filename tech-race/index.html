@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1f2125">
+<title>KW Edge Tech Race</title>
+<meta name="description" content="Your Tech. Your Growth. Your Race. Technology onboarding for Keller Williams Edge agents.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f2125'/%3E%3Cpath d='M9 25V7h12l-3 5 3 5H9' fill='none' stroke='%23d61f2c' stroke-width='3' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+<style>[hidden] { display: none !important; }
+:root {
+  --bg: #f6f6f4; --card: #fff; --ink: #1d1f22; --ink-2: #4b4f56; --ink-3: #80858d; --line: #e4e4e0; --line-2: #d2d2cc;
+  --char: #1f2125; --char-2: #2b2e33; --red: #b3121d; --red-2: #d61f2c; --red-bg: #fbeaea; --ok: #1d6b45; --ok-bg: #e5f2ea; --warn: #8a5a00; --warn-bg: #fbf0d9; --blue: #24507a; --blue-bg: #e8f0f8;
+  --r: 10px; --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; --race: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { margin: 0; line-height: 1.2; letter-spacing: -.01em; }
+h1 { font: 700 26px/1.1 var(--race); letter-spacing: .01em; text-transform: uppercase; }
+h2 { font-size: 17px; } h3 { font-size: 15px; }
+a { color: var(--red); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--red-2); outline-offset: 2px; border-radius: 4px; }
+.muted { color: var(--ink-3); } .small { font-size: 13px; } .num { font-variant-numeric: tabular-nums; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--line-2); background: #fff; font-weight: 600; font-size: 14px; cursor: pointer; text-decoration: none; color: var(--ink); white-space: nowrap; }
+.btn:hover { border-color: var(--ink-3); }
+.btn.red { background: var(--red); border-color: var(--red); color: #fff; } .btn.red:hover { background: var(--red-2); }
+.btn.dark { background: var(--char); border-color: var(--char); color: #fff; }
+.btn.sm { min-height: 32px; padding: 0 11px; font-size: 13px; }
+.btn.big { min-height: 54px; font: 700 18px var(--race); letter-spacing: .06em; text-transform: uppercase; width: 100%; }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn.link { border: 0; background: none; color: var(--red); padding: 0; min-height: 0; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; margin-bottom: 14px; }
+.card > h2 { margin-bottom: 10px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.grid { display: grid; gap: 12px; } .g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.kpi { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; }
+.kpi .l { font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+.kpi .v { font: 700 30px/1.1 var(--race); margin-top: 4px; }
+.kpi .s { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; }
+.tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 99px; background: #eee; color: var(--ink-2); white-space: nowrap; text-transform: uppercase; letter-spacing: .04em; }
+.tag.not_started { background: #eef0f2; } .tag.in_progress { background: var(--blue-bg); color: var(--blue); } .tag.submitted { background: var(--warn-bg); color: var(--warn); }
+.tag.needs_improvement, .tag.overdue { background: var(--red-bg); color: var(--red); } .tag.verified { background: var(--ok-bg); color: var(--ok); } .tag.locked { background: #f1f1ee; color: var(--ink-3); }
+.alert { border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; font-size: 14px; }
+.alert.ok { background: var(--ok-bg); color: var(--ok); } .alert.bad { background: var(--red-bg); color: var(--red); } .alert.warn { background: var(--warn-bg); color: var(--warn); } .alert.info { background: var(--blue-bg); color: var(--blue); }
+label.f { display: grid; gap: 5px; font-weight: 600; font-size: 13.5px; }
+label.f .hint { font-weight: 400; color: var(--ink-3); font-size: 12.5px; }
+input[type=text], input[type=email], input[type=password], input[type=tel], input[type=date], input[type=number], input[type=url], select, textarea { width: 100%; min-height: 44px; border: 1px solid var(--line-2); border-radius: 8px; padding: 9px 12px; background: #fff; font-weight: 400; }
+textarea { min-height: 96px; resize: vertical; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-weight: 500; cursor: pointer; }
+.check input { width: 20px; height: 20px; margin-top: 1px; accent-color: var(--red); flex: none; }
+.form { display: grid; gap: 14px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); font-weight: 700; }
+tr.click { cursor: pointer; } tr.click:hover td { background: #fafaf8; }
+.tablebox { overflow-x: auto; }
+.empty { padding: 26px; text-align: center; color: var(--ink-3); }
+
+/* sign-in */
+.auth { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.auth-side { background: var(--char); color: #fff; padding: 48px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+.auth-side::after { content: ''; position: absolute; right: -60px; bottom: -60px; width: 320px; height: 320px; background: repeating-conic-gradient(rgba(255,255,255,.06) 0 25%, transparent 0 50%) 0 0 / 40px 40px; transform: rotate(12deg); opacity: .8; }
+.brand { font: 800 30px/1 var(--race); letter-spacing: .03em; text-transform: uppercase; }
+.brand i { color: var(--red-2); font-style: normal; }
+.tagline { font: 600 22px/1.25 var(--race); text-transform: uppercase; letter-spacing: .05em; color: #d8d8d4; max-width: 18ch; }
+.auth-main { display: grid; place-items: center; padding: 32px 18px; }
+.auth-box { width: 100%; max-width: 400px; }
+.auth-box h1 { margin-bottom: 6px; }
+.tabs { display: flex; gap: 18px; border-bottom: 1px solid var(--line); margin: 18px 0; }
+.tabs button { background: none; border: 0; padding: 10px 0; font-weight: 600; color: var(--ink-3); border-bottom: 3px solid transparent; cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--red); }
+
+/* shell */
+.top { position: sticky; top: 0; z-index: 30; background: var(--char); color: #fff; display: flex; align-items: center; gap: 14px; padding: 0 18px; height: 58px; }
+.top .brand { font-size: 22px; margin-right: auto; color: #fff; text-decoration: none; }
+.top .bell { position: relative; background: none; border: 0; color: #fff; cursor: pointer; padding: 6px; }
+.top .bell b { position: absolute; top: 0; right: -2px; background: var(--red-2); color: #fff; font-size: 10.5px; min-width: 17px; height: 17px; border-radius: 9px; display: grid; place-items: center; }
+.top .who { font-size: 13px; color: #c9c9c4; }
+.shell { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: calc(100vh - 58px); }
+.side { background: #fff; border-right: 1px solid var(--line); padding: 14px 10px; }
+.side button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: none; border: 0; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-weight: 500; color: var(--ink-2); }
+.side button[aria-current="page"] { background: var(--red-bg); color: var(--red); font-weight: 700; }
+.side .sep { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-3); padding: 16px 12px 6px; font-weight: 700; }
+.main { padding: 22px clamp(14px, 3vw, 34px) 100px; max-width: 1180px; width: 100%; }
+.ph { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.ph p { margin: 4px 0 0; color: var(--ink-2); }
+.bottom { display: none; }
+
+/* agent dashboard */
+.hero { background: var(--char); color: #fff; border-radius: 14px; padding: 22px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 22px; align-items: center; position: relative; overflow: hidden; margin-bottom: 14px; }
+.hero::after { content: ''; position: absolute; right: -40px; top: -40px; width: 200px; height: 200px; background: repeating-conic-gradient(rgba(255,255,255,.05) 0 25%, transparent 0 50%) 0 0 / 28px 28px; transform: rotate(14deg); }
+.hero h1 { color: #fff; font-size: 30px; }
+.hero .lvl { display: inline-flex; gap: 8px; align-items: center; margin-top: 8px; font-size: 13px; color: #d8d8d4; }
+.hero .lvl b { background: var(--red); color: #fff; padding: 3px 9px; border-radius: 99px; font: 700 12px var(--sans); letter-spacing: .06em; text-transform: uppercase; }
+.ring { width: 118px; height: 118px; position: relative; flex: none; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .c { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+.ring .c b { font: 800 30px/1 var(--race); display: block; }
+.ring .c span { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #c9c9c4; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.next { border: 2px solid var(--red); border-radius: 14px; background: #fff; padding: 18px; margin-bottom: 14px; }
+.next .k { font: 700 13px var(--race); color: var(--red); letter-spacing: .14em; text-transform: uppercase; }
+.next h2 { font-size: 20px; margin: 4px 0 6px; }
+/* milestone path */
+.path { list-style: none; margin: 0; padding: 0; position: relative; }
+.path::before { content: ''; position: absolute; left: 19px; top: 18px; bottom: 18px; width: 3px; background: repeating-linear-gradient(var(--line-2) 0 8px, transparent 8px 14px); }
+.path li { position: relative; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; cursor: pointer; }
+.path .dot { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font: 800 16px var(--race); background: #fff; border: 3px solid var(--line-2); color: var(--ink-3); z-index: 1; }
+.path li.verified .dot { background: var(--ok); border-color: var(--ok); color: #fff; }
+.path li.submitted .dot { background: #fff; border-color: var(--warn); color: var(--warn); }
+.path li.in_progress .dot, .path li.needs_improvement .dot, .path li.overdue .dot { border-color: var(--red); color: var(--red); }
+.path li.locked { cursor: default; opacity: .62; }
+.path .t { font-weight: 700; } .path .d { font-size: 12.5px; color: var(--ink-3); }
+.badges { display: flex; flex-wrap: wrap; gap: 10px; }
+.badge { display: flex; gap: 10px; align-items: center; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; min-width: 200px; flex: 1 1 200px; }
+.badge .ic { width: 40px; height: 40px; border-radius: 50%; background: var(--char); color: #fff; display: grid; place-items: center; font: 800 15px var(--race); flex: none; }
+.badge.off { opacity: .45; } .badge.off .ic { background: var(--line-2); }
+.bar { height: 8px; background: #eceae4; border-radius: 99px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--red); border-radius: 99px; }
+/* challenge */
+.steps { margin: 0; padding-left: 20px; } .steps li { margin: 4px 0; }
+.lesson { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; background: #fff; }
+.lesson summary { padding: 12px 14px; cursor: pointer; display: flex; justify-content: space-between; gap: 10px; align-items: center; font-weight: 600; list-style: none; }
+.lesson summary::-webkit-details-marker { display: none; }
+.lesson .in { padding: 0 14px 14px; }
+.q { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+.q .opts { display: grid; gap: 6px; margin-top: 8px; }
+.q.right { border-color: var(--ok); } .q.wrong { border-color: var(--red); }
+/* leaderboard */
+.seg { display: inline-flex; background: #ecebe6; border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: none; padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.lb { list-style: none; margin: 0; padding: 0; }
+.lb li { display: grid; grid-template-columns: 48px 42px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 11px 6px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.lb li.me { background: var(--red-bg); border-radius: 8px; }
+.lb .rk { font: 800 24px var(--race); text-align: center; }
+.lb li:nth-child(1) .rk { color: var(--red); }
+.av { width: 42px; height: 42px; border-radius: 50%; background: var(--char); color: #fff; display: grid; place-items: center; font-weight: 700; overflow: hidden; }
+.av img { width: 100%; height: 100%; object-fit: cover; }
+.lb .xp { font: 800 22px var(--race); text-align: right; }
+.podium { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+dialog { border: 0; border-radius: 14px; padding: 0; width: min(640px, calc(100vw - 20px)); max-height: calc(100vh - 30px); box-shadow: 0 30px 80px rgba(0,0,0,.3); }
+dialog::backdrop { background: rgba(20, 20, 22, .55); }
+dialog .dh { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: #fff; z-index: 2; }
+dialog .db { padding: 18px; } dialog .df { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--line); position: sticky; bottom: 0; background: #fff; }
+.toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--char); color: #fff; padding: 11px 16px; border-radius: 10px; z-index: 90; font-size: 14px; max-width: calc(100vw - 30px); box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; } .filters select, .filters input { width: auto; min-height: 38px; }
+.trail { list-style: none; margin: 0; padding: 0; } .trail li { padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; } .trail b { display: inline-block; min-width: 120px; }
+@media print { .top, .side, .bottom, .no-print { display: none !important; } .shell { display: block; } .main { padding: 0; } }
+@media (max-width: 900px) {
+  .auth { grid-template-columns: minmax(0, 1fr); } .auth-side { padding: 26px 20px; min-height: 0; } .auth-side .tagline { margin-top: 10px; } .auth-side::after { width: 160px; height: 160px; }
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .side { display: none; }
+  .bottom { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: #fff; border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+  .bottom button { background: none; border: 0; padding: 8px 2px 9px; display: grid; justify-items: center; gap: 2px; font-size: 11px; font-weight: 600; color: var(--ink-3); cursor: pointer; }
+  .bottom button svg { width: 22px; height: 22px; }
+  .bottom button[aria-current="page"] { color: var(--red); }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g3, .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero { grid-template-columns: minmax(0, 1fr); } .ring { margin: 0 auto; }
+  .lb li { grid-template-columns: 36px 38px minmax(0, 1fr) auto; gap: 8px; }
+  .top .who { display: none; }
+}
+@media (max-width: 520px) { .g2 { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div id="app"><noscript><p style="padding:24px">KW Edge Tech Race needs JavaScript.</p></noscript></div>
+<dialog id="dlg" aria-labelledby="dlgT"><div class="dh"><h2 id="dlgT"></h2><button class="btn sm" id="dlgX" aria-label="Close">Close</button></div><div class="db" id="dlgB"></div><div class="df" id="dlgF"></div></dialog>
+<div class="toast" id="toast" role="status" hidden></div>
+<script>'use strict';
+/* KW EDGE TECH RACE · Your Tech. Your Growth. Your Race.
+ * Every permission is checked by the server; this page only shows what the signed-in role may use. */
+const API = 'https://script.google.com/macros/s/AKfycbwAl-VwvhZy4Xypi4VYfplZOOi4Sbu5tJXkmmvEsj9gqsvMwqLLPx-L1zVolXlVzyuXyg/exec';
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} } };
+const S = { token: store.get('tr.token'), me: null, data: null, view: 'home', arg: null, board: 'week', ov: null, filters: {} };
+const STATUS = { not_started: 'Not started', in_progress: 'In progress', submitted: 'Submitted', needs_improvement: 'Needs improvement', verified: 'Verified', overdue: 'Overdue', locked: 'Opens later' };
+const has = r => S.me && S.me.roles.includes(r);
+const isAdmin = () => has('mctt') || has('platform');
+const isAgent = () => has('agent');
+async function api(a, x) {
+  let j;
+  try { const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ a, token: S.token }, x || {})) }); j = await r.json(); }
+  catch (e) { throw new Error('Could not reach the Tech Race. Check your connection and try again.'); }
+  if (j.error === 'signin') { signOut('Your session ended. Please sign in again.'); const e = new Error('Please sign in again.'); e.code = 'signin'; throw e; }
+  if (!j.ok) { const e = new Error(j.message || 'Something went wrong.'); e.code = j.error; throw e; }
+  return j;
+}
+let toastT; function toast(m) { const t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 4000); }
+const fmtD = d => d ? new Date(d.length === 10 ? d + 'T12:00:00+02:00' : d).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', timeZone: 'Africa/Johannesburg' }) : '';
+const fmtDT = d => d ? new Date(d).toLocaleString('en-ZA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Johannesburg' }) : '';
+const initials = n => String(n || '?').split(/\s+/).map(x => x[0]).slice(0, 2).join('').toUpperCase();
+const tag = st => '<span class="tag ' + st + '">' + esc(STATUS[st] || st) + '</span>';
+const empty = m => '<div class="empty">' + esc(m) + '</div>';
+const ICON = {
+  home: '<path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>', learn: '<path d="M4 5h7a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4zM20 5h-5a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h5z"/>',
+  race: '<path d="M5 21V4M5 4h12l-2 4 2 4H5"/>', book: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>', me: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>'
+};
+const svg = k => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON[k] + '</svg>';
+
+/* ---------- sign-in, invitation, verification, reset ---------- */
+function authShell(inner) {
+  $('app').innerHTML = '<div class="auth"><div class="auth-side"><div><div class="brand">KW Edge <i>Tech Race</i></div><div class="tagline" style="margin-top:26px">Your Tech. Your Growth. Your Race.</div></div><p class="small" style="color:#a9a9a4;max-width:36ch;position:relative;z-index:1">Technology onboarding and development for Keller Williams Edge agents, run by your Market Centre Technology Trainer.</p></div><div class="auth-main"><div class="auth-box">' + inner + '</div></div></div>';
+}
+function showAuth(mode, msg, kind) {
+  mode = mode || 'signin';
+  const tabs = '<div class="tabs" role="tablist"><button role="tab" data-mode="signin" aria-selected="' + (mode === 'signin') + '">Sign in</button><button role="tab" data-mode="request" aria-selected="' + (mode === 'request') + '">Request access</button></div>';
+  const m = msg ? '<div class="alert ' + (kind || 'info') + '" role="status">' + esc(msg) + '</div>' : '';
+  let body = '';
+  if (mode === 'signin') body = '<form class="form" id="fAuth"><label class="f">Email<input type="email" id="aEmail" autocomplete="email" required></label><label class="f">Password<input type="password" id="aPw" autocomplete="current-password" required></label><button class="btn red big">Start your engine</button><button type="button" class="btn link" id="aForgot">Forgot your password?</button></form>';
+  if (mode === 'request') body = '<p class="small muted" style="margin-top:0">Agents are normally invited by the MCTT. If you have not been invited, request access here. The MCTT approves every request.</p><form class="form" id="fAuth"><label class="f">Full name<input type="text" id="aName" autocomplete="name" required maxlength="80"></label><label class="f">Email<input type="email" id="aEmail" autocomplete="email" required></label><label class="f">Mobile number<input type="tel" id="aMobile" autocomplete="tel"></label><label class="f">Date you joined Keller Williams <span class="hint">optional</span><input type="date" id="aJoin"></label><label class="f">Choose a password<span class="hint">At least 10 characters, with letters and numbers.</span><input type="password" id="aPw" autocomplete="new-password" required></label><button class="btn red big">Request access</button></form>';
+  if (mode === 'forgot') body = '<form class="form" id="fAuth"><label class="f">Email<input type="email" id="aEmail" autocomplete="email" required></label><button class="btn red big">Email me a reset link</button><button type="button" class="btn link" data-mode="signin">Back to sign in</button></form>';
+  authShell('<h1>' + (mode === 'forgot' ? 'Reset password' : mode === 'request' ? 'Join the race' : 'Welcome back') + '</h1>' + (mode === 'forgot' ? '' : tabs) + m + body + '<p class="small muted" style="margin-top:22px">Your details are used only to run your technology training at KW Edge. <a href="#privacy" id="aPriv">Privacy notice</a></p>');
+  document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => showAuth(b.dataset.mode));
+  const fg = $('aForgot'); if (fg) fg.onclick = () => showAuth('forgot');
+  $('aPriv').onclick = e => { e.preventDefault(); privacyDlg(); };
+  $('fAuth').onsubmit = async e => {
+    e.preventDefault(); const b = e.submitter; b.disabled = true;
+    try {
+      if (mode === 'signin') { const j = await api('trLogin', { email: $('aEmail').value, password: $('aPw').value }); signedIn(j.token); return; }
+      if (mode === 'request') { const j = await api('trRegister', { name: $('aName').value, email: $('aEmail').value, mobile: $('aMobile').value, kw_join_date: $('aJoin').value, password: $('aPw').value }); showAuth('signin', j.message + ' Then wait for the MCTT to approve you.', 'ok'); return; }
+      if (mode === 'forgot') { const j = await api('trResetStart', { email: $('aEmail').value }); showAuth('signin', j.message, 'ok'); return; }
+    } catch (x) { showAuth(mode, x.message, 'bad'); }
+  };
+  const f = document.querySelector('#fAuth input'); if (f) f.focus();
+}
+async function handleHash() {
+  const h = location.hash, m = h.match(/^#(invite|verify|reset)=([a-f0-9]{40})$/);
+  if (!m) return false;
+  const [, kind, tok] = m; history.replaceState(null, '', location.pathname);
+  if (kind === 'verify') { try { const j = await api('trVerify', { token: tok }); showAuth('signin', j.message, 'ok'); } catch (e) { showAuth('signin', e.message, 'bad'); } return true; }
+  if (kind === 'reset') {
+    authShell('<h1>Choose a new password</h1><form class="form" id="fR" style="margin-top:16px"><label class="f">New password<span class="hint">At least 10 characters, with letters and numbers.</span><input type="password" id="rPw" autocomplete="new-password" required></label><button class="btn red big">Save password</button><p class="alert bad" id="rErr" hidden></p></form>');
+    $('fR').onsubmit = async e => { e.preventDefault(); try { const j = await api('trResetFinish', { token: tok, password: $('rPw').value }); showAuth('signin', j.message, 'ok'); } catch (x) { $('rErr').hidden = false; $('rErr').textContent = x.message; } };
+    return true;
+  }
+  try {
+    const info = await api('trInviteInfo', { token: tok });
+    authShell('<h1>You are on the grid</h1><p class="muted">Set up your account for <b>' + esc(info.email) + '</b>.</p><form class="form" id="fI" style="margin-top:14px"><label class="f">Full name<input type="text" id="iName" value="' + esc(info.name) + '" required maxlength="80"></label><label class="f">Mobile number<input type="tel" id="iMobile" autocomplete="tel"></label><label class="f">Date you joined Keller Williams<input type="date" id="iJoin"></label><label class="f">Choose a password<span class="hint">At least 10 characters, with letters and numbers.</span><input type="password" id="iPw" autocomplete="new-password" required></label><label class="check small"><input type="checkbox" id="iPriv" required> I have read the <a href="#privacy" id="iPrivL">privacy notice</a>.</label><button class="btn red big">Start my tech journey</button><p class="alert bad" id="iErr" hidden></p></form>');
+    $('iPrivL').onclick = e => { e.preventDefault(); privacyDlg(); };
+    $('fI').onsubmit = async e => { e.preventDefault(); $('iErr').hidden = true; try { const j = await api('trInviteAccept', { token: tok, name: $('iName').value, mobile: $('iMobile').value, kw_join_date: $('iJoin').value, password: $('iPw').value }); signedIn(j.token); } catch (x) { $('iErr').hidden = false; $('iErr').textContent = x.message; } };
+  } catch (e) { showAuth('signin', e.message, 'bad'); }
+  return true;
+}
+function privacyDlg() {
+  dlg('Privacy notice', '<div class="small"><p><b>What we keep:</b> your name, email, mobile number, market centre, team, the date you joined Keller Williams, an optional profile photo, your learning progress, evidence you submit, reviews and points.</p><p><b>Why:</b> to run and measure your technology training at KW Edge.</p><p><b>Who sees it:</b> you; your MCTT and platform administrators for the parts their role needs; market centre leadership sees progress figures. Colleagues see only your leaderboard entry: name, approved photo, XP, level, verified milestones and badges. Never your submissions, contacts or coaching notes.</p><p><b>Client information:</b> never upload clients\' personal information. Hide names, numbers and addresses in screenshots.</p><p><b>Your rights:</b> ask your MCTT to see, correct or delete your information. This notice follows POPIA principles; it is not legal advice.</p></div>');
+}
+function signedIn(tok) { S.token = tok; store.set('tr.token', tok); boot(); }
+function signOut(msg) { S.token = null; S.me = null; store.set('tr.token', null); showAuth('signin', msg, msg ? 'info' : null); }
+
+/* ---------- shell ---------- */
+function navItems() {
+  const items = [];
+  if (isAgent()) items.push(['home', 'Home'], ['learn', 'Learn'], ['race', 'Race'], ['book', 'Book'], ['me', 'Me']);
+  if (isAdmin() || has('leader')) items.push(['sep', 'MCTT'], ['centre', 'Command Centre']);
+  if (isAdmin()) items.push(['reviews', 'Reviews'], ['challenges', 'Challenges'], ['content', 'Learning content'], ['points', 'Points']);
+  if (isAdmin() || has('leader')) items.push(['race', 'Leaderboards']);
+  if (has('platform')) items.push(['sep', 'Platform'], ['platform', 'Settings and security']);
+  if (!isAgent()) items.push(['me', 'My account']);
+  const seen = {}; return items.filter(i => i[0] === 'sep' || (!seen[i[0]] && (seen[i[0]] = 1)));
+}
+function shell() {
+  $('app').innerHTML = '<header class="top"><a class="brand" href="#" id="toHome">KW Edge <i>Tech Race</i></a><span class="who">' + esc(S.me.name) + '</span><button class="bell" id="bell" aria-label="Notifications"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg><b id="unread" hidden></b></button></header><div class="shell"><nav class="side" id="side" aria-label="Main"></nav><main class="main" id="main" tabindex="-1"></main></div><nav class="bottom" id="bottom" aria-label="Main"></nav>';
+  $('toHome').onclick = e => { e.preventDefault(); go(isAgent() ? 'home' : 'centre'); };
+  $('bell').onclick = () => notesDlg();
+}
+function renderNav() {
+  const it = navItems();
+  $('side').innerHTML = it.map(([k, l]) => k === 'sep' ? '<div class="sep">' + esc(l) + '</div>' : '<button data-go="' + k + '"' + (S.view === k ? ' aria-current="page"' : '') + '>' + esc(l) + '</button>').join('');
+  $('bottom').innerHTML = isAgent() ? ['home', 'learn', 'race', 'book', 'me'].map(k => '<button data-go="' + k + '"' + (S.view === k ? ' aria-current="page"' : '') + '>' + svg(k) + { home: 'Home', learn: 'Learn', race: 'Race', book: 'Book', me: 'Me' }[k] + '</button>').join('') : '';
+  $('bottom').hidden = !isAgent();
+  document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
+  const u = $('unread'); const n = S.data ? S.data.unread : 0; u.hidden = !n; u.textContent = n > 9 ? '9+' : n;
+}
+function go(v, arg) { S.view = v; S.arg = arg == null ? null : arg; try { history.replaceState(null, '', '#' + v + (arg ? ':' + arg : '')); } catch (e) {} render(); window.scrollTo(0, 0); }
+async function render() {
+  renderNav();
+  const m = $('main'); const V = VIEWS[S.view] || VIEWS.home;
+  try { m.innerHTML = await V(); if (V.after) V.after(); } catch (e) { if (e.code !== 'signin') m.innerHTML = '<div class="alert bad">' + esc(e.message) + '</div>'; }
+}
+async function refresh() { S.data = await api('trMe'); S.me = S.data.me; }
+async function boot() {
+  if (await handleHash()) return;
+  if (!S.token) return showAuth('signin');
+  try { await refresh(); } catch (e) { if (e.code !== 'signin') showAuth('signin', e.message, 'bad'); return; }
+  shell();
+  const h = (location.hash || '').slice(1).split(':'); S.view = VIEWS[h[0]] && navItems().some(i => i[0] === h[0]) || h[0] === 'challenge' ? h[0] : (isAgent() ? 'home' : 'centre'); S.arg = h[1] || null;
+  render();
+}
+
+/* ---------- dialogs ---------- */
+function dlg(title, body, foot, onOpen) {
+  const d = $('dlg'); $('dlgT').textContent = title; $('dlgB').innerHTML = body; $('dlgF').innerHTML = foot || '<button class="btn" data-close>Close</button>';
+  d.querySelectorAll('[data-close]').forEach(b => b.onclick = () => d.close()); if (!d.open) d.showModal(); if (onOpen) onOpen(d);
+}
+$('dlgX').onclick = () => $('dlg').close();
+async function notesDlg() {
+  const j = await api('trNotes');
+  dlg('Notifications', j.items.length ? '<ul class="trail">' + j.items.map(n => '<li' + (n.read_at ? '' : ' style="font-weight:600"') + '><div>' + esc(n.title) + '</div><div class="small muted">' + esc(n.body) + ' · ' + fmtDT(n.created_at) + '</div></li>').join('') + '</ul>' : empty('No notifications yet.'), '<button class="btn" id="nRead">Mark all read</button><button class="btn" data-close>Close</button>', () => {
+    $('nRead').onclick = async () => { await api('trReadAll'); if (S.data) S.data.unread = 0; renderNav(); $('dlg').close(); };
+  });
+}
+
+/* ---------- agent views ---------- */
+const VIEWS = {};
+function ring(pct, label, big) {
+  const r = 52, c = 2 * Math.PI * r, off = c * (1 - Math.max(0, Math.min(100, pct)) / 100);
+  return '<div class="ring" role="img" aria-label="' + esc(label + ': ' + pct + '%') + '"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="' + r + '" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="10"/><circle cx="60" cy="60" r="' + r + '" fill="none" stroke="#d61f2c" stroke-width="10" stroke-linecap="round" stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + off.toFixed(1) + '"/></svg><div class="c"><div><b>' + pct + '%</b><span>' + esc(label) + '</span></div></div></div>';
+}
+const asgFor = id => S.data.assignments.find(a => a.id === id);
+function pathHtml(list) {
+  return '<ol class="path">' + list.map(a => { const st = a.available ? a.status : 'locked'; return '<li class="' + st + '" data-asg="' + a.id + '" tabindex="' + (a.available ? 0 : -1) + '" role="button" aria-disabled="' + !a.available + '"><span class="dot">' + (a.status === 'verified' ? '&#10003;' : a.remedial ? '+' : (a.challenge.week || '&#9733;')) + '</span><div><div class="t">' + esc(a.challenge.title) + (a.remedial ? ' <span class="tag">extra practice</span>' : '') + '</div><div class="d">' + (a.available ? 'Due ' + fmtD(a.due_date) : 'Opens ' + fmtD(a.start_date)) + (a.challenge.difficulty === 'advanced' ? ' · advanced' : '') + '</div></div>' + tag(st) + '</li>'; }).join('') + '</ol>';
+}
+function wirePath() { document.querySelectorAll('[data-asg]').forEach(li => { const open = () => { const a = asgFor(li.dataset.asg); if (a && a.available) go('challenge', a.id); }; li.onclick = open; li.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } }; }); }
+VIEWS.home = async () => {
+  if (!isAgent()) return VIEWS.centre();
+  await refresh(); const d = S.data, st = d.stats, next = d.next ? asgFor(d.next) : null;
+  const first = d.me.name.split(' ')[0];
+  const nextTxt = next ? (d.nextLesson ? 'Next: lesson "' + esc(d.nextLesson.title) + '"' : next.status === 'needs_improvement' ? 'Your MCTT asked for changes. Update your evidence.' : !next.check_passed && next.challenge.questions.length ? 'Next: take the knowledge check' : 'Next: submit your evidence') : '';
+  return '<div class="hero">' + ring(st.onboardingPct, 'onboarding') + '<div><div class="small" style="color:#c9c9c4;text-transform:uppercase;letter-spacing:.12em;font-weight:700">Welcome back</div><h1>' + esc(first) + '</h1><div class="lvl"><b>' + esc(st.level.name) + '</b> ' + (st.level.next ? st.level.toNext + ' XP to ' + esc(st.level.next) : 'Top level reached') + '</div></div></div>'
+    + '<div class="stats"><div class="kpi"><div class="l">Total XP</div><div class="v num">' + st.xp + '</div></div><div class="kpi"><div class="l">Race position</div><div class="v num">' + (st.rank ? (st.rankTied ? '=' : '') + st.rank : 'n/a') + '</div><div class="s">this week</div></div><div class="kpi"><div class="l">Streak</div><div class="v num">' + st.streak + '</div><div class="s">week' + (st.streak === 1 ? '' : 's') + ' in a row</div></div><div class="kpi"><div class="l">This week</div><div class="v num">' + st.weekDone + '/' + st.weekTotal + '</div><div class="s">tasks done</div></div></div>'
+    + (next ? '<div class="next"><div class="k">' + (next.status === 'needs_improvement' ? 'Pit stop' : 'Up next') + '</div><h2>' + esc(next.challenge.title) + '</h2><p class="small muted" style="margin:0 0 10px">' + nextTxt + ' · due ' + fmtD(next.due_date) + '</p><button class="btn red big" id="cont">Continue my tech journey</button></div>' : '<div class="next"><div class="k">All caught up</div><h2>Nothing waiting for you right now</h2><p class="small muted" style="margin:0">' + (st.pendingReviews ? 'Your MCTT is reviewing ' + st.pendingReviews + ' submission' + (st.pendingReviews === 1 ? '' : 's') + '.' : 'Your next challenge opens soon.') + '</p></div>')
+    + '<div class="grid g2"><div class="card"><h2>Your race</h2>' + pathHtml(d.assignments) + '</div><div><div class="card"><h2>Latest badge</h2>' + (d.badges[0] ? badgeHtml(d.badges[0]) : '<p class="small muted" style="margin:0">Earn your first badge by getting Week 1 verified.</p>') + '</div><div class="card"><h2>Waiting for your MCTT</h2><p style="margin:0">' + (st.pendingReviews ? '<b>' + st.pendingReviews + '</b> submission' + (st.pendingReviews === 1 ? '' : 's') + ' in review' : 'Nothing waiting for review') + '</p></div>'
+    + '<div class="card"><h2>Need help?</h2><div class="row" style="flex-wrap:wrap"><a class="btn sm" href="' + esc(d.settings.checkin_url) + '" target="_blank" rel="noopener">Book a Tuesday Tech Check-In</a>' + supportBtn(true) + '</div></div></div></div>';
+};
+VIEWS.home.after = () => { const c = $('cont'); if (c) c.onclick = () => go('challenge', S.data.next); wirePath(); };
+function badgeHtml(b, off) { return '<div class="badge' + (off ? ' off' : '') + '"><span class="ic">' + esc(initials(b.name)) + '</span><div><b>' + esc(b.name) + '</b><div class="small muted">' + esc(b.description || '') + (b.earned_at ? ' · ' + fmtD(b.earned_at) : '') + '</div></div></div>'; }
+function supportBtn(sm) { const u = S.data && S.data.settings.support_url; return u ? '<a class="btn ' + (sm ? 'sm' : 'red') + '" href="' + esc(u) + '" target="_blank" rel="noopener">Log a tech support ticket</a>' : '<span class="tag">Support link not set up yet</span>'; }
+
+/* challenge detail */
+VIEWS.challenge = async () => {
+  if (!S.data) await refresh();
+  const a = asgFor(S.arg); if (!a) return '<div class="alert bad">That challenge was not found.</div>';
+  if (!a.available) return '<div class="alert info">This challenge opens on ' + fmtD(a.start_date) + '.</div>';
+  const c = a.challenge, d = S.data, done = a.stored === 'verified', locked = done || a.stored === 'submitted';
+  const lessons = c.lessons.map(id => d.lessons.find(l => l.id === id)).filter(Boolean);
+  const track = d.tracks.find(t => t.id === c.track_id) || {};
+  let h = '<div class="ph"><div><button class="btn link" data-go="home">&larr; Back</button><h1 style="margin-top:6px">' + esc(c.title) + '</h1><p>' + esc(c.objective) + '</p></div><div>' + tag(a.status) + '</div></div>';
+  if (track.external) h += '<div class="alert info"><b>' + esc(track.name) + ' is an external, third-party platform.</b> ' + esc(track.note) + '</div>';
+  if (a.review && a.status !== 'submitted') h += '<div class="alert ' + (a.review.decision === 'verified' ? 'ok' : 'warn') + '"><b>' + (a.review.decision === 'verified' ? 'Verified by your MCTT' : 'Your MCTT asked for changes') + '</b> · ' + fmtD(a.review.at) + '<div>' + esc(a.review.feedback || '') + '</div></div>';
+  if (a.note) h += '<div class="alert info">' + esc(a.note) + '</div>';
+  h += '<div class="card"><h2>1. Learn</h2><p class="small muted" style="margin-top:0">' + a.lessons_done.length + ' of ' + lessons.length + ' lessons complete. Lessons earn XP up to a weekly limit.</p>' + lessons.map(l => '<details class="lesson"><summary>' + esc(l.title) + (l.done ? ' <span class="tag verified">done</span>' : '') + '</summary><div class="in"><p style="margin-top:0">' + esc(l.summary) + '</p><ol class="steps">' + l.steps.map(s => '<li>' + esc(s) + '</li>').join('') + '</ol>' + (l.done ? '' : '<button class="btn sm red" data-lesson="' + l.id + '" style="margin-top:10px">I have done this lesson</button>') + '</div></details>').join('') + '</div>';
+  h += '<div class="card"><h2>2. Practise</h2><p class="small muted" style="margin-top:0">Tick each activity when you have done it in the platform.</p><div class="form">' + c.activities.map((x, i) => '<label class="check"><input type="checkbox" data-act="' + i + '"' + (a.activities_done.includes(i) ? ' checked' : '') + (locked ? ' disabled' : '') + '> ' + esc(x) + '</label>').join('') + '</div></div>';
+  if (c.questions.length) h += '<div class="card"><h2>3. Knowledge check</h2>' + (a.check_passed ? '<div class="alert ok">Passed' + (a.check_score ? ' (' + a.check_score + '%)' : '') + '.</div>' : '<p class="small muted" style="margin-top:0">Pass with ' + d.settings.check_pass_pct + '% or more.</p>') + '<form id="kc">' + c.questions.map(q => '<div class="q" id="q_' + q.id + '"><b>' + esc(q.question) + '</b><div class="opts">' + q.options.map((o, i) => '<label class="check"><input type="radio" name="' + q.id + '" value="' + i + '"> ' + esc(o) + '</label>').join('') + '</div><div class="small expl"></div></div>').join('') + (a.check_passed ? '' : '<button class="btn dark">Check my answers</button>') + '</form></div>';
+  h += '<div class="card"><h2>' + (c.questions.length ? '4' : '3') + '. Show your MCTT</h2><p style="margin-top:0"><b>Assignment:</b> ' + esc(c.assignment) + '</p><p class="small"><b>Evidence:</b> ' + esc(c.evidence) + '</p>'
+    + (a.last_submission ? '<div class="alert ' + (a.last_submission.status === 'pending' ? 'warn' : 'info') + '">Last submitted ' + fmtDT(a.last_submission.at) + (a.last_submission.file_name ? ' · ' + esc(a.last_submission.file_name) : '') + (a.last_submission.status === 'pending' ? ' · waiting for review' : '') + '</div>' : '')
+    + (locked ? '' : '<form class="form" id="ev"><label class="f">Written explanation<textarea id="evText" maxlength="4000" placeholder="What did you do, and what did you learn?"></textarea></label><label class="f">Screenshot or document <span class="hint">PNG, JPG, WebP or PDF, up to 5 MB</span><input type="file" id="evFile" accept="image/png,image/jpeg,image/webp,application/pdf"></label><label class="f">Link <span class="hint">optional, https://</span><input type="url" id="evLink" placeholder="https://"></label><label class="check"><input type="checkbox" id="evDemo"> I would rather demonstrate this live to my MCTT</label><div class="alert warn small" style="margin:0"><b>Protect your clients.</b> Hide names, phone numbers, emails and addresses before you upload. You never need to share client data to earn points.</div><label class="check"><input type="checkbox" id="evAck"> My evidence does not show clients\' personal information</label><button class="btn red big">Submit evidence</button><p class="alert bad" id="evErr" hidden></p></form>') + '</div>';
+  return h;
+};
+VIEWS.challenge.after = () => {
+  const a = asgFor(S.arg); if (!a) return;
+  document.querySelectorAll('[data-go]').forEach(b => { if (b.closest('main')) b.onclick = () => go(b.dataset.go); });
+  document.querySelectorAll('[data-lesson]').forEach(b => b.onclick = async () => { b.disabled = true; try { const j = await api('trLesson', { lesson: b.dataset.lesson }); toast(j.xp ? '+' + j.xp + ' XP' : j.capped ? 'Lesson recorded. Weekly lesson XP limit reached.' : 'Lesson recorded'); await refresh(); render(); } catch (e) { toast(e.message); b.disabled = false; } });
+  document.querySelectorAll('[data-act]').forEach(cb => cb.onchange = async () => { try { await api('trActivity', { assignment: a.id, index: +cb.dataset.act, done: cb.checked }); } catch (e) { cb.checked = !cb.checked; toast(e.message); } });
+  const kc = $('kc'); if (kc) kc.onsubmit = async e => {
+    e.preventDefault(); const answers = {}; a.challenge.questions.forEach(q => { const s = kc.querySelector('input[name="' + q.id + '"]:checked'); if (s) answers[q.id] = +s.value; });
+    if (Object.keys(answers).length < a.challenge.questions.length) return toast('Answer every question first.');
+    try { const j = await api('trCheck', { assignment: a.id, answers }); j.results.forEach(r => { const el = $('q_' + r.id); el.classList.add(r.correct ? 'right' : 'wrong'); el.querySelector('.expl').textContent = (r.correct ? 'Correct. ' : 'Not quite. ') + r.explanation; }); toast(j.passed ? 'Passed with ' + j.score + '%' + (j.xp ? ', +' + j.xp + ' XP' : '') : j.score + '%. Review the explanations and try again.'); if (j.passed) { await refresh(); setTimeout(render, 1600); } } catch (x) { toast(x.message); }
+  };
+  const ev = $('ev'); if (ev) ev.onsubmit = async e => {
+    e.preventDefault(); const b = e.submitter; b.disabled = true; $('evErr').hidden = true;
+    try {
+      const f = $('evFile').files[0]; let file = null;
+      if (f) { if (f.size > 5e6) throw new Error('Files must be under 5 MB.'); file = { name: f.name, mime: f.type, b64: await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = no; r.readAsDataURL(f); }) }; }
+      b.textContent = 'Sending...';
+      const j = await api('trSubmit', { assignment: a.id, text: $('evText').value, link: $('evLink').value.trim(), demo: $('evDemo').checked, privacy_ack: $('evAck').checked, file });
+      toast('Submitted. ' + (j.xp ? '+' + j.xp + ' XP. ' : '') + 'Your MCTT will review it.'); await refresh(); render();
+    } catch (x) { $('evErr').hidden = false; $('evErr').textContent = x.message; b.disabled = false; b.textContent = 'Submit evidence'; }
+  };
+};
+
+VIEWS.learn = async () => {
+  if (!S.data) await refresh(); const d = S.data;
+  return '<div class="ph"><div><h1>Learning paths</h1><p>Three tracks. Lessons are updated by your MCTT when the platforms change.</p></div></div>' + d.tracks.map(t => {
+    const mods = d.modules.filter(m => m.track_id === t.id).sort((a, b) => a.order - b.order), ls = d.lessons.filter(l => mods.some(m => m.id === l.module_id)), n = ls.filter(l => l.done).length;
+    return '<div class="card"><div class="row" style="justify-content:space-between;flex-wrap:wrap"><h2>Track ' + esc(t.code) + ': ' + esc(t.name) + '</h2><span class="small muted">' + n + ' of ' + ls.length + ' lessons</span></div><div class="bar" style="margin:8px 0 10px"><i style="width:' + (ls.length ? Math.round(n / ls.length * 100) : 0) + '%"></i></div><p class="small" style="margin-top:0">' + esc(t.description) + '</p>' + (t.external ? '<div class="alert info small">' + esc(t.note) + '</div>' : '')
+      + mods.map(m => '<h3 style="margin:12px 0 6px">' + esc(m.title) + '</h3>' + d.lessons.filter(l => l.module_id === m.id).sort((a, b) => a.order - b.order).map(l => '<details class="lesson"><summary>' + esc(l.title) + (l.done ? ' <span class="tag verified">done</span>' : '') + '</summary><div class="in"><p style="margin-top:0">' + esc(l.summary) + '</p><ol class="steps">' + l.steps.map(s => '<li>' + esc(s) + '</li>').join('') + '</ol>' + (l.done ? '' : '<button class="btn sm red" data-lesson="' + l.id + '" style="margin-top:10px">I have done this lesson</button>') + '</div></details>').join('')).join('') + '</div>';
+  }).join('');
+};
+VIEWS.learn.after = () => document.querySelectorAll('[data-lesson]').forEach(b => b.onclick = async () => { b.disabled = true; try { const j = await api('trLesson', { lesson: b.dataset.lesson }); toast(j.xp ? '+' + j.xp + ' XP' : 'Lesson recorded'); await refresh(); render(); } catch (e) { toast(e.message); b.disabled = false; } });
+
+const photoCache = {};
+async function loadPhotos() { document.querySelectorAll('[data-photo]').forEach(async el => { const id = el.dataset.photo; try { if (!photoCache[id]) photoCache[id] = api('trPhoto', { id }).then(j => 'data:' + j.mime + ';base64,' + j.b64); el.innerHTML = '<img alt="" src="' + await photoCache[id] + '">'; } catch (e) {} }); }
+VIEWS.race = async () => {
+  const b = await api('trBoard', { period: S.board }), meId = S.me.id, rec = b.recognition;
+  const seg = '<div class="seg" role="group" aria-label="Leaderboard period">' + [['week', 'Weekly race'], ['month', 'Monthly race'], ['all', 'All-time champions']].map(([k, l]) => '<button data-board="' + k + '" aria-pressed="' + (S.board === k) + '">' + l + '</button>').join('') + '</div>';
+  const rows = b.rows.map(r => '<li data-prof="' + r.id + '"' + (r.id === meId ? ' class="me"' : '') + ' tabindex="0" role="button"><span class="rk">' + (r.tied ? '=' : '') + r.rank + '</span><span class="av"' + (r.photo ? ' data-photo="' + r.id + '"' : '') + '>' + esc(initials(r.name)) + '</span><div><b>' + esc(r.name) + '</b><div class="small muted">' + esc(r.level) + ' · ' + r.verified + '/' + r.verifiedTotal + ' verified · ' + r.badges + ' badge' + (r.badges === 1 ? '' : 's') + (r.team ? ' · ' + esc(r.team) : '') + '</div></div><span class="xp num">' + r.xp + '<span class="small muted" style="font:500 12px var(--sans)"> XP</span></span></li>').join('');
+  return '<div class="ph"><div><h1>The race</h1><p>' + (S.board === 'week' ? 'Points earned since Monday ' + fmtD(b.from) : S.board === 'month' ? 'Points earned this month' : 'Lifetime points') + '. Ties are shown with =.</p></div>' + seg + '</div>'
+    + '<div class="podium"><div class="kpi"><div class="l">Most improved this week</div><div class="v" style="font-size:22px">' + (rec.improved ? esc(rec.improved.name) : 'Not yet') + '</div><div class="s">' + (rec.improved ? '+' + rec.improved.gain + ' XP above their recent average' : 'Earn XP this week to qualify') + '</div></div><div class="kpi"><div class="l">Most consistent</div><div class="v" style="font-size:22px">' + (rec.consistent ? esc(rec.consistent.name) : 'Not yet') + '</div><div class="s">' + (rec.consistent ? rec.consistent.weeks + ' week' + (rec.consistent.weeks === 1 ? '' : 's') + ' in a row' : '') + '</div></div></div>'
+    + '<div class="card">' + (rows ? '<ol class="lb">' + rows + '</ol>' : empty('No participants yet.')) + '</div>';
+};
+VIEWS.race.after = () => { document.querySelectorAll('[data-board]').forEach(b => b.onclick = () => { S.board = b.dataset.board; render(); }); document.querySelectorAll('[data-prof]').forEach(li => { const o = () => profileDlg(li.dataset.prof); li.onclick = o; li.onkeydown = e => { if (e.key === 'Enter') o(); }; }); loadPhotos(); };
+async function profileDlg(id) {
+  const p = (await api('trProfile', { id })).profile;
+  dlg(p.name, '<div class="row" style="margin-bottom:12px"><span class="av" style="width:56px;height:56px"' + (p.photo ? ' data-photo="' + p.id + '"' : '') + '>' + esc(initials(p.name)) + '</span><div><b>' + esc(p.level.name) + '</b> · ' + p.xp + ' XP<div class="small muted">' + p.verified.done + ' of ' + p.verified.total + ' onboarding milestones verified · ' + p.streak + '-week streak' + (p.team ? ' · ' + esc(p.team) : '') + '</div></div></div><h3 style="margin:10px 0">Badges</h3><div class="badges">' + (p.badges.length ? p.badges.map(b => badgeHtml(b)).join('') : '<p class="small muted">No badges yet.</p>') + '</div><h3 style="margin:14px 0 6px">Verified milestones</h3>' + (p.milestones.length ? '<ul>' + p.milestones.map(m => '<li>' + esc(m) + '</li>').join('') + '</ul>' : '<p class="small muted">None yet.</p>'), null, () => loadPhotos());
+}
+VIEWS.book = async () => {
+  if (!S.data) await refresh(); const s = S.data.settings;
+  return '<div class="ph"><div><h1>Training and booking</h1><p>Get help, practise with your MCTT and keep learning.</p></div></div>'
+    + '<div class="card"><h2>Monday Technology Training</h2><p>' + esc(s.monday_training) + '</p>' + (s.monday_link ? '<a class="btn dark" href="' + esc(s.monday_link) + '" target="_blank" rel="noopener">Join Monday training</a>' : '<span class="tag">Joining link not posted yet</span>') + '</div>'
+    + '<div class="card"><h2>Tuesday Tech Check-In</h2><p>A 15-minute one-on-one: show what you have completed, get feedback and your next assignment.</p><a class="btn red" href="' + esc(s.checkin_url) + '" target="_blank" rel="noopener">Book a check-in</a></div>'
+    + '<div class="card"><h2>Lead Generation Buddy</h2><p>' + esc(s.buddy_info) + '</p><a class="btn" href="' + esc(s.checkin_url) + '" target="_blank" rel="noopener">Book a session</a></div>'
+    + '<div class="card"><h2>Tech Support</h2><p>Something not working in MAPP, Command or your email? Support tickets are separate from your challenges.</p>' + supportBtn(false) + '</div>';
+};
+VIEWS.me = async () => {
+  await refresh(); const d = S.data, m = d.me, all = (d.badgeDefs || []);
+  const earned = d.badges;
+  return '<div class="ph"><div><h1>' + esc(m.name) + '</h1><p>' + esc(m.email) + (m.market_centre ? ' · ' + esc(m.market_centre) : '') + (m.team ? ' · ' + esc(m.team) : '') + (m.mctt ? ' · MCTT: ' + esc(m.mctt) : '') + '</p></div><button class="btn" id="out">Sign out</button></div>'
+    + (isAgent() ? '<div class="card"><h2>Badges</h2><div class="badges">' + (earned.length ? earned.map(b => badgeHtml(b)).join('') : '<p class="small muted">Your badges appear here.</p>') + '</div></div>' : '')
+    + '<div class="card"><h2>Profile</h2><form class="form" id="pf"><div class="grid g2"><label class="f">Full name<input type="text" id="pName" value="' + esc(m.name) + '" maxlength="80"></label><label class="f">Mobile number<input type="tel" id="pMob" value="' + esc(m.mobile || '') + '"></label><label class="f">Date you joined Keller Williams<input type="date" id="pJoin" value="' + esc(m.kw_join_date || '') + '"></label><label class="f">Profile photo <span class="hint">optional, under 1 MB</span><input type="file" id="pPhoto" accept="image/png,image/jpeg,image/webp"></label></div><label class="check"><input type="checkbox" id="pShow"' + (m.show_photo ? ' checked' : '') + '> Show my photo on the leaderboard</label><label class="check"><input type="checkbox" id="pMail"' + (m.notify_email ? ' checked' : '') + '> Email me about reviews, badges and new challenges (in-app notifications always stay on)</label><button class="btn dark">Save profile</button></form></div>'
+    + '<div class="card"><h2>Password</h2><form class="form" id="pw"><div class="grid g2"><label class="f">Current password<input type="password" id="pwCur" autocomplete="current-password"></label><label class="f">New password<input type="password" id="pwNew" autocomplete="new-password"></label></div><button class="btn">Change password</button></form></div>'
+    + '<p class="small"><a href="#privacy" id="mePriv">Privacy notice</a></p>';
+};
+VIEWS.me.after = () => {
+  $('out').onclick = () => signOut('Signed out.'); $('mePriv').onclick = e => { e.preventDefault(); privacyDlg(); };
+  $('pf').onsubmit = async e => { e.preventDefault(); try { const f = $('pPhoto').files[0]; let photo = null; if (f) { if (f.size > 1e6) throw new Error('Photos must be under 1 MB.'); photo = { mime: f.type, b64: await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.readAsDataURL(f); }) }; } await api('trUpdateMe', { name: $('pName').value, mobile: $('pMob').value, kw_join_date: $('pJoin').value, show_photo: $('pShow').checked, notify_email: $('pMail').checked, photo }); toast('Profile saved'); render(); } catch (x) { toast(x.message); } };
+  $('pw').onsubmit = async e => { e.preventDefault(); try { const j = await api('trPassword', { current: $('pwCur').value, password: $('pwNew').value }); S.token = j.token; store.set('tr.token', j.token); toast('Password changed. Other devices are signed out.'); $('pwCur').value = $('pwNew').value = ''; } catch (x) { toast(x.message); } };
+};
+
+/* ---------- MCTT and leadership ---------- */
+async function getOv() { S.ov = await api('trOverview'); return S.ov; }
+const pctBar = p => '<div class="bar" style="min-width:80px"><i style="width:' + p + '%"></i></div>';
+VIEWS.centre = async () => {
+  const o = await getOv(), k = o.kpis, f = S.filters;
+  let list = o.agents.filter(a => (!f.team || a.team_id === f.team) && (!f.cohort || a.cohort_id === f.cohort) && (!f.status || (f.status === 'help' ? a.needsHelp : f.status === 'inactive' ? a.inactive : a.status === f.status)) && (!f.q || (a.name + ' ' + a.email).toLowerCase().includes(f.q.toLowerCase())));
+  const kp = (l, v, s) => '<div class="kpi"><div class="l">' + l + '</div><div class="v num">' + v + '</div>' + (s ? '<div class="s">' + s + '</div>' : '') + '</div>';
+  const opt = (arr, sel, blank) => '<option value="">' + blank + '</option>' + arr.map(x => '<option value="' + esc(x.id) + '"' + (sel === x.id ? ' selected' : '') + '>' + esc(x.name) + '</option>').join('');
+  return '<div class="ph"><div><h1>MCTT Command Centre</h1><p>' + (o.readOnly ? 'Read-only view for market centre leadership.' : 'Every agent\'s status, who needs help, and what is waiting for you.') + '</p></div><div class="row no-print">' + (o.readOnly ? '' : '<button class="btn red" id="inv">Invite agent</button>') + '<button class="btn" id="csv">Export CSV</button><button class="btn" onclick="window.print()">Print</button></div></div>'
+    + '<div class="grid g4" style="margin-bottom:12px">' + kp('Enrolled', k.enrolled, k.pendingJoin ? k.pendingJoin + ' waiting for approval' : '') + kp('Active last 7 days', k.participating7, 'of ' + k.active + ' active') + kp('Onboarding complete', k.completed, 'average ' + k.completionPct + '% verified') + kp('Awaiting your review', k.awaiting, '') + kp('Overdue tasks', k.overdue, '') + kp('Need assistance', k.needHelp, 'overdue, inactive or changes requested') + Object.values(o.byTrack).map(t => kp(esc(t.name), t.pct + '%', t.verified + ' of ' + t.total + ' verified')).join('') + '</div>'
+    + '<div class="card"><h2>Agents</h2><div class="filters no-print"><input type="text" id="fQ" placeholder="Search name or email" value="' + esc(f.q || '') + '"><select id="fTeam">' + opt(o.teams, f.team, 'All teams') + '</select><select id="fCohort">' + opt(o.cohorts, f.cohort, 'All cohorts') + '</select><select id="fStatus"><option value="">All statuses</option>' + [['active', 'Active'], ['pending', 'Waiting for approval'], ['invited', 'Invited'], ['help', 'Needs assistance'], ['inactive', 'Inactive 7+ days'], ['suspended', 'Suspended']].map(x => '<option value="' + x[0] + '"' + (f.status === x[0] ? ' selected' : '') + '>' + x[1] + '</option>').join('') + '</select></div>'
+    + '<div class="tablebox"><table><thead><tr><th>Agent</th><th>Status</th><th>Onboarding</th><th>XP</th><th>Overdue</th><th>Review</th><th>Last active</th></tr></thead><tbody>' + (list.map(a => '<tr class="click" data-agent="' + a.id + '"><td><b>' + esc(a.name) + '</b>' + (a.needsHelp ? ' <span class="tag needs_improvement">help</span>' : '') + '<div class="small muted">' + esc(a.email) + (a.team ? ' · ' + esc(a.team) : '') + '</div></td><td>' + esc(a.status) + '</td><td>' + pctBar(a.pct) + '<span class="small">' + a.verified + '/' + a.verifiedTotal + '</span></td><td class="num">' + a.xp + '<div class="small muted">' + esc(a.level) + '</div></td><td class="num">' + (a.overdue || '') + '</td><td class="num">' + (a.pending || '') + '</td><td class="small">' + (a.lastActive ? fmtD(a.lastActive) : 'never') + '</td></tr>').join('') || '<tr><td colspan="7">' + empty('No agents match.') + '</td></tr>') + '</tbody></table></div></div>'
+    + '<div class="card"><h2>This week\'s race</h2>' + (o.board.length ? '<table><thead><tr><th>#</th><th>Agent</th><th>XP this week</th><th>Last week</th></tr></thead><tbody>' + o.board.map(r => '<tr><td>' + (r.tied ? '=' : '') + r.rank + '</td><td>' + esc(r.name) + '</td><td class="num">' + r.xp + '</td><td class="small">' + (r.lastWeekRank ? '#' + r.lastWeekRank + (r.lastWeekRank > r.rank ? ' &uarr;' : r.lastWeekRank < r.rank ? ' &darr;' : '') : 'new') + '</td></tr>').join('') + '</tbody></table>' : empty('No points yet this week.')) + '</div>';
+};
+VIEWS.centre.after = () => {
+  const set = (id, k) => { const el = $(id); el.onchange = el.oninput = () => { S.filters[k] = el.value; clearTimeout(el._t); el._t = setTimeout(render, el.tagName === 'INPUT' ? 300 : 0); }; };
+  set('fQ', 'q'); set('fTeam', 'team'); set('fCohort', 'cohort'); set('fStatus', 'status');
+  document.querySelectorAll('[data-agent]').forEach(tr => tr.onclick = () => go('agent', tr.dataset.agent));
+  const inv = $('inv'); if (inv) inv.onclick = inviteDlg;
+  $('csv').onclick = async () => { const j = await api('trExport'); const b = new Blob(['﻿' + j.csv], { type: 'text/csv' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'tech-race-progress-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click(); };
+};
+VIEWS.agent = async () => {
+  const j = await api('trAgent', { id: S.arg }), a = j.agent, o = S.ov || await getOv();
+  const opt = (arr, sel, blank) => '<option value="">' + blank + '</option>' + arr.map(x => '<option value="' + esc(x.id) + '"' + (sel === x.id ? ' selected' : '') + '>' + esc(x.name || x.title) + '</option>').join('');
+  return '<div class="ph"><div><button class="btn link" data-go="centre">&larr; Command Centre</button><h1 style="margin-top:6px">' + esc(a.name) + '</h1><p>' + esc(a.email) + (a.mobile ? ' · ' + esc(a.mobile) : '') + ' · ' + esc(a.status) + (a.verified_email ? '' : ' · email not verified') + '</p></div>'
+    + (j.readOnly ? '' : '<div class="row no-print" style="flex-wrap:wrap">' + (a.status === 'pending' ? '<button class="btn red" id="appr">Approve access</button><button class="btn" id="decl">Decline</button>' : '') + '<button class="btn" id="asg">Assign challenge</button><button class="btn" id="adj">Adjust points</button>' + (a.status === 'active' ? '<button class="btn" id="susp">Suspend</button>' : a.status === 'suspended' ? '<button class="btn" id="react">Reactivate</button>' : '') + '</div>') + '</div>'
+    + '<div class="grid g4" style="margin-bottom:12px"><div class="kpi"><div class="l">Onboarding</div><div class="v">' + a.pct + '%</div><div class="s">' + a.verified + ' of ' + a.verifiedTotal + ' verified</div></div><div class="kpi"><div class="l">XP</div><div class="v">' + a.xp + '</div><div class="s">' + esc(a.level) + '</div></div><div class="kpi"><div class="l">Overdue</div><div class="v">' + a.overdue + '</div></div><div class="kpi"><div class="l">Last active</div><div class="v" style="font-size:20px">' + (a.lastActive ? fmtD(a.lastActive) : 'never') + '</div></div></div>'
+    + (j.readOnly ? '' : '<div class="card no-print"><h2>Placement</h2><div class="grid g4"><label class="f">Team<select id="aTeam">' + opt(o.teams, a.team_id, 'No team') + '</select></label><label class="f">Cohort<select id="aCoh">' + opt(o.cohorts, a.cohort_id, 'No cohort') + '</select></label><label class="f">Onboarding start<input type="date" id="aStart" value="' + esc(a.onboarding_start || '') + '"></label><div style="align-self:end"><button class="btn dark" id="aSave">Save</button></div></div></div>')
+    + '<div class="card"><h2>Challenges</h2><div class="tablebox"><table><thead><tr><th>Challenge</th><th>Opens</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody>' + j.assignments.map(x => '<tr><td>' + esc(x.title) + (x.remedial ? ' <span class="tag">extra</span>' : '') + (x.note ? '<div class="small muted">' + esc(x.note) + '</div>' : '') + '</td><td class="small">' + fmtD(x.start_date) + '</td><td class="small">' + fmtD(x.due_date) + '</td><td>' + tag(x.status) + '</td><td>' + (j.readOnly || x.status === 'verified' ? '' : '<button class="btn sm" data-ext="' + x.id + '">Change dates</button>') + '</td></tr>').join('') + '</tbody></table></div></div>'
+    + '<div class="card"><h2>Audit trail</h2><ul class="trail">' + j.trail.map(t => '<li><b>' + esc(t.type) + '</b> <span class="small muted">' + fmtDT(t.at) + '</span><div>' + esc(t.detail) + (t.text ? '<div class="small muted">"' + esc(t.text) + '"</div>' : '') + (t.file && !j.readOnly ? ' <button class="btn sm" data-file="' + t.id + '">Open file</button>' : '') + '</div></li>').join('') + '</ul></div>';
+};
+VIEWS.agent.after = () => {
+  const id = S.arg; document.querySelectorAll('main [data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
+  const on = (i, fn) => { const b = $(i); if (b) b.onclick = fn; };
+  on('appr', async () => { await api('trApprove', { id }); toast('Approved. Their six-week journey has started.'); render(); });
+  on('decl', async () => { await api('trApprove', { id, decline: true }); toast('Request declined.'); go('centre'); });
+  on('susp', async () => { if (!confirm('Suspend this agent? They are signed out immediately.')) return; await api('trAgentUpdate', { id, fields: { status: 'suspended' } }); render(); });
+  on('react', async () => { await api('trAgentUpdate', { id, fields: { status: 'active' } }); render(); });
+  on('aSave', async () => { try { await api('trAgentUpdate', { id, fields: { team_id: $('aTeam').value, cohort_id: $('aCoh').value, onboarding_start: $('aStart').value } }); toast('Saved'); } catch (e) { toast(e.message); } });
+  on('asg', () => assignDlg(id)); on('adj', () => adjustDlg(id));
+  document.querySelectorAll('[data-ext]').forEach(b => b.onclick = () => datesDlg(b.dataset.ext));
+  document.querySelectorAll('[data-file]').forEach(b => b.onclick = () => openFile(b.dataset.file));
+};
+async function openFile(sub) { const j = await api('trFile', { submission: sub }); const blob = new Blob([Uint8Array.from(atob(j.b64), c => c.charCodeAt(0))], { type: j.mime }); window.open(URL.createObjectURL(blob), '_blank', 'noopener'); }
+function inviteDlg() {
+  const o = S.ov, opt = (arr, blank) => '<option value="">' + blank + '</option>' + arr.map(x => '<option value="' + esc(x.id) + '">' + esc(x.name) + '</option>').join('');
+  dlg('Invite an agent', '<form class="form" id="iv"><div class="grid g2"><label class="f">Full name<input type="text" id="ivN" required></label><label class="f">Email<input type="email" id="ivE" required></label><label class="f">Team<select id="ivT">' + opt(o.teams, 'No team') + '</select></label><label class="f">Cohort<select id="ivC">' + opt(o.cohorts, 'No cohort') + '</select></label><label class="f">Onboarding start <span class="hint">empty = the day they accept</span><input type="date" id="ivS"></label></div><p class="alert bad" id="ivErr" hidden></p><div id="ivOut"></div></form>', '<button class="btn" data-close>Close</button><button class="btn red" id="ivGo">Send invitation</button>', () => {
+    $('ivGo').onclick = async () => { $('ivErr').hidden = true; try { const j = await api('trInvite', { name: $('ivN').value, email: $('ivE').value, team_id: $('ivT').value, cohort_id: $('ivC').value, onboarding_start: $('ivS').value }); $('ivOut').innerHTML = '<div class="alert ok">Invitation created.' + (j.link ? ' Email is in test mode, so it went to you. Invitation link: <input type="text" readonly value="' + esc(j.link) + '" onclick="this.select()">' : ' The agent has been emailed.') + '</div>'; S.ov = null; } catch (e) { $('ivErr').hidden = false; $('ivErr').textContent = e.message; } };
+  });
+}
+function assignDlg(user) {
+  const cs = S.ov.challenges, today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Johannesburg' });
+  dlg('Assign a challenge', '<form class="form"><label class="f">Challenge<select id="asC">' + cs.map(c => '<option value="' + c.id + '">' + esc(c.title) + (c.difficulty === 'advanced' ? ' (advanced)' : '') + '</option>').join('') + '</select></label><div class="grid g2"><label class="f">Opens<input type="date" id="asS" value="' + today + '"></label><label class="f">Due <span class="hint">empty = 7 days</span><input type="date" id="asD"></label></div><label class="check"><input type="checkbox" id="asR"> Remedial (extra practice; earlier progress is kept)</label><label class="f">Note to the agent<input type="text" id="asN" maxlength="300"></label><p class="alert bad" id="asErr" hidden></p></form>', '<button class="btn" data-close>Cancel</button><button class="btn red" id="asGo">Assign</button>', () => {
+    $('asGo').onclick = async () => { try { await api('trAssign', { op: 'assign', user, challenge: $('asC').value, start: $('asS').value, due: $('asD').value, remedial: $('asR').checked, note: $('asN').value }); $('dlg').close(); toast('Assigned and the agent notified.'); render(); } catch (e) { $('asErr').hidden = false; $('asErr').textContent = e.message; } };
+  });
+}
+function datesDlg(id) {
+  dlg('Change dates', '<form class="form"><label class="f">New due date (extend the deadline)<input type="date" id="dD"></label><label class="f">Reason or note<input type="text" id="dN" maxlength="300"></label><p class="small muted">Or move when it opens (changes the order):</p><label class="f">New opening date<input type="date" id="dS"></label><p class="alert bad" id="dErr" hidden></p></form>', '<button class="btn" data-close>Cancel</button><button class="btn red" id="dGo">Save</button>', () => {
+    $('dGo').onclick = async () => { try { if ($('dS').value) await api('trAssign', { op: 'reschedule', id, start: $('dS').value }); if ($('dD').value) await api('trAssign', { op: 'extend', id, due: $('dD').value, note: $('dN').value }); $('dlg').close(); toast('Dates updated. Nothing was reset.'); render(); } catch (e) { $('dErr').hidden = false; $('dErr').textContent = e.message; } };
+  });
+}
+function adjustDlg(user) {
+  dlg('Adjust points', '<form class="form"><label class="f">Points <span class="hint">negative to deduct, up to 500</span><input type="number" id="adP" step="1"></label><label class="f">Documented reason<textarea id="adR" maxlength="300"></textarea></label><p class="small muted">A platform administrator must approve every manual adjustment before it counts.</p><p class="alert bad" id="adErr" hidden></p></form>', '<button class="btn" data-close>Cancel</button><button class="btn red" id="adGo">Request adjustment</button>', () => {
+    $('adGo').onclick = async () => { try { await api('trAdjust', { user, points: +$('adP').value, reason: $('adR').value }); $('dlg').close(); toast('Adjustment sent for approval.'); } catch (e) { $('adErr').hidden = false; $('adErr').textContent = e.message; } };
+  });
+}
+VIEWS.reviews = async () => {
+  const q = await api('trQueue'); S.queue = q.items;
+  return '<div class="ph"><div><h1>Reviews</h1><p>' + q.items.length + ' submission' + (q.items.length === 1 ? '' : 's') + ' waiting, oldest first.</p></div></div>' + (q.items.length ? q.items.map((s, i) => '<div class="card"><div class="row" style="justify-content:space-between;flex-wrap:wrap"><div><h2>' + esc(s.challenge.title) + '</h2><div class="small muted">' + esc(s.agent.name) + ' · ' + fmtDT(s.created_at) + (s.late ? ' · <b style="color:var(--red)">late</b>' : ' · on time') + ' · knowledge check ' + (s.check_passed ? 'passed (' + s.check_score + '%)' : 'not passed') + ' · ' + s.activities_done + '/' + s.challenge.activities.length + ' activities ticked</div></div>' + (s.demo ? '<span class="tag submitted">live demo requested</span>' : '') + '</div>'
+    + '<p class="small"><b>Asked for:</b> ' + esc(s.challenge.evidence) + '</p>' + (s.text ? '<div class="alert info" style="white-space:pre-wrap">' + esc(s.text) + '</div>' : '') + (s.link ? '<p><a href="' + esc(s.link) + '" target="_blank" rel="noopener noreferrer">' + esc(s.link) + '</a></p>' : '') + (s.file ? '<button class="btn sm" data-file="' + s.id + '">Open ' + esc(s.file.name) + '</button>' : '')
+    + (s.history.length ? '<p class="small muted">Earlier: ' + s.history.map(h => esc(h.decision.replace('_', ' ')) + ' (' + fmtD(h.at) + ')').join(', ') + '</p>' : '')
+    + '<div class="form" style="margin-top:12px"><label class="f">Feedback to the agent<textarea id="fb' + i + '" maxlength="2000"></textarea></label><label class="f">Competency<select id="cp' + i + '"><option value="competent">Competent</option><option value="advanced">Advanced</option><option value="developing">Developing</option><option value="not_yet">Not yet</option></select></label><div class="row" style="flex-wrap:wrap"><button class="btn red" data-rv="' + i + '" data-dec="verified">Verify competency</button><button class="btn" data-rv="' + i + '" data-dec="needs_improvement">Needs improvement</button></div></div></div>').join('') : '<div class="card">' + empty('Nothing to review. Well done.') + '</div>');
+};
+VIEWS.reviews.after = () => {
+  document.querySelectorAll('[data-file]').forEach(b => b.onclick = () => openFile(b.dataset.file));
+  document.querySelectorAll('[data-rv]').forEach(b => b.onclick = async () => { const i = +b.dataset.rv, s = S.queue[i]; b.disabled = true; try { const j = await api('trReview', { submission: s.id, decision: b.dataset.dec, feedback: $('fb' + i).value, competency: $('cp' + i).value }); toast(b.dataset.dec === 'verified' ? 'Verified. ' + s.agent.name + ' earned ' + j.xp + ' XP' + (j.badges.length ? ' and the ' + j.badges.join(', ') + ' badge' : '') + '.' : 'Changes requested.'); render(); } catch (e) { toast(e.message); b.disabled = false; } });
+};
+VIEWS.challenges = async () => {
+  const o = S.ov || await getOv();
+  return '<div class="ph"><div><h1>Challenges</h1><p>The six-week journey and the ongoing weekly race. Assign a challenge from an agent\'s record, or to several agents here.</p></div></div><div class="card"><div class="tablebox"><table><thead><tr><th>Week</th><th>Challenge</th><th>Difficulty</th><th>Points</th><th></th></tr></thead><tbody>' + o.challenges.map(c => '<tr><td>' + (c.week || 'race') + '</td><td><b>' + esc(c.title) + '</b></td><td>' + esc(c.difficulty) + '</td><td>' + c.points + '</td><td><button class="btn sm" data-bulk="' + c.id + '">Assign to agents</button></td></tr>').join('') + '</tbody></table></div><p class="small muted">Edit wording, activities and knowledge checks under Learning content.</p></div>';
+};
+VIEWS.challenges.after = () => document.querySelectorAll('[data-bulk]').forEach(b => b.onclick = () => {
+  const ag = S.ov.agents.filter(a => a.status === 'active'), today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Johannesburg' });
+  dlg('Assign to agents', '<form class="form"><div class="grid g2"><label class="f">Opens<input type="date" id="bS" value="' + today + '"></label><label class="f">Due <span class="hint">empty = 7 days</span><input type="date" id="bD"></label></div><div style="max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:10px">' + ag.map(a => '<label class="check"><input type="checkbox" value="' + a.id + '" name="bA"> ' + esc(a.name) + '</label>').join('') + '</div><p class="alert bad" id="bErr" hidden></p></form>', '<button class="btn" data-close>Cancel</button><button class="btn red" id="bGo">Assign</button>', () => {
+    $('bGo').onclick = async () => { const ids = [...document.querySelectorAll('input[name="bA"]:checked')].map(x => x.value); if (!ids.length) return; let n = 0, errs = []; for (const id of ids) { try { await api('trAssign', { op: 'assign', user: id, challenge: b.dataset.bulk, start: $('bS').value, due: $('bD').value }); n++; } catch (e) { errs.push(e.message); } } $('dlg').close(); toast(n + ' assigned' + (errs.length ? '; ' + errs.length + ' skipped (' + errs[0] + ')' : '')); };
+  });
+});
+VIEWS.content = async () => {
+  const c = await api('trContent'); S.content = c;
+  const lessonRow = l => '<tr><td>' + esc(l.title) + '<div class="small muted">' + esc((c.modules.find(m => m.id === l.module_id) || {}).title || '') + '</div></td><td class="small">' + (l.updated_at ? fmtD(l.updated_at) : '') + '</td><td><button class="btn sm" data-edit="lessons:' + l.id + '">Edit</button></td></tr>';
+  return '<div class="ph"><div><h1>Learning content</h1><p>Update instructions when MAPP, Loom or Command change. Edits apply immediately; nobody\'s progress is lost.</p></div><div class="row"><button class="btn" data-new="lessons">New lesson</button><button class="btn" data-new="challenges">New challenge</button><button class="btn" data-new="questions">New question</button></div></div>'
+    + '<div class="card"><h2>Challenges</h2><table><tbody>' + c.challenges.map(x => '<tr><td>' + esc(x.title) + '</td><td>' + (x.week || 'race') + '</td><td><button class="btn sm" data-edit="challenges:' + x.id + '">Edit</button></td></tr>').join('') + '</tbody></table></div>'
+    + '<div class="card"><h2>Knowledge check questions</h2><table><tbody>' + c.questions.map(q => '<tr><td>' + esc(q.question) + '<div class="small muted">' + esc(q.challenge_id) + '</div></td><td><button class="btn sm" data-edit="questions:' + q.id + '">Edit</button></td></tr>').join('') + '</tbody></table></div>'
+    + '<div class="card"><h2>Lessons</h2><div class="tablebox"><table><thead><tr><th>Lesson</th><th>Updated</th><th></th></tr></thead><tbody>' + c.lessons.slice().sort((a, b) => a.order - b.order).map(lessonRow).join('') + '</tbody></table></div></div>';
+};
+const FORMS = {
+  lessons: [['id', 'Short id', 'text'], ['module_id', 'Module', 'module'], ['title', 'Title', 'text'], ['summary', 'Summary', 'area'], ['steps', 'Steps, one per line', 'lines'], ['order', 'Order', 'num']],
+  challenges: [['id', 'Short id', 'text'], ['title', 'Title', 'text'], ['week', 'Onboarding week (empty = ongoing race)', 'num'], ['track_id', 'Track', 'track'], ['difficulty', 'Difficulty (core or advanced)', 'text'], ['points', 'Verification points', 'num'], ['required', 'Required for onboarding (1 or 0)', 'num'], ['badge_id', 'Badge id (optional)', 'text'], ['objective', 'Learning objective', 'area'], ['activities', 'Required activities, one per line', 'lines'], ['assignment', 'Practical assignment', 'area'], ['evidence', 'Evidence required', 'area'], ['lessons', 'Lesson ids, comma separated', 'text'], ['resources', 'Learning resources, one per line', 'lines'], ['active', 'Active (1 or 0)', 'num']],
+  questions: [['id', 'Short id', 'text'], ['challenge_id', 'Challenge id', 'text'], ['question', 'Question', 'area'], ['options', 'Answer options, one per line', 'lines'], ['answer', 'Number of the correct option (first = 0)', 'num'], ['explanation', 'Explanation shown after answering', 'area']]
+};
+function editDlg(table, rec) {
+  const c = S.content, isNew = !rec; rec = rec || {};
+  const field = ([k, l, t]) => { const v = rec[k] == null ? '' : rec[k]; if (t === 'module') return '<label class="f">' + l + '<select id="ed_' + k + '">' + c.modules.map(m => '<option value="' + m.id + '"' + (m.id === v ? ' selected' : '') + '>' + esc(m.title) + '</option>').join('') + '</select></label>'; if (t === 'track') return '<label class="f">' + l + '<select id="ed_' + k + '">' + c.tracks.map(m => '<option value="' + m.id + '"' + (m.id === v ? ' selected' : '') + '>' + esc(m.name) + '</option>').join('') + '</select></label>'; if (t === 'area' || t === 'lines') return '<label class="f">' + l + '<textarea id="ed_' + k + '">' + esc(t === 'lines' ? String(v).split('|').join('\n') : v) + '</textarea></label>'; return '<label class="f">' + l + '<input type="' + (t === 'num' ? 'number' : 'text') + '" id="ed_' + k + '" value="' + esc(v) + '"' + (k === 'id' && !isNew ? ' readonly' : '') + '></label>'; };
+  dlg((isNew ? 'New ' : 'Edit ') + table.replace(/s$/, ''), '<form class="form">' + FORMS[table].map(field).join('') + '<p class="alert bad" id="edErr" hidden></p></form>', '<button class="btn" data-close>Cancel</button><button class="btn red" id="edGo">Save</button>', () => {
+    $('edGo').onclick = async () => { const r = {}; FORMS[table].forEach(([k, , t]) => { const v = $('ed_' + k).value; r[k] = t === 'lines' ? v.split('\n').map(x => x.trim()).filter(Boolean).join('|') : v; }); try { await api('trContentSave', { table, rec: r }); $('dlg').close(); toast('Saved'); render(); } catch (e) { $('edErr').hidden = false; $('edErr').textContent = e.message; } };
+  });
+}
+VIEWS.content.after = () => { document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { const [t, id] = b.dataset.edit.split(':'); editDlg(t, S.content[t].find(x => x.id === id)); }); document.querySelectorAll('[data-new]').forEach(b => b.onclick = () => editDlg(b.dataset.new, null)); };
+VIEWS.points = async () => {
+  const j = await api('trAdjustments');
+  return '<div class="ph"><div><h1>Points</h1><p>Points come from fixed rules and can never be awarded twice for the same thing. Manual adjustments need a reason and a platform administrator\'s approval.</p></div></div><div class="card"><h2>Manual adjustments</h2>' + (j.items.length ? '<div class="tablebox"><table><thead><tr><th>Agent</th><th>Points</th><th>Reason</th><th>Requested by</th><th>Status</th><th></th></tr></thead><tbody>' + j.items.map(x => '<tr><td>' + esc(x.agent) + '</td><td class="num">' + (x.points > 0 ? '+' : '') + x.points + '</td><td>' + esc(x.reason) + '</td><td class="small">' + esc(x.by) + '<div class="muted">' + fmtD(x.at) + '</div></td><td>' + esc(x.status) + (x.approved_by ? '<div class="small muted">' + esc(x.approved_by) + '</div>' : '') + '</td><td>' + (j.canApprove && x.status === 'pending' ? '<button class="btn sm red" data-adj="' + x.id + '" data-ok="1">Approve</button> <button class="btn sm" data-adj="' + x.id + '">Reject</button>' : '') + '</td></tr>').join('') + '</tbody></table></div>' : empty('No manual adjustments.')) + '</div>';
+};
+VIEWS.points.after = () => document.querySelectorAll('[data-adj]').forEach(b => b.onclick = async () => { try { await api('trAdjustDecide', { id: b.dataset.adj, approve: !!b.dataset.ok }); toast('Done'); render(); } catch (e) { toast(e.message); } });
+VIEWS.platform = async () => {
+  const c = await api('trContent'), s = c.settings, o = S.ov || await getOv();
+  const inp = (k, l, t) => '<label class="f">' + l + '<input type="' + (t || 'text') + '" data-set="' + k + '" value="' + esc(s[k]) + '"></label>';
+  return '<div class="ph"><div><h1>Settings and security</h1><p>Platform administrator only.</p></div><div class="row"><button class="btn" id="bk">Back up now</button><button class="btn" id="au">Audit log</button></div></div>'
+    + '<div class="card"><h2>Email</h2><label class="f">Mode<select data-set="mail_mode"><option value="test"' + (s.mail_mode === 'test' ? ' selected' : '') + '>Test: every email goes to you, marked [TEST - TECH RACE]</option><option value="live"' + (s.mail_mode === 'live' ? ' selected' : '') + '>Live: emails go to agents</option></select></label></div>'
+    + '<div class="card"><h2>Points rules</h2><div class="grid g4">' + inp('rule_lesson', 'Complete learning material', 'number') + inp('rule_check', 'Pass knowledge check', 'number') + inp('rule_submit', 'Submit practical assignment', 'number') + inp('rule_verify', 'MCTT verifies (default)', 'number') + inp('rule_attend', 'Attend training', 'number') + inp('rule_ontime', 'On-time bonus', 'number') + inp('rule_advanced', 'Advanced challenge', 'number') + inp('lesson_xp_week_cap', 'Weekly lesson XP limit', 'number') + inp('check_pass_pct', 'Knowledge check pass %', 'number') + '</div></div>'
+    + '<div class="card"><h2>Booking and support links</h2><div class="grid g2">' + inp('support_url', 'Tech support ticket link', 'url') + inp('checkin_url', 'Tuesday Tech Check-In booking link', 'url') + inp('monday_link', 'Monday training joining link', 'url') + inp('monday_training', 'Monday training description') + inp('buddy_info', 'Lead Generation Buddy description') + inp('app_url', 'App address', 'url') + '</div><button class="btn red" id="saveSet" style="margin-top:12px">Save settings</button></div>'
+    + '<div class="card"><h2>Roles</h2><p class="small muted">Nobody can change their own role. Changing roles signs the person out everywhere.</p><div class="tablebox"><table><thead><tr><th>Person</th><th>Agent</th><th>MCTT</th><th>Leadership</th><th>Platform</th><th></th></tr></thead><tbody>' + o.people.filter(a => a.status !== 'declined').map(a => '<tr><td>' + esc(a.name) + '<div class="small muted">' + esc(a.email) + '</div></td>' + ['agent', 'mctt', 'leader', 'platform'].map(r => '<td><input type="checkbox" data-role="' + a.id + '" value="' + r + '"' + (a.roles.includes(r) ? ' checked' : '') + '></td>').join('') + '<td><button class="btn sm" data-saverole="' + a.id + '">Save</button></td></tr>').join('') + '</tbody></table></div></div>';
+};
+VIEWS.platform.after = () => {
+  $('saveSet').onclick = async () => { const s = {}; document.querySelectorAll('[data-set]').forEach(el => { s[el.dataset.set] = el.value; }); try { await api('trSettings', { settings: s }); toast('Settings saved'); } catch (e) { toast(e.message); } };
+  $('bk').onclick = async () => { try { const j = await api('trBackup'); toast('Backup saved to Drive: ' + j.file); } catch (e) { toast(e.message); } };
+  $('au').onclick = async () => { const j = await api('trAudit'); dlg('Audit log (latest 400)', '<ul class="trail">' + j.items.map(a => '<li><b>' + esc(a.action) + '</b> <span class="small muted">' + fmtDT(a.at) + ' · ' + esc(a.actor) + '</span><div class="small">' + esc(a.target) + ' ' + esc(a.detail) + '</div></li>').join('') + '</ul>'); };
+  document.querySelectorAll('[data-saverole]').forEach(b => b.onclick = async () => { const id = b.dataset.saverole, roles = [...document.querySelectorAll('[data-role="' + id + '"]:checked')].map(x => x.value); try { await api('trRoles', { id, roles, leader_mc: roles.includes('leader') ? 'kw-edge' : '' }); toast('Roles saved'); } catch (e) { toast(e.message); } });
+};
+
+window.addEventListener('hashchange', () => { if (/^#(invite|verify|reset)=/.test(location.hash)) boot(); });
+boot();
+</script>
+</body>
+</html>
