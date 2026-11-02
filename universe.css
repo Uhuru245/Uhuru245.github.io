@@ -1,0 +1,58 @@
+/* MRET Digital Universe design system. Version 1.
+   Link it from any page:  <link rel="stylesheet" href="/universe.css">
+   Then add class="u-theme" to <body> for the background, and use the components below.
+   Palette: deep space #061512, dark emerald #092C29, turquoise #37E3CE, soft aqua #A6FFF0, warm sand #DCC7A7, white #F7FFFC. */
+:root {
+  --u-space: #061512; --u-emerald: #092c29; --u-turq: #37e3ce; --u-aqua: #a6fff0; --u-sand: #dcc7a7; --u-white: #f7fffc;
+  --u-ink: #f7fffc; --u-ink-2: rgba(226, 244, 240, .8); --u-ink-3: rgba(196, 226, 220, .58);
+  --u-edge: rgba(255, 255, 255, .16); --u-line: rgba(255, 255, 255, .1);
+  --u-glass: linear-gradient(160deg, rgba(60, 120, 112, .26), rgba(8, 30, 28, .4));
+  --u-glow: 0 0 40px -12px rgba(55, 227, 206, .7);
+  --u-shadow: 0 1px 0 rgba(255, 255, 255, .12) inset, 0 30px 70px -30px rgba(0, 0, 0, .7), 0 2px 10px rgba(0, 0, 0, .2);
+  --u-grad: linear-gradient(100deg, #a6fff0 0%, #37e3ce 55%, #1fc4b0 100%);
+  --u-r: 22px; --u-r-s: 14px;
+  --u-font: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif; --u-display: 'Syncopate', 'Manrope', system-ui, sans-serif;
+  --u-ease: cubic-bezier(.2, .7, .2, 1);
+}
+.u-theme { margin: 0; color: var(--u-ink); font: 400 16px/1.6 var(--u-font); -webkit-font-smoothing: antialiased; color-scheme: dark;
+  background: radial-gradient(70vw 50vw at 15% 0%, rgba(55, 227, 206, .16), transparent 60%), radial-gradient(60vw 40vw at 100% 100%, rgba(220, 199, 167, .12), transparent 60%), linear-gradient(180deg, #061512, #092c29); background-attachment: fixed; min-height: 100vh; }
+.u-theme :focus-visible { outline: 2px solid var(--u-turq); outline-offset: 3px; border-radius: 6px; }
+
+/* surfaces */
+.u-glass { position: relative; background: var(--u-glass); border: 1px solid var(--u-edge); border-radius: var(--u-r); box-shadow: var(--u-shadow); backdrop-filter: blur(18px) saturate(130%); -webkit-backdrop-filter: blur(18px) saturate(130%); }
+.u-card { position: relative; background: var(--u-glass); border: 1px solid var(--u-edge); border-radius: var(--u-r); box-shadow: var(--u-shadow); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); transition: transform .35s var(--u-ease), box-shadow .35s, border-color .35s; }
+a.u-card:hover { transform: translateY(-3px); border-color: rgba(55, 227, 206, .45); box-shadow: var(--u-shadow), var(--u-glow); }
+
+/* type */
+.u-title { font: 700 clamp(28px, 4.6vw, 60px)/1.05 var(--u-display); letter-spacing: .02em; text-transform: uppercase; margin: 0; }
+.u-title em { font-style: normal; color: var(--u-turq); }
+.u-eyebrow { display: inline-flex; align-items: center; gap: 9px; height: 30px; padding: 0 13px; border-radius: 999px; background: rgba(255, 255, 255, .06); border: 1px solid var(--u-edge); font: 700 10.5px/1 var(--u-font); letter-spacing: .18em; text-transform: uppercase; color: var(--u-ink-2); }
+.u-eyebrow::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--u-turq); box-shadow: 0 0 10px var(--u-turq); }
+.u-muted { color: var(--u-ink-3); }
+
+/* buttons */
+.u-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 46px; padding: 0 22px; border-radius: 999px; border: 1px solid var(--u-edge); background: rgba(255, 255, 255, .06); color: var(--u-ink); font: 700 12.5px/1 var(--u-font); letter-spacing: .1em; text-transform: uppercase; text-decoration: none; cursor: pointer; transition: transform .25s var(--u-ease), box-shadow .25s, background .25s, border-color .25s; }
+.u-btn:hover { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .3); transform: translateY(-1px); }
+.u-btn.primary { background: var(--u-grad); color: #04201c; border-color: transparent; box-shadow: 0 10px 26px -10px rgba(55, 227, 206, .75), 0 1px 0 rgba(255, 255, 255, .5) inset; }
+.u-btn.primary:hover { box-shadow: 0 14px 34px -10px rgba(55, 227, 206, .95), 0 1px 0 rgba(255, 255, 255, .5) inset; }
+.u-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+/* forms */
+.u-field { display: grid; gap: 7px; font: 700 11px var(--u-font); letter-spacing: .16em; text-transform: uppercase; color: var(--u-ink-3); }
+.u-input, .u-field input, .u-field select, .u-field textarea { width: 100%; min-height: 50px; border-radius: var(--u-r-s); background: rgba(255, 255, 255, .06); border: 1px solid var(--u-edge); color: var(--u-ink); font: 600 16px var(--u-font); letter-spacing: 0; text-transform: none; padding: 12px 16px; box-sizing: border-box; }
+.u-input:focus, .u-field input:focus, .u-field select:focus, .u-field textarea:focus { outline: none; border-color: var(--u-turq); box-shadow: 0 0 0 4px rgba(55, 227, 206, .2); }
+.u-input::placeholder { color: var(--u-ink-3); }
+
+/* status, notifications and dialogs */
+.u-pill { display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 999px; font: 700 10.5px/1 var(--u-font); letter-spacing: .12em; text-transform: uppercase; border: 1px solid var(--u-edge); color: var(--u-ink-2); }
+.u-pill.ok { color: var(--u-turq); border-color: rgba(55, 227, 206, .45); background: rgba(55, 227, 206, .1); }
+.u-pill.warn { color: var(--u-sand); border-color: rgba(220, 199, 167, .45); background: rgba(220, 199, 167, .1); }
+.u-toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 90; padding: 12px 18px; border-radius: 999px; background: rgba(9, 44, 41, .85); border: 1px solid var(--u-edge); color: var(--u-ink); font: 600 14px var(--u-font); backdrop-filter: blur(14px); box-shadow: var(--u-shadow); }
+.u-modal { position: fixed; inset: 0; z-index: 95; display: grid; place-items: center; padding: 16px; background: rgba(2, 10, 9, .6); backdrop-filter: blur(6px); }
+.u-modal > .u-glass { width: min(560px, 100%); padding: 26px; }
+
+/* the way back to the main universe, for any page */
+.u-back { position: fixed; left: 16px; top: 16px; z-index: 80; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px 0 10px; border-radius: 999px; background: rgba(9, 44, 41, .7); border: 1px solid var(--u-edge); color: var(--u-ink); text-decoration: none; font: 700 11px/1 var(--u-font); letter-spacing: .14em; text-transform: uppercase; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: var(--u-shadow); }
+.u-back:hover { border-color: rgba(55, 227, 206, .5); box-shadow: var(--u-shadow), var(--u-glow); }
+.u-back b { width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; background: rgba(55, 227, 206, .16); color: var(--u-turq); font: 700 11px var(--u-display); }
+@media (prefers-reduced-motion: reduce) { .u-theme *, .u-theme *::before, .u-theme *::after { transition: none !important; animation: none !important; } }
