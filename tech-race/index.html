@@ -433,9 +433,10 @@ VIEWS.centre = async () => {
   let list = o.agents.filter(a => (!f.team || a.team_id === f.team) && (!f.cohort || a.cohort_id === f.cohort) && (!f.status || (f.status === 'help' ? a.needsHelp : f.status === 'inactive' ? a.inactive : a.status === f.status)) && (!f.q || (a.name + ' ' + a.email).toLowerCase().includes(f.q.toLowerCase())));
   const kp = (l, v, s) => '<div class="kpi"><div class="l">' + l + '</div><div class="v num">' + v + '</div>' + (s ? '<div class="s">' + s + '</div>' : '') + '</div>';
   const opt = (arr, sel, blank) => '<option value="">' + blank + '</option>' + arr.map(x => '<option value="' + esc(x.id) + '"' + (sel === x.id ? ' selected' : '') + '>' + esc(x.name) + '</option>').join('');
-  return '<div class="ph"><div><h1>MCTT Command Centre</h1><p>' + (o.readOnly ? 'Read-only view for market centre leadership.' : 'Every agent\'s status, who needs help, and what is waiting for you.') + '</p></div><div class="row no-print">' + (o.readOnly ? '' : '<button class="btn red" id="inv">Invite agent</button>') + '<button class="btn" id="csv">Export CSV</button><button class="btn" onclick="window.print()">Print</button></div></div>'
+  return '<div class="ph"><div><h1>MCTT Command Centre</h1><p>' + (o.readOnly ? 'Read-only view for market centre leadership.' : 'Every agent\'s status, who needs help, and what is waiting for you.') + '</p></div><div class="row no-print">' + (o.readOnly ? '' : '<button class="btn" id="imp">Import roster</button><button class="btn red" id="inv">Invite agent</button>') + '<button class="btn" id="csv">Export CSV</button><button class="btn" onclick="window.print()">Print</button></div></div>'
     + '<div class="grid g4" style="margin-bottom:12px">' + kp('Enrolled', k.enrolled, k.pendingJoin ? k.pendingJoin + ' waiting for approval' : '') + kp('Active last 7 days', k.participating7, 'of ' + k.active + ' active') + kp('Onboarding complete', k.completed, 'average ' + k.completionPct + '% verified') + kp('Awaiting your review', k.awaiting, '') + kp('Overdue tasks', k.overdue, '') + kp('Need assistance', k.needHelp, 'overdue, inactive or changes requested') + Object.values(o.byTrack).map(t => kp(esc(t.name), t.pct + '%', t.verified + ' of ' + t.total + ' verified')).join('') + '</div>'
-    + '<div class="card"><h2>Agents</h2><div class="filters no-print"><input type="text" id="fQ" placeholder="Search name or email" value="' + esc(f.q || '') + '"><select id="fTeam">' + opt(o.teams, f.team, 'All teams') + '</select><select id="fCohort">' + opt(o.cohorts, f.cohort, 'All cohorts') + '</select><select id="fStatus"><option value="">All statuses</option>' + [['active', 'Active'], ['pending', 'Waiting for approval'], ['invited', 'Invited'], ['help', 'Needs assistance'], ['inactive', 'Inactive 7+ days'], ['suspended', 'Suspended']].map(x => '<option value="' + x[0] + '"' + (f.status === x[0] ? ' selected' : '') + '>' + x[1] + '</option>').join('') + '</select></div>'
+    + (!o.readOnly && o.agents.some(a => a.status === 'roster') ? '<div class="alert info no-print"><b>' + o.agents.filter(a => a.status === 'roster').length + ' agents imported but not yet invited.</b> Nobody has been emailed. <button class="btn sm red" id="sendInv" style="margin-left:8px">Send invitations</button></div>' : '')
+    + '<div class="card"><h2>Agents</h2><div class="filters no-print"><input type="text" id="fQ" placeholder="Search name or email" value="' + esc(f.q || '') + '"><select id="fTeam">' + opt(o.teams, f.team, 'All teams') + '</select><select id="fCohort">' + opt(o.cohorts, f.cohort, 'All cohorts') + '</select><select id="fStatus"><option value="">All statuses</option>' + [['active', 'Active'], ['roster', 'Not yet invited'], ['pending', 'Waiting for approval'], ['invited', 'Invited'], ['help', 'Needs assistance'], ['inactive', 'Inactive 7+ days'], ['suspended', 'Suspended']].map(x => '<option value="' + x[0] + '"' + (f.status === x[0] ? ' selected' : '') + '>' + x[1] + '</option>').join('') + '</select></div>'
     + '<div class="tablebox"><table><thead><tr><th>Agent</th><th>Status</th><th>Onboarding</th><th>XP</th><th>Overdue</th><th>Review</th><th>Last active</th></tr></thead><tbody>' + (list.map(a => '<tr class="click" data-agent="' + a.id + '"><td><b>' + esc(a.name) + '</b>' + (a.needsHelp ? ' <span class="tag needs_improvement">help</span>' : '') + '<div class="small muted">' + esc(a.email) + (a.team ? ' · ' + esc(a.team) : '') + '</div></td><td>' + esc(a.status) + '</td><td>' + pctBar(a.pct) + '<span class="small">' + a.verified + '/' + a.verifiedTotal + '</span></td><td class="num">' + a.xp + '<div class="small muted">' + esc(a.level) + '</div></td><td class="num">' + (a.overdue || '') + '</td><td class="num">' + (a.pending || '') + '</td><td class="small">' + (a.lastActive ? fmtD(a.lastActive) : 'never') + '</td></tr>').join('') || '<tr><td colspan="7">' + empty('No agents match.') + '</td></tr>') + '</tbody></table></div></div>'
     + '<div class="card"><h2>This week\'s race</h2>' + (o.board.length ? '<table><thead><tr><th>#</th><th>Agent</th><th>XP this week</th><th>Last week</th></tr></thead><tbody>' + o.board.map(r => '<tr><td>' + (r.tied ? '=' : '') + r.rank + '</td><td>' + esc(r.name) + '</td><td class="num">' + r.xp + '</td><td class="small">' + (r.lastWeekRank ? '#' + r.lastWeekRank + (r.lastWeekRank > r.rank ? ' &uarr;' : r.lastWeekRank < r.rank ? ' &darr;' : '') : 'new') + '</td></tr>').join('') + '</tbody></table>' : empty('No points yet this week.')) + '</div>';
 };
@@ -444,6 +445,8 @@ VIEWS.centre.after = () => {
   set('fQ', 'q'); set('fTeam', 'team'); set('fCohort', 'cohort'); set('fStatus', 'status');
   document.querySelectorAll('[data-agent]').forEach(tr => tr.onclick = () => go('agent', tr.dataset.agent));
   const inv = $('inv'); if (inv) inv.onclick = inviteDlg;
+  const imp = $('imp'); if (imp) imp.onclick = importDlg;
+  const si = $('sendInv'); if (si) si.onclick = sendInvDlg;
   $('csv').onclick = async () => { const j = await api('trExport'); const b = new Blob(['﻿' + j.csv], { type: 'text/csv' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'tech-race-progress-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click(); };
 };
 VIEWS.agent = async () => {
@@ -469,6 +472,44 @@ VIEWS.agent.after = () => {
   document.querySelectorAll('[data-file]').forEach(b => b.onclick = () => openFile(b.dataset.file));
 };
 async function openFile(sub) { const j = await api('trFile', { submission: sub }); const blob = new Blob([Uint8Array.from(atob(j.b64), c => c.charCodeAt(0))], { type: j.mime }); window.open(URL.createObjectURL(blob), '_blank', 'noopener'); }
+/** Reads a CSV export such as MAPP's Associate Report. Only the columns needed for training are kept; birthdays and other fields are ignored. */
+function parseCsv(text) {
+  const rows = []; let row = [], f = '', q = false;
+  for (let i = 0; i < text.length; i++) { const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += ch; }
+    else if (ch === '"' && f === '') q = true; else if (ch === ',' || ch === ';') { row.push(f); f = ''; } else if (ch === '\n') { row.push(f); rows.push(row); row = []; f = ''; } else if (ch !== '\r') f += ch; }
+  if (f !== '' || row.length) { row.push(f); rows.push(row); }
+  return rows.filter(r => r.some(c => c.trim()));
+}
+function rosterFrom(rows) {
+  const h = rows[0].map(x => x.toLowerCase().replace(/^\ufeff/, '').trim()), col = re => h.findIndex(x => re.test(x));
+  const c = { name: col(/associate$|^name|full name|associate name/), email: col(/mail/), mobile: col(/mobile|cell|phone/), team: col(/^team/), start: col(/kw start|start date|join/), role: col(/role/), status: col(/^status/) };
+  if (c.name < 0 || c.email < 0) throw new Error('The file needs a name column and an email column (for example the MAPP Associate Report export).');
+  return rows.slice(1).map(r => ({ name: (r[c.name] || '').trim(), email: (r[c.email] || '').trim(), mobile: c.mobile >= 0 ? (r[c.mobile] || '').trim() : '', team: c.team >= 0 ? (r[c.team] || '').trim() : '', kw_join_date: c.start >= 0 ? (r[c.start] || '').trim() : '', role: c.role >= 0 ? (r[c.role] || '') : 'Agent', status: c.status >= 0 ? (r[c.status] || '') : 'Active' }));
+}
+function importDlg() {
+  let roster = null;
+  dlg('Import agents', '<p class="small" style="margin-top:0">In MAPP open <b>Reports > Associate Report</b>, set Status to Active and press <b>Export CSV</b>. Choose that file here. Only name, email, mobile, team and KW start date are kept. <b>Nobody is emailed</b>: you send invitations afterwards.</p><input type="file" id="rcsv" accept=".csv,text/csv"><div id="rprev" style="margin-top:12px"></div><p class="alert bad" id="rErr" hidden></p>', '<button class="btn" data-close>Cancel</button><button class="btn red" id="rGo" disabled>Import</button>', () => {
+    $('rcsv').onchange = async () => {
+      $('rErr').hidden = true;
+      try {
+        const all = rosterFrom(parseCsv(await $('rcsv').files[0].text())), me = S.me.email.toLowerCase();
+        roster = all.filter(r => /agent/i.test(r.role) && !/inactive|terminated/i.test(r.status) && r.email.toLowerCase() !== me);
+        const skipped = all.length - roster.length;
+        $('rprev').innerHTML = '<div class="alert info">' + roster.length + ' agents ready to import' + (skipped ? ' (' + skipped + ' skipped: not agents, not active, or you)' : '') + '.</div><div class="tablebox" style="max-height:260px"><table><thead><tr><th>Name</th><th>Email</th><th>Team</th><th>KW start</th></tr></thead><tbody>' + roster.map(r => '<tr><td>' + esc(r.name) + '</td><td class="small">' + esc(r.email) + '</td><td class="small">' + esc(r.team) + '</td><td class="small">' + esc(r.kw_join_date) + '</td></tr>').join('') + '</tbody></table></div>';
+        $('rGo').disabled = !roster.length;
+      } catch (e) { $('rErr').hidden = false; $('rErr').textContent = e.message; }
+    };
+    $('rGo').onclick = async () => { $('rGo').disabled = true; try { const j = await api('trImport', { rows: roster, source: 'CSV import' }); $('dlg').close(); toast(j.added + ' added, ' + j.updated + ' updated' + (j.skipped.length ? ', ' + j.skipped.length + ' skipped' : '') + '. Nobody has been emailed yet.'); render(); } catch (e) { $('rErr').hidden = false; $('rErr').textContent = e.message; $('rGo').disabled = false; } };
+  });
+}
+function sendInvDlg() {
+  const list = S.ov.agents.filter(a => a.status === 'roster' || a.status === 'invited');
+  dlg('Send invitations', '<p class="small" style="margin-top:0">Choose who to invite. Each person gets an email with a personal link, valid for 14 days.' + '</p><label class="check"><input type="checkbox" id="siAll"> Select everyone not yet invited</label><label class="f" style="margin:10px 0">Onboarding start <span class="hint">empty = the day each agent accepts</span><input type="date" id="siStart"></label><div style="max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:10px">' + list.map(a => '<label class="check"><input type="checkbox" name="si" value="' + a.id + '" data-st="' + a.status + '"> ' + esc(a.name) + ' <span class="small muted">' + esc(a.email) + (a.status === 'invited' ? ' · invited before' : '') + '</span></label>').join('') + '</div><div id="siOut"></div>', '<button class="btn" data-close>Close</button><button class="btn red" id="siGo">Send</button>', () => {
+    $('siAll').onchange = () => document.querySelectorAll('input[name="si"][data-st="roster"]').forEach(c => { c.checked = $('siAll').checked; });
+    $('siGo').onclick = async () => { const ids = [...document.querySelectorAll('input[name="si"]:checked')].map(c => c.value); if (!ids.length) return; $('siGo').disabled = true; try { const j = await api('trSendInvites', { ids, onboarding_start: $('siStart').value }); $('siOut').innerHTML = '<div class="alert ok">' + j.sent + ' invitation' + (j.sent === 1 ? '' : 's') + ' sent.' + (j.links.length ? ' Email is in test mode, so they went to you, not the agents.' : '') + '</div>'; S.ov = null; } catch (e) { $('siOut').innerHTML = '<div class="alert bad">' + esc(e.message) + '</div>'; $('siGo').disabled = false; } };
+  });
+}
 function inviteDlg() {
   const o = S.ov, opt = (arr, blank) => '<option value="">' + blank + '</option>' + arr.map(x => '<option value="' + esc(x.id) + '">' + esc(x.name) + '</option>').join('');
   dlg('Invite an agent', '<form class="form" id="iv"><div class="grid g2"><label class="f">Full name<input type="text" id="ivN" required></label><label class="f">Email<input type="email" id="ivE" required></label><label class="f">Team<select id="ivT">' + opt(o.teams, 'No team') + '</select></label><label class="f">Cohort<select id="ivC">' + opt(o.cohorts, 'No cohort') + '</select></label><label class="f">Onboarding start <span class="hint">empty = the day they accept</span><input type="date" id="ivS"></label></div><p class="alert bad" id="ivErr" hidden></p><div id="ivOut"></div></form>', '<button class="btn" data-close>Close</button><button class="btn red" id="ivGo">Send invitation</button>', () => {
