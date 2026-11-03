@@ -184,6 +184,17 @@ html.busy::before { content: ''; position: fixed; left: 0; top: 0; height: 3px; 
 .spin { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid var(--line-2); border-top-color: var(--red); animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { html.busy::before { animation: none; width: 100%; opacity: .6; } .spin { animation-duration: 2s; } }
+
+/* KW Homes Race */
+.khbar { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; margin: 0 0 12px; font-size: 14px; }
+.khbar b i { font-style: normal; color: var(--ink-3); font-weight: 500; margin-left: 4px; }
+.khbar .track { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: #ecebe6; overflow: hidden; }
+.khbar .track div { height: 100%; background: var(--red); border-radius: 4px; }
+.khchart { width: 100%; height: 180px; display: block; } .khchart rect { fill: var(--red); opacity: .85; } .khchart rect:hover { opacity: 1; }
+.khlab { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-3); margin-top: 6px; }
+.khbadges { display: flex; flex-wrap: wrap; gap: 8px; }
+.khb { display: inline-flex; flex-direction: column; padding: 8px 12px; border-radius: 10px; background: var(--red-bg); font-size: 12px; color: var(--ink-2); }
+.khb b { color: var(--red); font-size: 13px; }
 </style>
 </head>
 <body>
@@ -279,10 +290,10 @@ function signOut(msg) { S.token = null; S.me = null; store.set('tr.token', null)
 /* ---------- shell ---------- */
 function navItems() {
   const items = [];
-  if (isAgent()) items.push(['home', 'Home'], ['learn', 'Learn'], ['race', 'Race'], ['book', 'Book'], ['me', 'Me']);
+  if (isAgent()) items.push(['home', 'Home'], ['learn', 'Learn'], ['race', 'Race'], ['homes', 'KW Homes Race'], ['book', 'Book'], ['me', 'Me']);
   if (isAdmin() || has('leader')) items.push(['sep', 'MCTT'], ['centre', 'Command Centre']);
   if (isAdmin()) items.push(['reviews', 'Reviews'], ['challenges', 'Challenges'], ['content', 'Learning content'], ['points', 'Points']);
-  if (isAdmin() || has('leader')) items.push(['race', 'Leaderboards']);
+  if (isAdmin() || has('leader')) items.push(['race', 'Leaderboards'], ['homes', 'KW Homes Race']);
   if (has('platform')) items.push(['sep', 'Platform'], ['platform', 'Settings and security']);
   if (!isAgent()) items.push(['me', 'My account']);
   const seen = {}; return items.filter(i => i[0] === 'sep' || (!seen[i[0]] && (seen[i[0]] = 1)));
@@ -437,6 +448,72 @@ VIEWS.race.after = () => { document.querySelectorAll('[data-board]').forEach(b =
 async function profileDlg(id) {
   const p = (await api('trProfile', { id })).profile;
   dlg(p.name, '<div class="row" style="margin-bottom:12px"><span class="av" style="width:56px;height:56px"' + (p.photo ? ' data-photo="' + p.id + '"' : '') + '>' + esc(initials(p.name)) + '</span><div><b>' + esc(p.level.name) + '</b> · ' + p.xp + ' XP<div class="small muted">' + p.verified.done + ' of ' + p.verified.total + ' onboarding milestones verified · ' + p.streak + '-week streak' + (p.team ? ' · ' + esc(p.team) : '') + '</div></div></div><h3 style="margin:10px 0">Badges</h3><div class="badges">' + (p.badges.length ? p.badges.map(b => badgeHtml(b)).join('') : '<p class="small muted">No badges yet.</p>') + '</div><h3 style="margin:14px 0 6px">Verified milestones</h3>' + (p.milestones.length ? '<ul>' + p.milestones.map(m => '<li>' + esc(m) + '</li>').join('') + '</ul>' : '<p class="small muted">None yet.</p>'), null, () => loadPhotos());
+}
+/* ---------- KW Homes Race ---------- */
+S.kh = S.kh || { scope: 'week', race: 'overall', week: '', month: '' };
+const khUnit = { overall: 'rank total', vcard: 'vCard views', listings: 'listing views', site: 'agent site views' };
+function khBars(list, total) { const max = Math.max(1, ...list.map(x => x.v)); return list.map(x => '<div class="khbar"><span>' + esc(x.k) + '</span><b class="num">' + x.v.toLocaleString('en-ZA') + (total ? ' <i>' + Math.round(x.v / total * 100) + '%</i>' : '') + '</b><div class="track"><div style="width:' + Math.max(2, x.v / max * 100) + '%"></div></div></div>').join(''); }
+function khChart(days) {
+  if (!days.length) return '';
+  const W = 720, Hh = 180, max = Math.max(1, ...days.map(d => d.sessions)), bw = W / days.length;
+  const bars = days.map((d, i) => { const h = Math.max(1, d.sessions / max * (Hh - 24)); return '<rect x="' + (i * bw + 2).toFixed(1) + '" y="' + (Hh - h).toFixed(1) + '" width="' + Math.max(2, bw - 4).toFixed(1) + '" height="' + h.toFixed(1) + '" rx="2"><title>' + fmtD(d.d) + ': ' + d.sessions + ' sessions, ' + d.visitors + ' visitors, ' + d.pages + ' page views</title></rect>'; }).join('');
+  const lab = days.filter((d, i) => i % Math.ceil(days.length / 6) === 0).map(d => '<span>' + fmtD(d.d) + '</span>').join('');
+  return '<svg class="khchart" viewBox="0 0 ' + W + ' ' + Hh + '" preserveAspectRatio="none" role="img" aria-label="Sessions per day">' + bars + '</svg><div class="khlab">' + lab + '</div>';
+}
+VIEWS.homes = async () => {
+  const k = S.kh, d = await api('trKhRace', { week: k.week, month: k.month }); S.khd = d;
+  if (!d.week && !d.month) return '<div class="ph"><div><h1>KW Homes Race</h1><p>Who gets the most out of KW Homes: vCard views, listing views, agent site views and leads.</p></div>' + (d.admin ? '<button class="btn red" id="khImp">Import from MAPP</button>' : '') + '</div>' + empty('The first race results arrive after the next MAPP import.');
+  const scopeSeg = '<div class="seg" role="group" aria-label="Race period">' + [['week', 'This week'], ['month', 'This month']].map(([v, l]) => '<button data-khscope="' + v + '" aria-pressed="' + (k.scope === v) + '">' + l + '</button>').join('') + '</div>';
+  const P = k.scope === 'month' ? d.month : d.week, list = k.scope === 'month' ? d.months : d.weeks;
+  const pick = list && list.length > 1 ? '<label class="small muted" style="display:flex;gap:8px;align-items:center">' + (k.scope === 'month' ? 'Month' : 'Week of') + '<select id="khPick" style="width:auto;min-height:36px">' + list.map(x => '<option value="' + x + '"' + (P && P.key === x ? ' selected' : '') + '>' + (k.scope === 'month' ? x : fmtD(x)) + '</option>').join('') + '</select></label>' : '';
+  let board = '';
+  if (!P) board = empty(k.scope === 'month' ? 'No month results yet. They arrive at month end.' : 'No week results yet.');
+  else if (P.masked) {
+    board = '<div class="card"><h2 style="margin-top:0">' + (P.final ? 'Top five contenders' : 'In the running') + '</h2><p class="small muted" style="margin-top:0">' + (P.final ? 'One of these five is the number one for the month. The winner is announced and congratulated personally.' : 'The five agents currently in the running for number one, in alphabetical order.') + '</p><ol class="lb">' + P.standings.contenders.map(c => '<li' + (c.user_id === d.me ? ' class="me"' : '') + '><span class="rk">*</span><span class="av">' + esc(initials(c.name)) + '</span><div><b>' + esc(c.name) + '</b></div><span></span></li>').join('') + '</ol></div>';
+  } else {
+    const tabs = '<div class="tabs" role="tablist">' + d.races.map(r => '<button role="tab" data-khrace="' + r.id + '" aria-selected="' + (k.race === r.id) + '">' + esc(r.short) + '</button>').join('') + '</div>';
+    const rows = (P.standings[k.race] || []).slice(0, 50).map(x => '<li' + (x.user_id === d.me ? ' class="me"' : '') + '><span class="rk">' + x.rank + '</span><span class="av">' + esc(initials(x.name)) + '</span><div><b>' + esc(x.name) + '</b>' + (x.detail ? '<div class="small muted">' + d.metrics.map(m => x.detail[m[0]] + ' ' + m[1]).filter(s => !/^0 /.test(s)).join(' · ') + '</div>' : '') + '</div><span class="xp num">' + x.score.toLocaleString('en-ZA') + '<span class="small muted" style="font:500 12px var(--sans)"> ' + khUnit[k.race] + '</span></span></li>').join('');
+    board = tabs + '<p class="small muted">' + (k.race === 'overall' ? 'Each agent is ranked on agent site views, visitors, page views, listing views, vCard views, leads, WhatsApp and KW Finance clicks. The lowest total of those eight ranks wins.' : 'Most ' + khUnit[k.race] + ' wins.') + ' ' + fmtD(P.from) + ' to ' + fmtD(P.to) + (P.final ? ', final.' : ', so far.') + '</p><div class="card">' + (rows ? '<ol class="lb">' + rows + '</ol>' : empty('No activity yet.')) + '</div>';
+  }
+  const mine = d.badges.filter(b => b.user_id === d.me);
+  const badges = '<div class="card"><h2 style="margin-top:0">' + (d.admin ? 'Badges awarded' : 'Your KW Homes badges') + '</h2>' + ((d.admin ? d.badges : mine).length ? '<div class="khbadges">' + (d.admin ? d.badges : mine).slice(-60).reverse().map(b => '<span class="khb"><b>' + esc(b.title) + '</b>' + (d.admin ? esc(b.name) + ' · ' : '') + esc(b.period) + '</span>').join('') + '</div>' : '<p class="small muted">Badges are earned each week: ' + d.badgeDefs.map(b => esc(b.name) + ' (' + b.at + ' ' + ({ vcard: 'vCard views', listings: 'listing views', site: 'agent site views', leads: b.at === 1 ? 'lead' : 'leads' })[b.metric] + ')').join(', ') + ', plus a Weekly Winner badge for each race.</p>') + '</div>';
+  const t = d.traffic && d.traffic.data, sum = t ? t.summary : {}, sess = t ? t.sources.reduce((a, x) => a + x.v, 0) : 0, dev = t ? t.devices.reduce((a, x) => a + x.v, 0) : 0;
+  const traffic = t ? '<h2 style="margin:26px 0 6px">KW Edge on KW Homes</h2><p class="small muted" style="margin-top:0">Whole office, people only (crawlers removed' + (t.crawlerPct != null ? ': ' + t.crawlerPct + '% of raw traffic was automated' : '') + '). ' + fmtD(d.traffic.from) + ' to ' + fmtD(d.traffic.to) + '.</p>'
+    + '<div class="stats">' + Object.keys(sum).map(x => '<div class="kpi"><div class="l">' + esc(x) + '</div><div class="v num">' + Number(sum[x]).toLocaleString('en-ZA') + '</div></div>').join('') + '</div>'
+    + '<div class="card"><h3 style="margin-top:0">Traffic over time (sessions per day)</h3>' + khChart(t.days) + '</div>'
+    + '<div class="grid g3"><div class="card"><h3 style="margin-top:0">Traffic sources</h3>' + khBars(t.sources, sess) + '</div><div class="card"><h3 style="margin-top:0">Device split</h3>' + khBars(t.devices, dev) + '</div><div class="card"><h3 style="margin-top:0">What people open</h3>' + khBars(t.pageTypes.map(x => ({ k: ({ listing: 'Listings', vcard: 'vCards', agent_site: 'Agent sites', search: 'Search' })[x.k] || x.k, v: x.v }))) + '</div></div>' : '';
+  const admin = d.admin ? '<div class="card no-print" style="margin-top:18px"><h2 style="margin-top:0">Run the race</h2><div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn red" id="khImp">Import from MAPP</button>' + [['monday', 'Send Monday winners'], ['wednesday', 'Send Wednesday focus'], ['friday', 'Send Friday progress'], ['month', 'Send month-end top five']].map(([v, l]) => '<button class="btn" data-khsend="' + v + '">' + l + '</button>').join('') + '</div>'
+    + '<label class="f" style="margin-top:14px">Wednesday focus: what agents should look out for this week<span class="hint">Leave empty to use a ready-made tip.</span><textarea id="khFocus" rows="2" maxlength="600">' + esc(d.focus || '') + '</textarea></label><button class="btn sm" id="khFocusSave">Save focus</button>'
+    + '<p class="small muted" style="margin-bottom:0">Emails go to every agent on the roster. Month end: agents get the top five in alphabetical order; the number one goes only to you.' + (d.sends.length ? ' Last sent: ' + d.sends.slice(0, 4).map(s => s.kind + ' ' + s.period + ' (' + s.count + ')').join(', ') + '.' : '') + '</p></div>' : '';
+  return '<div class="ph"><div><h1>KW Homes Race</h1><p>vCard views, listing views, agent site views and leads from KW Homes. New results every Monday, Wednesday and Friday.</p></div><div class="row" style="gap:10px;flex-wrap:wrap">' + scopeSeg + pick + '</div></div>' + board + badges + traffic + admin;
+};
+VIEWS.homes.after = () => {
+  document.querySelectorAll('[data-khscope]').forEach(b => b.onclick = () => { S.kh.scope = b.dataset.khscope; render(); });
+  document.querySelectorAll('[data-khrace]').forEach(b => b.onclick = () => { S.kh.race = b.dataset.khrace; render(); });
+  const pk = $('khPick'); if (pk) pk.onchange = () => { S.kh[S.kh.scope] = pk.value; render(); };
+  const imp = $('khImp'); if (imp) imp.onclick = khImportDlg;
+  const fs = $('khFocusSave'); if (fs) fs.onclick = async () => { fs.disabled = true; try { await api('trKhFocus', { focus: $('khFocus').value }); toast('Focus saved for Wednesday'); } catch (e) { toast(e.message); } fs.disabled = false; };
+  document.querySelectorAll('[data-khsend]').forEach(b => b.onclick = () => {
+    const kind = b.dataset.khsend, d = S.khd, per = kind === 'month' ? (d.month && d.month.key) : (d.week && d.week.key);
+    if (!per) return toast('Import data for that period first.');
+    dlg('Send to every agent?', '<p>' + esc(b.textContent) + ' for ' + esc(kind === 'month' ? per : 'the week of ' + fmtD(per)) + '. This emails every agent on the roster now.</p>', '<button class="btn" data-close>Cancel</button><button class="btn red" id="khGo">Send</button>', () => { $('khGo').onclick = async () => { $('khGo').disabled = true; try { const r = await api('trKhSend', kind === 'month' ? { kind, month: per } : { kind, week: per }); $('dlg').close(); toast(r.sent + ' emails sent'); render(); } catch (e) { $('khGo').disabled = false; toast(e.message); } }; });
+  });
+};
+function khImportDlg() {
+  const today = new Date(Date.now() + 2 * 36e5).toISOString().slice(0, 10);
+  dlg('Import from MAPP', '<p class="small" style="margin-top:0">In MAPP, open Reports > KWHomes Analytics, set the date range, then use Export CSV on the <b>Agents</b> tab (and the <b>Traffic</b> tab for the office charts). Choose the same dates here.</p><div class="grid g2"><label class="f">From<input type="date" id="khFrom" value="' + today + '"></label><label class="f">To<input type="date" id="khTo" value="' + today + '"></label></div><label class="f">CSV files<input type="file" id="khFiles" accept=".csv,text/csv" multiple></label><label class="f">Then send<select id="khSendSel"><option value="">Nothing, just update the race</option><option value="monday">Monday winners (full week Mon to Sun)</option><option value="wednesday">Wednesday focus and leaders</option><option value="friday">Friday progress</option><option value="month">Month-end top five</option></select></label><p class="small" id="khOut" role="status"></p>', '<button class="btn" data-close>Close</button><button class="btn red" id="khGo">Import</button>', () => {
+    $('khGo').onclick = async () => {
+      const fl = [...$('khFiles').files]; if (!fl.length) return ($('khOut').textContent = 'Choose the CSV file(s) first.');
+      $('khGo').disabled = true; $('khOut').textContent = 'Importing...';
+      try {
+        const files = await Promise.all(fl.map(f => f.text().then(text => ({ name: f.name, text }))));
+        const r = await api('trKhImport', { files, from: $('khFrom').value, to: $('khTo').value, send: $('khSendSel').value });
+        $('khOut').innerHTML = 'Imported ' + r.agents + ' agents' + (r.traffic ? ' and the office traffic' : '') + ' (' + esc(r.period.type) + (r.period.final ? ', complete' : ', so far') + '). ' + r.badges + ' new badge' + (r.badges === 1 ? '' : 's') + '.' + (r.unmatched.length ? ' Not matched to a Tech Race person (still ranked by name): ' + esc(r.unmatched.join(', ')) + '.' : '') + (r.sent ? (r.sent.ok ? ' ' + r.sent.sent + ' emails sent.' : ' Email not sent: ' + esc(r.sent.message)) : '');
+        S.kh.week = ''; S.kh.month = ''; render();
+      } catch (e) { $('khOut').textContent = e.message; }
+      $('khGo').disabled = false;
+    };
+  });
 }
 VIEWS.book = async () => {
   if (!S.data) await refresh(); const s = S.data.settings;
