@@ -169,6 +169,13 @@ dialog .db { padding: 18px; } dialog .df { display: flex; justify-content: flex-
 @media (max-width: 520px) { .g2 { grid-template-columns: minmax(0, 1fr); } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 .signoff { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,.08); font-size: 13px; }
+
+/* password show/hide */
+.pw-wrap { position: relative; display: block; }
+.pw-wrap input { padding-right: 48px; }
+.pw-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; display: grid; place-items: center; border: 0; background: none; color: var(--ink-3); cursor: pointer; border-radius: 8px; }
+.pw-eye:hover { color: var(--ink); background: rgba(0, 0, 0, .05); }
+.pw-eye:focus-visible { outline: 2px solid var(--red); outline-offset: 1px; }
 </style>
 </head>
 <body>
@@ -290,6 +297,20 @@ async function render() {
   try { m.innerHTML = await V(); if (V.after) V.after(); } catch (e) { if (e.code !== 'signin') m.innerHTML = '<div class="alert bad">' + esc(e.message) + '</div>'; }
 }
 async function refresh() { S.data = await api('trMe'); S.me = S.data.me; }
+/* Show/hide eye on every password field (sign in, register, invitation, reset, change password). */
+const EYE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.9 10.9 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2M6.6 6.6C3.9 8.3 2 12 2 12s3.6 7 10 7a10.6 10.6 0 0 0 5.4-1.5"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+function addEyes(root) {
+  (root || document).querySelectorAll('input[type="password"]:not([data-eye])').forEach(inp => {
+    inp.setAttribute('data-eye', '1');
+    const wrap = document.createElement('span'); wrap.className = 'pw-wrap';
+    inp.parentNode.insertBefore(wrap, inp); wrap.appendChild(inp);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pw-eye'; b.setAttribute('aria-label', 'Show password'); b.setAttribute('aria-pressed', 'false'); b.innerHTML = EYE;
+    b.addEventListener('click', e => { e.preventDefault(); const show = inp.type === 'password'; inp.type = show ? 'text' : 'password'; b.innerHTML = show ? EYE_OFF : EYE; b.setAttribute('aria-label', show ? 'Hide password' : 'Show password'); b.setAttribute('aria-pressed', String(show)); inp.focus(); });
+    wrap.appendChild(b);
+  });
+}
+new MutationObserver(() => addEyes()).observe(document.documentElement, { childList: true, subtree: true });
 async function boot() {
   if (await handleHash()) return;
   if (!S.token) return showAuth('signin');
