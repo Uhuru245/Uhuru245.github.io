@@ -176,6 +176,14 @@ dialog .db { padding: 18px; } dialog .df { display: flex; justify-content: flex-
 .pw-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; display: grid; place-items: center; border: 0; background: none; color: var(--ink-3); cursor: pointer; border-radius: 8px; }
 .pw-eye:hover { color: var(--ink); background: rgba(0, 0, 0, .05); }
 .pw-eye:focus-visible { outline: 2px solid var(--red); outline-offset: 1px; }
+
+/* loading feedback */
+html.busy::before { content: ''; position: fixed; left: 0; top: 0; height: 3px; width: 40%; z-index: 1000; background: var(--red); animation: busybar 1.1s ease-in-out infinite; }
+@keyframes busybar { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+.loading { display: flex; align-items: center; gap: 12px; padding: 40px 4px; color: var(--ink-3); font-weight: 500; }
+.spin { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid var(--line-2); border-top-color: var(--red); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { html.busy::before { animation: none; width: 100%; opacity: .6; } .spin { animation-duration: 2s; } }
 </style>
 </head>
 <body>
@@ -194,10 +202,12 @@ const STATUS = { not_started: 'Not started', in_progress: 'In progress', submitt
 const has = r => S.me && S.me.roles.includes(r);
 const isAdmin = () => has('mctt') || has('platform');
 const isAgent = () => has('agent');
+let BUSY = 0; const busy = d => { BUSY = Math.max(0, BUSY + d); document.documentElement.classList.toggle('busy', BUSY > 0); };
 async function api(a, x) {
-  let j;
+  let j; busy(1);
   try { const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ a, token: S.token }, x || {})) }); j = await r.json(); }
   catch (e) { throw new Error('Could not reach the Tech Race. Check your connection and try again.'); }
+  finally { busy(-1); }
   if (j.error === 'signin') { signOut('Your session ended. Please sign in again.'); const e = new Error('Please sign in again.'); e.code = 'signin'; throw e; }
   if (!j.ok) { const e = new Error(j.message || 'Something went wrong.'); e.code = j.error; throw e; }
   return j;
@@ -293,8 +303,9 @@ function renderNav() {
 function go(v, arg) { S.view = v; S.arg = arg == null ? null : arg; try { history.replaceState(null, '', '#' + v + (arg ? ':' + arg : '')); } catch (e) {} render(); window.scrollTo(0, 0); }
 async function render() {
   renderNav();
-  const m = $('main'); const V = VIEWS[S.view] || VIEWS.home;
-  try { m.innerHTML = await V(); if (V.after) V.after(); } catch (e) { if (e.code !== 'signin') m.innerHTML = '<div class="alert bad">' + esc(e.message) + '</div>'; }
+  const m = $('main'); const V = VIEWS[S.view] || VIEWS.home, mine = (render.n = (render.n || 0) + 1);
+  const wait = setTimeout(() => { if (render.n === mine) m.innerHTML = '<div class="loading" role="status"><span class="spin" aria-hidden="true"></span>Loading...</div>'; }, 180);
+  try { const html = await V(); clearTimeout(wait); if (render.n !== mine) return; m.innerHTML = html; if (V.after) V.after(); } catch (e) { clearTimeout(wait); if (render.n === mine && e.code !== 'signin') m.innerHTML = '<div class="alert bad">' + esc(e.message) + '</div>'; }
 }
 async function refresh() { S.data = await api('trMe'); S.me = S.data.me; }
 /* Show/hide eye on every password field (sign in, register, invitation, reset, change password). */
@@ -314,6 +325,7 @@ new MutationObserver(() => addEyes()).observe(document.documentElement, { childL
 async function boot() {
   if (await handleHash()) return;
   if (!S.token) return showAuth('signin');
+  if (!$('main')) $('app').innerHTML = '<div class="loading" role="status" style="justify-content:center;min-height:60vh"><span class="spin" aria-hidden="true"></span>Starting your engine...</div>';
   try { await refresh(); } catch (e) { if (e.code !== 'signin') showAuth('signin', e.message, 'bad'); return; }
   shell();
   const h = (location.hash || '').slice(1).split(':'); S.view = VIEWS[h[0]] && navItems().some(i => i[0] === h[0]) || h[0] === 'challenge' ? h[0] : (isAgent() ? 'home' : 'centre'); S.arg = h[1] || null;
