@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>South Africa Decides 2026 | Local government election results hub</title>
+<meta name="description" content="Follow every result. Explore every municipality. Independent hub for the 2026 local government elections, built only on official Electoral Commission (IEC) results.">
+<meta property="og:title" content="South Africa Decides 2026">
+<meta property="og:description" content="Follow every result. Explore every municipality. Understand how South Africa's political landscape is changing.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.mret.co.za/elections/2026/">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#1d4e89">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,700&display=swap">
+<style>:root {
+  --bg: #f6f5f1; --bg-2: #ecebe5; --card: #ffffff; --ink: #14171c; --ink-2: #454b55; --ink-3: #737a85; --line: #e2e0d8; --line-2: #cfccc2;
+  --accent: #1d4e89; --accent-2: #2f6db5; --accent-bg: #e7eef8; --ok: #1f6b4a; --ok-bg: #e4f2ea; --warn: #8a5a00; --warn-bg: #fbf0d9; --bad: #9b1c1c; --bad-bg: #fbe9e9;
+  --neutral: #d9d6cc; --pending: #bdb9ad; --shadow: 0 1px 2px rgba(20, 23, 28, .05), 0 8px 24px -16px rgba(20, 23, 28, .25);
+  --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif; --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --r: 12px; --wrap: 1240px; --gut: clamp(16px, 3vw, 32px);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #0f1216; --bg-2: #161a20; --card: #1a1f26; --ink: #eef0f3; --ink-2: #b7bdc6; --ink-3: #8a919c; --line: #2a3039; --line-2: #39414c; --accent: #8ab4ee; --accent-2: #a9c8f3; --accent-bg: #1c2a3d; --ok: #7fd1a8; --ok-bg: #16302a; --warn: #f0c46b; --warn-bg: #33290f; --bad: #f19a9a; --bad-bg: #3a1b1b; --neutral: #3a414b; --pending: #4c5460; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #0f1216; --bg-2: #161a20; --card: #1a1f26; --ink: #eef0f3; --ink-2: #b7bdc6; --ink-3: #8a919c; --line: #2a3039; --line-2: #39414c; --accent: #8ab4ee; --accent-2: #a9c8f3; --accent-bg: #1c2a3d; --ok: #7fd1a8; --ok-bg: #16302a; --warn: #f0c46b; --warn-bg: #33290f; --bad: #f19a9a; --bad-bg: #3a1b1b; --neutral: #3a414b; --pending: #4c5460; color-scheme: dark; }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: 120px; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 15.5px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; border-radius: 4px; }
+.num { font-variant-numeric: tabular-nums; }
+.wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 var(--gut); }
+.skip { position: absolute; left: 8px; top: -50px; background: var(--ink); color: var(--bg); padding: 8px 12px; z-index: 99; border-radius: 6px; }
+.skip:focus { top: 8px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* top bar */
+.top { position: sticky; top: 0; z-index: 40; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; align-items: center; gap: 14px; height: 58px; }
+.brand { font: 700 15px/1 var(--sans); letter-spacing: .02em; text-decoration: none; color: var(--ink); display: flex; gap: 8px; align-items: center; white-space: nowrap; }
+.brand i { width: 10px; height: 10px; border-radius: 2px; background: var(--accent); display: inline-block; }
+.brand small { font-weight: 500; color: var(--ink-3); }
+.status { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); white-space: nowrap; min-width: 0; overflow: hidden; }
+.status span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-3); flex: none; }
+.dot.live { background: #2e9e66; box-shadow: 0 0 0 4px color-mix(in srgb, #2e9e66 22%, transparent); } .dot.degraded { background: #c98a00; } .dot.unavailable { background: #c43c3c; } .dot.awaiting_credentials { background: var(--ink-3); }
+.iconbtn { border: 1px solid var(--line-2); background: var(--card); color: var(--ink); height: 34px; min-width: 34px; border-radius: 8px; cursor: pointer; font: 600 13px var(--sans); padding: 0 10px; display: inline-grid; place-items: center; }
+.secnav { border-top: 1px solid var(--line); }
+.secnav .wrap { display: flex; gap: 4px; overflow-x: auto; height: 44px; align-items: center; scrollbar-width: none; }
+.secnav .wrap::-webkit-scrollbar { display: none; }
+.secnav a { text-decoration: none; color: var(--ink-2); font: 600 13px var(--sans); padding: 7px 11px; border-radius: 999px; white-space: nowrap; }
+.secnav a:hover, .secnav a[aria-current="true"] { background: var(--accent-bg); color: var(--accent); }
+
+/* hero */
+.hero { padding: 34px 0 18px; }
+.kicker { font: 700 11.5px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
+.hero h1 { font: 700 clamp(34px, 6vw, 68px)/1 var(--serif); letter-spacing: -.02em; margin: 10px 0 12px; }
+.hero p.sub { font: 400 clamp(16px, 1.6vw, 20px)/1.45 var(--serif); color: var(--ink-2); margin: 0; max-width: 46em; }
+.notice { margin: 18px 0 0; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--card); font-size: 14px; display: flex; gap: 12px; align-items: flex-start; }
+.notice.warn { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+.notice.bad { background: var(--bad-bg); border-color: color-mix(in srgb, var(--bad) 35%, transparent); }
+.notice.ok { background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+.notice b { display: block; margin-bottom: 2px; }
+
+/* cards and grids */
+section.s { padding: 26px 0; border-top: 1px solid var(--line); }
+section.s h2 { font: 700 clamp(22px, 2.6vw, 30px)/1.15 var(--serif); margin: 0 0 4px; letter-spacing: -.01em; }
+section.s .lead { color: var(--ink-2); margin: 0 0 16px; max-width: 52em; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; box-shadow: var(--shadow); }
+.grid { display: grid; gap: 12px; } .g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.metric { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 13px 14px 12px; display: grid; gap: 4px; min-height: 104px; }
+.metric .l { font: 600 11.5px/1.25 var(--sans); color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; }
+.metric .v { font: 700 26px/1.1 var(--sans); letter-spacing: -.01em; }
+.metric .v.na { color: var(--ink-3); font-size: 17px; font-weight: 600; }
+.metric .bar { height: 6px; border-radius: 4px; background: var(--bg-2); overflow: hidden; } .metric .bar i { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+.tag { display: inline-flex; align-items: center; gap: 5px; font: 700 10px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; padding: 4px 7px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--ink-2); width: max-content; }
+.tag.official { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); background: var(--ok-bg); }
+.tag.derived { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); background: var(--accent-bg); }
+.tag.provisional { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); background: var(--warn-bg); }
+.tag.unavailable { color: var(--ink-3); }
+.tag.complete { color: var(--ok); }
+.small { font-size: 13px; } .muted { color: var(--ink-3); }
+
+/* map */
+.mapwrap { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 12px; }
+.mapbox { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; min-height: 460px; touch-action: none; }
+.mapbox svg { width: 100%; height: 100%; display: block; cursor: grab; user-select: none; }
+.mapbox svg.drag { cursor: grabbing; }
+.mapbox .mu { stroke: var(--card); stroke-width: .5; vector-effect: non-scaling-stroke; transition: fill .3s; }
+.mapbox .mu:hover { stroke: var(--ink); stroke-width: 1.4; }
+.mapbox .mu.sel { stroke: var(--ink); stroke-width: 2.2; }
+.mapbox .pv { fill: none; stroke: var(--ink-2); stroke-width: 1.3; vector-effect: non-scaling-stroke; pointer-events: none; }
+.mapbox .wd { fill: transparent; stroke: var(--ink); stroke-width: .6; vector-effect: non-scaling-stroke; }
+.mapbox .wd:hover { fill: color-mix(in srgb, var(--accent) 25%, transparent); }
+.mapbox .wd.sel { fill: color-mix(in srgb, var(--accent) 40%, transparent); stroke-width: 1.6; }
+.mapctl { position: absolute; right: 10px; top: 10px; display: grid; gap: 6px; }
+.maplegend { position: absolute; left: 10px; bottom: 10px; right: 10px; display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; background: color-mix(in srgb, var(--card) 88%, transparent); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); pointer-events: none; }
+.maplegend span { display: inline-flex; align-items: center; gap: 6px; } .maplegend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; border: 1px solid rgba(0,0,0,.1); }
+.mapbox:fullscreen { border-radius: 0; } .mapbox:fullscreen svg { height: 100vh; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; align-items: center; }
+.seg { display: inline-flex; flex-wrap: wrap; background: var(--bg-2); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: none; padding: 7px 11px; border-radius: 8px; font: 600 12.5px var(--sans); color: var(--ink-2); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+select, input[type=search], input[type=email], input[type=text] { font: 500 14px var(--sans); color: var(--ink); background: var(--card); border: 1px solid var(--line-2); border-radius: 8px; height: 38px; padding: 0 10px; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; max-height: 640px; overflow: auto; }
+.panel h3 { font: 700 20px/1.2 var(--serif); margin: 0; }
+.pbar { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; margin: 0 0 10px; font-size: 13.5px; }
+.pbar .t { height: 7px; border-radius: 4px; background: var(--bg-2); grid-column: 1 / -1; overflow: hidden; } .pbar .t i { display: block; height: 100%; border-radius: 4px; }
+dl.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 12px 0; font-size: 13.5px; } dl.kv dt { color: var(--ink-3); } dl.kv dd { margin: 0; text-align: right; }
+
+/* search */
+.search { position: relative; flex: 1 1 260px; }
+.search input { width: 100%; padding-left: 34px; }
+.search svg { position: absolute; left: 10px; top: 11px; color: var(--ink-3); }
+.sugg { position: absolute; left: 0; right: 0; top: 42px; z-index: 30; background: var(--card); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: var(--shadow); max-height: 320px; overflow: auto; }
+.sugg button { display: flex; justify-content: space-between; width: 100%; gap: 10px; text-align: left; border: 0; background: none; padding: 10px 12px; font: 500 14px var(--sans); color: var(--ink); cursor: pointer; }
+.sugg button:hover, .sugg button[aria-selected="true"] { background: var(--accent-bg); }
+
+/* tables */
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tbl th { text-align: left; font: 600 11.5px var(--sans); text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); border-bottom: 1px solid var(--line-2); padding: 8px; white-space: nowrap; }
+.tbl th button { all: unset; cursor: pointer; } .tbl th button:hover { color: var(--ink); }
+.tbl td { border-bottom: 1px solid var(--line); padding: 9px 8px; vertical-align: middle; }
+.tbl td.r, .tbl th.r { text-align: right; }
+.scroll { overflow-x: auto; }
+.chip { display: inline-flex; align-items: center; gap: 8px; } .chip i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex: none; border: 1px solid rgba(0,0,0,.12); }
+.feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.feed li { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; display: grid; gap: 4px; }
+.feed .h { font-weight: 600; } .feed .m { font-size: 12.5px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.empty { padding: 22px; text-align: center; color: var(--ink-3); border: 1px dashed var(--line-2); border-radius: 10px; background: var(--card); }
+.chart { width: 100%; height: 200px; display: block; }
+.chart .ln { fill: none; stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; } .chart .ar { fill: color-mix(in srgb, var(--accent) 14%, transparent); }
+.chart .ax { stroke: var(--line-2); stroke-width: 1; vector-effect: non-scaling-stroke; }
+form.sub { display: grid; gap: 12px; }
+label.f { display: grid; gap: 5px; font: 600 13px var(--sans); }
+label.f .h { font-weight: 400; color: var(--ink-3); font-size: 12.5px; }
+.radio { display: grid; gap: 6px; } .radio label { display: flex; gap: 8px; align-items: flex-start; font-weight: 500; font-size: 14px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); cursor: pointer; }
+.radio label:has(input:checked) { border-color: var(--accent-2); background: var(--accent-bg); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; padding: 0 18px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--card); color: var(--ink); font: 700 14px var(--sans); cursor: pointer; text-decoration: none; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; } :root[data-theme="dark"] .btn.primary { color: #0f1216; }
+.btn[disabled] { opacity: .5; cursor: default; }
+.msg { min-height: 1.3em; font-size: 14px; }
+.prose { max-width: 52em; } .prose h3 { font: 700 18px var(--serif); margin: 18px 0 6px; } .prose p, .prose li { color: var(--ink-2); }
+footer { border-top: 1px solid var(--line); padding: 26px 0 40px; margin-top: 10px; font-size: 13.5px; color: var(--ink-2); }
+footer .disc { font-weight: 600; color: var(--ink); max-width: 60em; }
+.toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 14px; z-index: 80; }
+@media (max-width: 1000px) { .mapwrap { grid-template-columns: minmax(0, 1fr); } .panel { max-height: none; } .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .g3 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) { .top .wrap { gap: 8px; } .iconbtn { padding: 0 8px; font-size: 12px; } .brand { font-size: 14px; } body { font-size: 15px; } .g2 { grid-template-columns: minmax(0, 1fr); } .metric .v { font-size: 22px; } .metric { min-height: 92px; } .mapbox { min-height: 340px; } .brand small { display: none; } .hero { padding-top: 22px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#live">Skip to results</a>
+<header class="top">
+  <div class="wrap"><a class="brand" href="#top"><i aria-hidden="true"></i>SA Elections 2026 <small>Independent results hub</small></a>
+    <span class="status" id="status" role="status"><span class="dot"></span>Loading</span>
+    <button class="iconbtn" id="refresh" title="Refresh now" aria-label="Refresh now"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></svg></button>
+    <button class="iconbtn" id="theme" title="Light or dark" aria-label="Switch light or dark theme"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></button></div>
+  <nav class="secnav" aria-label="Sections"><div class="wrap">
+    <a href="#live">Live results</a><a href="#map-section">Map</a><a href="#progress">Progress</a><a href="#parties-s">Parties</a><a href="#councils-s">Councils</a><a href="#history-s">History</a><a href="#changes">Latest changes</a><a href="#alerts">Alerts</a><a href="#method">Methodology</a>
+  </div></nav>
+</header>
+<main id="top">
+  <div class="wrap">
+    <div class="hero"><div class="kicker">Local government elections · 4 November 2026</div><h1>South Africa Decides 2026</h1><p class="sub">Follow every result. Explore every municipality. Understand how South Africa's political landscape is changing.</p><div id="notice"></div></div>
+
+    <section class="s" id="live" aria-labelledby="h-live"><h2 id="h-live">Live results</h2><p class="lead">Official national figures from the Electoral Commission (IEC). Each card says whether the number is official, derived by this hub, provisional, complete or not yet available.</p>
+      <div class="grid g4" id="metrics"></div><p class="small muted" id="refreshed" style="margin-top:10px"></p></section>
+
+    <section class="s" id="map-section" aria-labelledby="h-map"><h2 id="h-map">Explore the map</h2><p class="lead">Zoom and pan across all nine provinces and 213 municipalities. Select a municipality to see its result and wards. Boundaries: Municipal Demarcation Board, 2026.</p>
+      <div class="toolbar"><div class="search"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2"/></svg><label for="q" class="sr">Search municipality, code, province or ward</label><input type="search" id="q" placeholder="Search: City of Tshwane, TSH, TSH ward 12, Limpopo" autocomplete="off" role="combobox" aria-controls="sugg" aria-expanded="false"><div class="sugg" id="sugg" role="listbox" hidden></div></div></div>
+      <div class="toolbar"><div class="seg" id="modes" role="group" aria-label="Map mode"></div><select id="partyPick" hidden aria-label="Party"></select><select id="cmpPick" hidden aria-label="Compare with"></select></div>
+      <div class="mapwrap"><div class="mapbox" id="mapbox"><svg id="map" role="img" aria-label="Map of South Africa's municipalities"></svg>
+        <div class="mapctl"><button class="iconbtn" id="zin" aria-label="Zoom in">+</button><button class="iconbtn" id="zout" aria-label="Zoom out">−</button><button class="iconbtn" id="zreset" aria-label="Whole country">SA</button><button class="iconbtn" id="zfull" aria-label="Full screen">⤢</button></div>
+        <div class="maplegend" id="legend"></div></div>
+        <aside class="panel" id="panel" aria-live="polite"></aside></div></section>
+
+    <section class="s" id="progress" aria-labelledby="h-prog"><h2 id="h-prog">Election progress</h2><p class="lead">How reporting moved over time, from snapshots this hub captured of the official figures. A voting district is counted once its result is captured by the IEC; polling stations closing does not mean votes are counted.</p><div class="card" id="timeline"></div></section>
+
+    <section class="s" id="parties-s" aria-labelledby="h-par"><h2 id="h-par">Political parties</h2><p class="lead">Top 10 by reported votes. Sort by any column. Rankings are purely data-based.</p><div class="card" id="parties"></div></section>
+
+    <section class="s" id="councils-s" aria-labelledby="h-cou"><h2 id="h-cou">Council control</h2><p class="lead">A party controls a council outright only with more than half its seats, from the IEC's official seat calculation.</p><div id="councils"></div></section>
+
+    <section class="s" id="history-s" aria-labelledby="h-his"><h2 id="h-his">Historical comparisons</h2><p class="lead">2026 against 2021, 2016, 2011, 2006 or 2000, using official IEC results for each year.</p><div class="card" id="history"></div></section>
+
+    <section class="s" id="changes" aria-labelledby="h-chg"><h2 id="h-chg">Latest changes</h2><p class="lead">Verified changes detected in the official figures, newest first.</p><div id="feed"></div></section>
+
+    <section class="s" id="alerts" aria-labelledby="h-al"><h2 id="h-al">Election alerts</h2><p class="lead">Email updates for the country, a province or a municipality. You confirm by email before anything is sent, and every email has an unsubscribe link.</p><div class="grid g2"><div id="alertform"></div><div class="card small prose" id="privacy"><h3 style="margin-top:0">Privacy notice</h3><p>We ask only for your email address, the area you choose and how often you want updates. We never ask for ID numbers or voter registration details.</p><p>Your details are used only to send the election updates you asked for. They are never sold, never shared with political parties, and not used for MRET marketing unless you separately agree.</p><p>You can change, stop or delete your subscription from the link in every email. Election alert subscriptions are deleted within 90 days after final results unless you ask to keep receiving updates. Processing follows the Protection of Personal Information Act (POPIA). Questions: uhuru.matlhaji@kwsa.co.za.</p></div></div></section>
+
+    <section class="s" id="method" aria-labelledby="h-me"><h2 id="h-me">Methodology and sources</h2><div class="prose">
+      <h3>Results</h3><p>All results come from the Electoral Commission of South Africa (IEC). This hub reads the official "Downloadable detailed results" files the IEC publishes for each province on its <a href="https://results.elections.org.za/home/Downloads/ME-Results/" rel="noopener">public reports portal</a>. It checks for new or updated files every 5 minutes, downloads only a file that changed, and adds up its voting-district figures by municipality, province and nation (national totals only once all nine provinces are in). If the IEC grants API access, the hub switches to the official IEC API (api.elections.org.za), used within its request limits. Visitors never send requests to the IEC. If a source is unavailable, the last verified figures stay on show with the time they were captured.</p>
+      <p>Figures added up from the files are marked as from the IEC published files. Turnout is derived by this hub as the larger of ward or PR votes cast divided by registered voters, as the IEC defines it. Seat calculations and voting-district completion are not in these files, so they are shown only when the IEC API is connected.</p>
+      <h3>Checks before anything is shown</h3><p>No negative counts; no more voting districts reported than exist; party votes not above valid votes; percentages between 0 and 100; seats adding up to the council total; no duplicate parties. Records that fail are held back and logged. Missing figures are shown as unavailable, never as zero. Two times are kept: the IEC's report time and this hub's retrieval time.</p>
+      <h3>Definitions</h3><ul><li><b>Voting districts reported</b> is geographic completion (districts whose results the IEC has captured), not the share of votes counted.</li><li><b>Leading</b> means most votes reported so far. <b>Controls</b> means more than half the council's seats in the IEC seat calculation. Exactly half is not a majority.</li><li>Ward, proportional representation (PR) and district (DC 40%) ballots are kept separate; party totals combine them as the IEC publishes them.</li><li>Coalitions or governing arrangements are never inferred from seats. They are listed only when confirmed by dated, authoritative reporting.</li><li>Party comparisons across years show "No comparable result" where a party did not contest.</li></ul>
+      <h3>Maps and boundaries</h3><p>Municipal and ward boundaries are the Municipal Demarcation Board's 2026 boundaries (Spatial Hub). Past results are joined to today's map only where the municipality code still exists, with a warning that boundaries may have changed; areas without a match show "No comparable result".</p>
+      <h3>Change events and insights</h3><p>Events are generated only from changes between official snapshots: completed results, reporting milestones (25, 50, 75 and 90% of voting districts), seat calculations, council outcomes, lead changes in reported votes (marked provisional) and official corrections. No AI writes figures or stories.</p>
+      <h3>Official sources</h3><ul><li><a href="https://results.elections.org.za/dashboards/lge/" rel="noopener">IEC results dashboard</a></li><li><a href="https://results.elections.org.za/home/Downloads/ME-Results/" rel="noopener">IEC results reports and downloads</a></li><li><a href="https://www.elections.org.za/" rel="noopener">Electoral Commission of South Africa</a></li><li><a href="https://spatialhub-mdb-sa.opendata.arcgis.com/" rel="noopener">Municipal Demarcation Board Spatial Hub</a></li></ul>
+    </div></section>
+  </div>
+</main>
+<footer><div class="wrap"><p class="disc">Independent election information platform. Election results are sourced from the Electoral Commission of South Africa (IEC). This website is not operated by or affiliated with the IEC.</p><p>Official results: <a href="https://results.elections.org.za/dashboards/lge/" rel="noopener">IEC results dashboard</a>. Boundaries: Municipal Demarcation Board. Hosted by <a href="https://www.mret.co.za/">MRET</a>.</p></div></footer>
+<div class="toast" id="toast" role="status" hidden></div>
+<script>'use strict';
+/* SA Elections 2026 hub. Every figure comes from the hub API, which only stores Electoral Commission (IEC) data.
+   Missing values are shown as unavailable, never as zero. */
+const API = 'https://script.google.com/macros/s/AKfycby06Dzw3hTkEJGLXwTD9LkiGxPTsIDcVENg1_rFC9bceO66gkGYlNB348o3FaxDcTdBHQ/exec';
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = n => n == null || n === '' || !isFinite(n) ? null : Number(n).toLocaleString('en-ZA');
+const pct = (n, d = 1) => n == null || n === '' || !isFinite(n) ? null : Number(n).toFixed(d) + '%';
+const sast = d => d ? new Date(d).toLocaleString('en-ZA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Johannesburg' }) + ' SAST' : '';
+const NA = '<span class="v na">Not yet available</span>';
+const S = { sum: null, map: null, mode: 'leading', party: '', sel: null, ward: null, compare: '', cmp: null, sort: 'votes', view: [0, 0, 0, 0], wards: null, theme: '' };
+const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} } };
+function toast(m) { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 3500); }
+
+/* ---------- data ---------- */
+async function get(params) { const u = API + '?' + new URLSearchParams(params); const r = await fetch(u, { credentials: 'omit' }); return r.json(); }
+async function post(body) { const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) }); return r.json(); }
+async function load(manual) {
+  try { const j = await get({ a: 'summary' }); if (!j.ok) throw new Error(j.message || 'Error');
+    if (j.shutdown) { S.closed = true; ls.set('el.sum', ''); document.querySelector('main').innerHTML = '<div class="wrap"><div class="hero"><h1>South Africa Decides 2026</h1><div class="notice"><div><b>This hub has closed</b>' + esc(j.message) + ' <a href="https://results.elections.org.za/dashboards/lge/" rel="noopener">Go to the IEC results dashboard</a>.</div></div></div></div>'; $('#status').innerHTML = '<span class="dot"></span><span>Closed</span>'; return; }
+    S.sum = j; S.loadErr = null; ls.set('el.sum', JSON.stringify(j)); }
+  catch (e) { S.loadErr = 'The hub could not be reached. ' + (S.sum ? 'Showing what was last loaded.' : ''); if (!S.sum) { const c = ls.get('el.sum'); if (c) try { S.sum = JSON.parse(c); } catch (x) {} } }
+  render(); if (manual) toast(S.loadErr || 'Updated ' + sast(new Date()));
+}
+const Y = () => S.sum && S.sum.years && S.sum.years['2026'] || {};
+const geoIndex = () => { const o = {}; (Y().geography || []).forEach(g => { o[g[0]] = { id: g[0], level: g[1], code: g[2], name: g[3], prov: g[4] }; }); return o; };
+const byCode = () => { const gi = geoIndex(), o = {}; Object.values(gi).forEach(g => { if (g.code) o[g.code] = g; }); return o; };
+const partyColor = (id, fallback) => { const p = ((Y().national || {}).parties || []).find(x => x.id === String(id)); const c = (p && p.color) || fallback || ''; return /^#?[0-9a-f]{6}$/i.test(c) ? (c[0] === '#' ? c : '#' + c) : '#8a8f99'; };
+const partyName = id => { const p = ((Y().national || {}).parties || []).find(x => x.id === String(id)); return p ? p.name : 'Party ' + id; };
+
+const vdOf = (a, b) => fmt(a) + (b != null ? ' of ' + fmt(b) : '');
+/* ---------- header status ---------- */
+function renderStatus() {
+  const st = (S.sum && S.sum.source) || { state: 'awaiting_credentials' }, el = $('#status');
+  const label = { live: 'Live: IEC connected', degraded: 'Live with gaps', unavailable: 'Live updates paused', awaiting_credentials: 'Awaiting IEC data connection', waiting: 'Waiting for IEC results', files: 'Official IEC results files', files_partial: 'Loading IEC results files' }[st.state] || 'Status unknown';
+  if (S.sum && S.sum.withheld) { el.innerHTML = '<span class="dot"></span><span>Results paused</span>'; $('#notice').innerHTML = '<div class="notice warn"><div><b>Results not shown yet</b>Official figures will appear on this hub once publication arrangements with the Electoral Commission (IEC) are confirmed. Meanwhile, follow the official count on the <a href="https://results.elections.org.za/dashboards/lge/" rel="noopener">IEC results dashboard</a>.</div></div>' + (S.sum.banner ? '<div class="notice"><div><b>Notice</b>' + esc(S.sum.banner) + '</div></div>' : ''); return; }
+  el.innerHTML = '<span class="dot ' + esc(st.state) + '"></span><span>' + esc(label) + (S.sum && S.sum.last_ok ? ' · ' + esc(sast(S.sum.last_ok)) : '') + '</span>';
+  const n = $('#notice'), mode = S.sum && S.sum.mode;
+  let html = '';
+  if (S.loadErr) html = '<div class="notice bad"><div><b>Connection problem</b>' + esc(S.loadErr) + '</div></div>';
+  else if (st.state === 'awaiting_credentials') html = '<div class="notice warn"><div><b>Official results not loaded yet</b>This hub shows only official figures from the Electoral Commission (IEC). Follow the count on the <a href="https://results.elections.org.za/dashboards/lge/" rel="noopener">IEC results dashboard</a>.</div></div>';
+  else if (st.state === 'waiting') html = '<div class="notice warn"><div><b>Waiting for the IEC to publish results</b>This hub loads the official results files the IEC publishes on its reports portal and checks for them every 5 minutes. Nothing is shown until they are published. Meanwhile, follow the count on the <a href="https://results.elections.org.za/dashboards/lge/" rel="noopener">IEC results dashboard</a>.</div></div>';
+  else if (st.state === 'files_partial') html = '<div class="notice warn"><div><b>Official results loading</b>' + esc(st.message || '') + ' National totals appear once all nine provinces are loaded.</div></div>';
+  else if (st.state === 'unavailable') html = '<div class="notice bad"><div><b>Live updates temporarily unavailable</b>' + esc(st.message || '') + ' Last verified update: ' + esc(sast(S.sum.last_ok) || 'none yet') + '.</div></div>';
+  else if (st.state === 'degraded') html = '<div class="notice warn"><div><b>Some areas did not update</b>' + esc(st.message || '') + '</div></div>';
+  if (S.sum && S.sum.banner) html += '<div class="notice"><div><b>Notice</b>' + esc(S.sum.banner) + '</div></div>';
+  if (mode === 'final') html += '<div class="notice ok"><div><b>Final results</b>The IEC has completed results capture. Seat calculations are shown as published.</div></div>';
+  n.innerHTML = html;
+}
+
+/* ---------- national dashboard ---------- */
+function metric(label, value, tag, sub, bar) {
+  return '<div class="metric"><div class="l">' + esc(label) + '</div>' + (value == null ? NA : '<div class="v num">' + value + '</div>') + (bar != null ? '<div class="bar" aria-hidden="true"><i style="width:' + Math.max(0, Math.min(100, bar)) + '%"></i></div>' : '') + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="tag ' + tag + '">' + ({ official: 'Official', derived: 'Derived', provisional: 'Provisional', unavailable: 'Unavailable', complete: 'Complete' })[tag] + '</span>' + (sub ? '<span class="small muted">' + sub + '</span>' : '') + '</div></div>';
+}
+function renderDashboard() {
+  const y = Y(), n = y.national, munis = y.municipalities || [], seats = y.seats || [], totalMunis = (y.geography || []).filter(g => g[1] === 'municipality').length || null;
+  const prog = (y.progress || []).find(p => p.level === 'national');
+  const nn = v => v === '' || v == null || !isFinite(v) ? null : +v, viaFiles = ((S.sum && S.sum.source) || {}).via === 'files';
+  const vdIn = nn(n ? n.vd_in : prog ? prog.vd_in : null), vdTot = nn(n ? n.vd_total : prog ? prog.vd_total : null), done = n && +n.complete === 1;
+  const vdPct = vdIn != null && vdTot ? vdIn / vdTot * 100 : null;
+  const tag = v => v == null ? 'unavailable' : done ? 'official' : 'provisional';
+  const seatTotal = seats.length ? seats.reduce((a, s) => a + (s.total || 0), 0) : null, seatsKnown = seats.length;
+  const cards = [
+    metric('Voting districts reported', vdPct == null ? null : pct(vdPct), vdPct == null ? 'unavailable' : 'derived', vdIn != null ? vdOf(vdIn, vdTot) + ' voting districts (geographic completion, not share of votes counted)' : '', vdPct),
+    metric(viaFiles ? 'Voting districts in IEC files' : 'Voting districts completed', fmt(vdIn), tag(vdIn), viaFiles ? 'with results in the published files' : ''),
+    metric('Total voting districts', fmt(vdTot), vdTot == null ? 'unavailable' : 'official', ''),
+    metric('Voting districts remaining', vdIn != null && vdTot != null ? fmt(vdTot - vdIn) : null, vdIn != null ? 'derived' : 'unavailable', ''),
+    viaFiles ? metric('Municipalities with published results', munis.length ? fmt(munis.length) : null, munis.length ? 'official' : 'unavailable', 'of 213 municipalities', munis.length / 213 * 100) : metric('Municipalities with complete results', munis.length ? fmt(munis.filter(m => m.complete).length) : null, munis.length ? 'official' : 'unavailable', totalMunis ? 'of ' + fmt(totalMunis) + ' municipalities' : '', munis.length && totalMunis ? munis.filter(m => m.complete).length / totalMunis * 100 : null),
+    metric('Seat calculations completed', seatsKnown ? fmt(seatsKnown) : null, seatsKnown ? 'official' : 'unavailable', viaFiles && !seatsKnown ? 'shown when the IEC API is connected' : totalMunis ? 'of ' + fmt(totalMunis) + ' councils' : '', seatsKnown && totalMunis ? seatsKnown / totalMunis * 100 : null),
+    metric('Seats allocated', seatTotal != null ? fmt(seatTotal) : null, seatTotal != null ? 'official' : 'unavailable', seatTotal != null ? 'in councils with a published seat calculation' : ''),
+    metric('Registered voters', n ? fmt(n.registered) : null, n && n.registered != null ? 'official' : 'unavailable', ''),
+    metric('Total votes recorded', n ? fmt(n.cast) : null, tag(n && n.cast), n && !done ? 'in voting districts reported so far' : ''),
+    metric('Valid votes', n ? fmt(n.valid) : null, tag(n && n.valid), ''),
+    metric('Spoilt ballots', n ? fmt(n.spoilt) : null, tag(n && n.spoilt), ''),
+    metric('Voter turnout', n ? pct(n.turnout, 2) : null, viaFiles && n && n.turnout != null ? 'derived' : tag(n && n.turnout), viaFiles ? 'derived from IEC votes cast and registered voters' : n && !done ? 'IEC figure for districts reported so far' : '')
+  ];
+  $('#metrics').innerHTML = cards.join('');
+  $('#refreshed').innerHTML = S.sum ? 'Last successful IEC update: <b>' + esc(sast(S.sum.last_ok) || 'none yet') + '</b>. This page checked the hub at ' + esc(sast(S.sum.generated_at)) + '.' : '';
+}
+
+/* ---------- map ---------- */
+const MODES = [['leading', 'Leading party'], ['progress', 'Results progress'], ['swing', 'Historical swing'], ['council', 'Council status'], ['turnout', 'Turnout'], ['party', 'Party support']];
+function ramp(t, hue) { t = Math.max(0, Math.min(1, t)); return hue ? 'color-mix(in srgb, ' + hue + ' ' + Math.round(15 + t * 85) + '%, var(--card))' : 'color-mix(in srgb, var(--accent) ' + Math.round(10 + t * 85) + '%, var(--card))'; }
+function muniData(code) { const g = byCode()[code]; if (!g) return {}; const y = Y(); return { g, r: (y.municipalities || []).find(m => m.geo_id === g.id), s: (y.seats || []).find(s => s.geo_id === g.id) }; }
+function fillFor(code) {
+  const { r, s } = muniData(code), m = S.mode;
+  if (m === 'leading') return r && r.lead ? partyColor(r.lead.id, r.lead.color) : 'var(--neutral)';
+  if (m === 'progress') return r && r.vd_total ? (r.complete ? 'var(--accent)' : ramp(r.vd_in / r.vd_total * .8)) : 'var(--neutral)';
+  if (m === 'turnout') return r && r.turnout != null ? ramp((r.turnout - 20) / 60) : 'var(--neutral)';
+  if (m === 'party') { if (!S.party || !r) return 'var(--neutral)'; const p = (r.parties || []).find(x => x[0] === S.party); return p ? ramp((p[1] || 0) / 70, partyColor(S.party)) : 'var(--neutral)'; }
+  if (m === 'council') { if (!s || !s.status) return r && !r.complete ? 'var(--pending)' : 'var(--neutral)'; return s.status.status === 'majority' ? partyColor(s.status.party) : s.status.status === 'hung' ? '#9a8c6a' : s.status.status === 'tied' ? '#7b6d9e' : 'var(--neutral)'; }
+  if (m === 'swing') { const d = swingFor(code); return d == null ? 'var(--neutral)' : d >= 0 ? ramp(Math.min(1, d / 15), '#2b7a5b') : ramp(Math.min(1, -d / 15), '#a33a3a'); }
+  return 'var(--neutral)';
+}
+function swingFor(code) {
+  if (!S.cmp || !S.party) return null; const a = muniData(code).r, gOld = (S.cmp.geography || []).find(g => g[2] === code), b = gOld && (S.cmp.municipalities || []).find(m => m.geo_id === gOld[0]);
+  if (!a || !b) return null; const pa = (a.parties || []).find(x => x[0] === S.party), pb = (b.parties || []).find(x => x[0] === S.party);
+  if (!pa || !pb || pa[1] == null || pb[1] == null) return null; return pa[1] - pb[1];
+}
+function legend() {
+  const m = S.mode, y = Y(), items = [];
+  if (m === 'leading') { const seen = {}; (y.municipalities || []).forEach(r => { if (r.lead) seen[r.lead.id] = (seen[r.lead.id] || 0) + 1; }); Object.keys(seen).sort((a, b) => seen[b] - seen[a]).slice(0, 8).forEach(id => items.push([partyColor(id), partyName(id) + ' (' + seen[id] + ')'])); }
+  if (m === 'progress') items.push([ramp(.2), 'Some districts in'], [ramp(.75), 'Most districts in'], ['var(--accent)', 'Complete']);
+  if (m === 'turnout') items.push([ramp(.1), 'Lower turnout'], [ramp(.9), 'Higher turnout']);
+  if (m === 'council') items.push(['#9a8c6a', 'No outright majority'], ['#7b6d9e', 'Tied'], ['var(--pending)', 'Results still arriving'], ['var(--neutral)', 'Not yet calculated']);
+  if (m === 'party' && S.party) items.push([ramp(.15, partyColor(S.party)), 'Low support'], [ramp(1, partyColor(S.party)), 'High support']);
+  if (m === 'swing') items.push([ramp(.8, '#2b7a5b'), 'Support up (percentage points)'], [ramp(.8, '#a33a3a'), 'Support down'], ['var(--neutral)', 'No comparable result']);
+  items.push(['var(--neutral)', 'No official data yet']);
+  const uniq = []; items.forEach(i => { if (!uniq.some(u => u[1] === i[1])) uniq.push(i); });
+  return uniq.map(i => '<span><i style="background:' + i[0] + '"></i>' + esc(i[1]) + '</span>').join('');
+}
+function renderMapControls() {
+  const parties = ((Y().national || {}).parties || []).filter(p => p.total).sort((a, b) => b.total - a.total).slice(0, 25);
+  $('#modes').innerHTML = MODES.map(([k, l]) => '<button data-mode="' + k + '" aria-pressed="' + (S.mode === k) + '">' + l + '</button>').join('');
+  const needParty = S.mode === 'party' || S.mode === 'swing';
+  $('#partyPick').hidden = !needParty; $('#partyPick').innerHTML = '<option value="">Choose a party</option>' + parties.map(p => '<option value="' + esc(p.id) + '"' + (S.party === p.id ? ' selected' : '') + '>' + esc(p.name) + '</option>').join('');
+  const years = (S.sum && S.sum.available_years || []).filter(y => y !== '2026');
+  $('#cmpPick').hidden = S.mode !== 'swing'; $('#cmpPick').innerHTML = '<option value="">Compare with</option>' + ['2021', '2016', '2011', '2006', '2000'].map(y => '<option value="' + y + '"' + (years.includes(y) ? '' : ' disabled') + (S.compare === y ? ' selected' : '') + '>' + y + (years.includes(y) ? '' : ' (not loaded yet)') + '</option>').join('');
+  $$('#modes [data-mode]').forEach(b => b.onclick = () => { S.mode = b.dataset.mode; renderMapControls(); paintMap(); });
+  $('#partyPick').onchange = e => { S.party = e.target.value; paintMap(); };
+  $('#cmpPick').onchange = async e => { S.compare = e.target.value; S.cmp = S.compare ? (await get({ a: 'year', year: S.compare })).data : null; paintMap(); };
+}
+function buildMap() {
+  const M = S.map, svg = $('#map');
+  S.view = [0, 0, M.w, M.h]; svg.setAttribute('viewBox', S.view.join(' '));
+  svg.innerHTML = '<g id="mus">' + M.munis.map(m => '<path class="mu" data-code="' + esc(m[0]) + '" d="' + m[5] + '"><title>' + esc(m[1] + ' (' + m[0] + ')') + '</title></path>').join('') + '</g><g id="pvs">' + M.provinces.map(p => '<path class="pv" d="' + p[1] + '"/>').join('') + '</g><g id="wds"></g>';
+  svg.addEventListener('click', e => { const p = e.target.closest('.mu'); const w = e.target.closest('.wd'); if (S.dragged) return; if (w) return selectWard(w.dataset.ward); if (p) selectMuni(p.dataset.code, true); });
+  // pan and zoom (mouse, wheel, touch)
+  let drag = null, pts = new Map();
+  const toSvg = (cx, cy) => { const r = svg.getBoundingClientRect(), v = S.view, sc = Math.max(v[2] / r.width, v[3] / r.height); return [v[0] + (cx - r.left - (r.width - v[2] / sc) / 2) * sc, v[1] + (cy - r.top - (r.height - v[3] / sc) / 2) * sc, sc]; };
+  const zoom = (f, cx, cy) => { const v = S.view, [x, y] = toSvg(cx, cy), w = Math.max(25, Math.min(M.w * 1.2, v[2] * f)), h = w * v[3] / v[2]; S.view = [x - (x - v[0]) * w / v[2], y - (y - v[1]) * h / v[3], w, h]; svg.setAttribute('viewBox', S.view.join(' ')); };
+  svg.addEventListener('wheel', e => { e.preventDefault(); zoom(e.deltaY > 0 ? 1.18 : 1 / 1.18, e.clientX, e.clientY); }, { passive: false });
+  svg.addEventListener('pointerdown', e => { pts.set(e.pointerId, [e.clientX, e.clientY]); svg.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, v: S.view.slice(), d: pts.size === 2 ? dist() : 0 }; S.dragged = false; });
+  const dist = () => { const a = [...pts.values()]; return a.length < 2 ? 0 : Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]); };
+  svg.addEventListener('pointermove', e => {
+    if (!drag || !pts.has(e.pointerId)) return; pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 2) { const d = dist(); if (drag.d) { const a = [...pts.values()]; zoom(drag.d / d, (a[0][0] + a[1][0]) / 2, (a[0][1] + a[1][1]) / 2); drag.d = d; } S.dragged = true; return; }
+    const [, , sc] = toSvg(e.clientX, e.clientY), dx = (e.clientX - drag.x) * sc, dy = (e.clientY - drag.y) * sc; if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 4) { S.dragged = true; svg.classList.add('drag'); }
+    S.view = [drag.v[0] - dx, drag.v[1] - dy, drag.v[2], drag.v[3]]; svg.setAttribute('viewBox', S.view.join(' '));
+  });
+  const up = e => { pts.delete(e.pointerId); svg.classList.remove('drag'); if (!pts.size) { drag = null; setTimeout(() => S.dragged = false, 0); } };
+  svg.addEventListener('pointerup', up); svg.addEventListener('pointercancel', up);
+  $('#zin').onclick = () => { const r = svg.getBoundingClientRect(); zoom(1 / 1.5, r.left + r.width / 2, r.top + r.height / 2); };
+  $('#zout').onclick = () => { const r = svg.getBoundingClientRect(); zoom(1.5, r.left + r.width / 2, r.top + r.height / 2); };
+  $('#zreset').onclick = () => { S.view = [0, 0, M.w, M.h]; svg.setAttribute('viewBox', S.view.join(' ')); $('#wds').innerHTML = ''; S.sel = null; $$('.mu.sel').forEach(x => x.classList.remove('sel')); renderPanel(); history.replaceState(null, '', location.pathname); };
+  $('#zfull').onclick = () => { const b = $('#mapbox'); if (document.fullscreenElement) document.exitFullscreen(); else if (b.requestFullscreen) b.requestFullscreen(); };
+}
+function paintMap() { $$('#mus .mu').forEach(p => p.style.fill = fillFor(p.dataset.code)); $('#legend').innerHTML = legend(); }
+function bboxOf(code) { const p = $('#mus [data-code="' + CSS.escape(code) + '"]'); return p ? p.getBBox() : null; }
+function selectMuni(code, fromMap) {
+  S.sel = code; S.ward = null; $$('.mu.sel').forEach(x => x.classList.remove('sel')); const p = $('#mus [data-code="' + CSS.escape(code) + '"]'); if (p) p.classList.add('sel');
+  const b = bboxOf(code); if (b) { const pad = Math.max(b.width, b.height) * .25, w = Math.max(b.width + pad * 2, 30), h = Math.max(b.height + pad * 2, 30); S.view = [b.x - (w - b.width) / 2, b.y - (h - b.height) / 2, w, h]; $('#map').setAttribute('viewBox', S.view.join(' ')); }
+  history.replaceState(null, '', '#m=' + encodeURIComponent(code)); renderPanel(); loadWards(code);
+  if (!fromMap) $('#map-section').scrollIntoView({ behavior: 'smooth' });
+}
+async function loadWards(code) {
+  $('#wds').innerHTML = ''; S.wards = null;
+  try {
+    const u = 'https://services7.arcgis.com/oeoyTUJC8HEeYsRB/arcgis/rest/services/MDB_Wards_2026/FeatureServer/0/query?' + new URLSearchParams({ where: "CAT_B='" + code.replace(/[^A-Z0-9]/g, '') + "'", outFields: 'WardID,WardNo', outSR: 4326, maxAllowableOffset: '0.002', geometryPrecision: '4', f: 'geojson' });
+    const gj = await (await fetch(u)).json(); if (S.sel !== code) return;
+    const [X0, Y0, SC, K] = S.map.proj, pt = (lon, lat) => ((lon - X0) * K * SC).toFixed(2) + ' ' + ((Y0 - lat) * SC).toFixed(2);
+    const path = g => (g.type === 'MultiPolygon' ? g.coordinates : [g.coordinates]).map(poly => poly.map(r => 'M' + r.map(c => pt(c[0], c[1])).join('L') + 'Z').join('')).join('');
+    S.wards = gj.features.map(f => ({ id: String(f.properties.WardID), no: f.properties.WardNo, d: path(f.geometry) }));
+    $('#wds').innerHTML = S.wards.map(w => '<path class="wd" data-ward="' + esc(w.id) + '" d="' + w.d + '"><title>Ward ' + esc(w.no) + '</title></path>').join('');
+    renderPanel();
+  } catch (e) { S.wards = []; }
+}
+async function selectWard(id) {
+  S.ward = { id, loading: true }; $$('.wd.sel').forEach(x => x.classList.remove('sel')); const p = $('#wds [data-ward="' + CSS.escape(id) + '"]'); if (p) p.classList.add('sel'); renderPanel();
+  try { const j = await get({ a: 'ward', code: S.sel, ward: id }); S.ward = Object.assign({ id }, j); } catch (e) { S.ward = { id, state: 'error' }; }
+  history.replaceState(null, '', '#m=' + encodeURIComponent(S.sel) + '&w=' + id); renderPanel();
+}
+function partyBars(list, total) { return list.map(p => '<div class="pbar"><span class="chip"><i style="background:' + partyColor(p.id, p.color) + '"></i>' + esc(p.name) + '</span><b class="num">' + (p.pct != null ? pct(p.pct, 2) : '') + (p.total != null ? ' <span class="muted small">' + fmt(p.total) + '</span>' : '') + '</b><div class="t"><i style="width:' + (p.pct || 0) + '%;background:' + partyColor(p.id, p.color) + '"></i></div></div>').join(''); }
+function renderPanel() {
+  const el = $('#panel');
+  if (!S.sel) { el.innerHTML = '<h3>South Africa</h3><p class="small muted">Click or tap a municipality on the map, or search above. Zoom in to see wards. Boundaries: Municipal Demarcation Board, 2026.</p>' + nationalPanel(); return; }
+  const m = S.map.munis.find(x => x[0] === S.sel) || [S.sel, S.sel, '', '', ''], { g, r, s } = muniData(S.sel), y = Y();
+  let h = '<div class="small muted">' + esc(m[2]) + ' · ' + (m[3] === 'A' ? 'Metropolitan municipality' : 'Local municipality') + ' · ' + esc(m[0]) + '</div><h3>' + esc(m[1]) + '</h3>';
+  h += '<p class="small"><span class="tag ' + (r ? (r.complete ? 'official' : 'provisional') : 'unavailable') + '">' + (r ? (r.complete ? 'Results complete' : 'Results still arriving') : 'No official data yet') + '</span> <span class="muted">2026 local government election</span></p>';
+  if (r) {
+    h += '<dl class="kv"><dt>Voting districts reported</dt><dd class="num">' + vdOf(r.vd_in, r.vd_total) + '</dd><dt>Valid votes so far</dt><dd class="num">' + (fmt(r.valid) || 'Not available') + '</dd><dt>Turnout (IEC)</dt><dd class="num">' + (pct(r.turnout, 2) || 'Not available') + '</dd></dl>';
+    const list = (r.parties || []).map(p => ({ id: p[0], pct: p[1], name: partyName(p[0]) })).sort((a, b) => (b.pct || 0) - (a.pct || 0)).slice(0, 8);
+    h += '<h4 style="margin:6px 0 8px">Party support in reported votes</h4>' + partyBars(list);
+  } else h += '<p class="small muted">Results appear here once the IEC publishes them and the hub has received them.</p>';
+  h += '<h4 style="margin:12px 0 6px">Council</h4>' + councilText(s, r);
+  if (S.cmp) { const gOld = (S.cmp.geography || []).find(x => x[2] === S.sel); h += '<p class="small muted">' + (gOld ? 'A municipality with this code also existed in ' + S.compare + '. Boundaries may have changed since then, so compare with care.' : 'No comparable municipality in ' + S.compare + ' (new or redrawn since).') + '</p>'; }
+  if (S.wards) h += '<h4 style="margin:12px 0 6px">Wards</h4><p class="small muted">' + (S.wards.length ? S.wards.length + ' wards. Tap a ward on the map for its result.' : 'Ward boundaries could not be loaded.') + '</p>';
+  if (S.ward) h += wardPanel();
+  h += '<p class="small"><a href="#alerts" data-alert="' + esc(S.sel) + '">Get alerts for ' + esc(m[1]) + '</a> · <button class="iconbtn" data-share>Share</button></p><p class="small muted">Source: IEC. Retrieved by this hub ' + esc(sast(S.sum && S.sum.last_ok) || '(not yet)') + '.</p>';
+  el.innerHTML = h;
+  const sh = el.querySelector('[data-share]'); if (sh) sh.onclick = share;
+  const al = el.querySelector('[data-alert]'); if (al) al.onclick = () => { S.alertMuni = S.sel; setTimeout(renderAlerts, 0); };
+}
+function wardPanel() {
+  const w = S.ward, no = (S.wards || []).find(x => x.id === w.id); let h = '<div class="card" style="margin-top:10px;padding:12px"><b>Ward ' + esc(no ? no.no : '') + '</b> <span class="small muted">' + esc(w.id) + '</span>';
+  if (w.loading) return h + '<p class="small muted">Loading the official ward result...</p></div>';
+  if (!w.ward) return h + '<p class="small muted">' + ({ awaiting_credentials: 'Ward results appear once the IEC data connection is active.', withheld: 'Results are not shown on this hub yet. See the IEC results dashboard.', files_only: 'Ward-level figures are not loaded on this hub yet. See the IEC results dashboard for ward results.', not_published: 'The IEC has not published this ward yet.', busy: 'Too many ward requests right now. Try again in a few minutes.', failed_checks: 'The latest ward figures failed this hub\'s checks and are not shown.' }[w.state] || 'Ward result not available.') + '</p></div>';
+  const t = w.ward.parties.reduce((a, p) => a + (p.total || 0), 0);
+  return h + '<p class="small"><span class="tag ' + (w.ward.complete ? 'official' : 'provisional') + '">' + (w.ward.complete ? 'Complete' : 'Still arriving') + '</span> ' + fmt(w.ward.vd_in) + ' of ' + fmt(w.ward.vd_total) + ' voting districts</p>' + partyBars(w.ward.parties.slice(0, 6).map(p => ({ id: p.id, name: p.name, total: p.total, pct: p.pct, color: p.color }))) + '<p class="small muted">Combined ward, PR and district ballots as published by the IEC. Retrieved ' + esc(sast(w.retrieved_at)) + '.</p></div>';
+}
+function councilText(s, r) {
+  if (!s || !s.status) return '<p class="small"><span class="tag ' + (r && !r.complete ? 'provisional' : 'unavailable') + '">' + (r && !r.complete ? 'Results still arriving' : 'Not yet calculated') + '</span> The IEC seat calculation has not been published.</p>';
+  const st = s.status, top = s.parties.slice().sort((a, b) => b[2] - a[2]).slice(0, 6);
+  return '<p class="small"><span class="tag official">Seat calculation completed</span> ' + (st.status === 'majority' ? '<b>' + esc(st.party_name) + '</b> has an outright majority: ' + st.seats + ' of ' + st.of + ' seats.' : st.status === 'hung' ? '<b>No outright majority.</b> Largest party: ' + esc(st.largest) + ' with ' + st.seats + ' of ' + st.of + ' seats.' : st.status === 'tied' ? '<b>Tied:</b> ' + esc((st.parties || []).join(' and ')) + ' on ' + st.seats + ' seats each.' : '') + '</p><table class="tbl small"><thead><tr><th>Party</th><th class="r">Ward</th><th class="r">PR</th><th class="r">Seats</th></tr></thead><tbody>' + top.map(p => '<tr><td><span class="chip"><i style="background:' + partyColor(p[0]) + '"></i>' + esc(p[1]) + '</span></td><td class="r num">' + (p[3] ?? '') + '</td><td class="r num">' + (p[4] ?? '') + '</td><td class="r num"><b>' + p[2] + '</b></td></tr>').join('') + '</tbody></table><p class="small muted">Governing arrangements (coalitions) are shown only when confirmed by dated, authoritative reports. None are inferred from seats.</p>';
+}
+function nationalPanel() {
+  const n = Y().national; if (!n) return '<div class="empty small">No official national figures yet.</div>';
+  const list = (n.parties || []).filter(p => p.total != null).sort((a, b) => b.total - a.total).slice(0, 8);
+  return '<p class="small"><span class="tag ' + (+n.complete === 1 ? 'official' : 'provisional') + '">' + (+n.complete === 1 ? 'Final' : 'Provisional: counting continues') + '</span></p>' + partyBars(list);
+}
+function share() { const u = location.href; if (navigator.share) navigator.share({ title: document.title, url: u }).catch(() => {}); else { navigator.clipboard && navigator.clipboard.writeText(u); toast('Link copied'); } }
+
+/* ---------- search ---------- */
+function searchIndex() {
+  if (searchIndex.v) return searchIndex.v;
+  const out = S.map.munis.map(m => ({ k: (m[1] + ' ' + m[0] + ' ' + m[4] + ' ' + m[2]).toLowerCase(), label: m[1], sub: m[0] + ' · ' + m[2], code: m[0] }));
+  S.map.provinces.forEach(p => out.push({ k: p[0].toLowerCase() + ' province', label: p[0], sub: 'Province', prov: p[0] }));
+  return (searchIndex.v = out);
+}
+function wireSearch() {
+  const inp = $('#q'), box = $('#sugg'); let cur = -1, list = [];
+  const show = () => { const q = inp.value.trim().toLowerCase(); const wm = /^([a-z]{2,3}\d{0,3})\s*(?:ward)?\s*(\d{1,3})$/.exec(q);
+    list = q ? searchIndex().filter(x => q.split(/\s+/).every(w => x.k.includes(w))).slice(0, 8) : [];
+    if (wm) { const m = S.map.munis.find(x => x[0].toLowerCase() === wm[1]); if (m) list.unshift({ label: m[1] + ' ward ' + wm[2], sub: 'Ward', code: m[0], wardNo: +wm[2] }); }
+    box.hidden = !list.length; cur = -1; box.innerHTML = list.map((x, i) => '<button type="button" role="option" data-i="' + i + '"><span>' + esc(x.label) + '</span><span class="small muted">' + esc(x.sub) + '</span></button>').join('');
+    box.querySelectorAll('button').forEach(b => b.onclick = () => pick(list[+b.dataset.i])); };
+  const pick = x => { box.hidden = true; inp.value = x.label; if (x.prov) { const ms = S.map.munis.filter(m => m[2] === x.prov).map(m => m[0]); const bbs = ms.map(bboxOf).filter(Boolean); if (bbs.length) { const x0 = Math.min(...bbs.map(b => b.x)), y0 = Math.min(...bbs.map(b => b.y)), x1 = Math.max(...bbs.map(b => b.x + b.width)), y1 = Math.max(...bbs.map(b => b.y + b.height)); S.view = [x0 - 10, y0 - 10, x1 - x0 + 20, y1 - y0 + 20]; $('#map').setAttribute('viewBox', S.view.join(' ')); } $('#map-section').scrollIntoView({ behavior: 'smooth' }); return; }
+    selectMuni(x.code); if (x.wardNo) { const t = setInterval(() => { if (S.wards) { clearInterval(t); const w = S.wards.find(w => +w.no === x.wardNo); if (w) selectWard(w.id); else toast('Ward ' + x.wardNo + ' not found in ' + x.code); } }, 300); setTimeout(() => clearInterval(t), 8000); } };
+  inp.oninput = show; inp.onfocus = show;
+  inp.onkeydown = e => { const bs = box.querySelectorAll('button'); if (e.key === 'ArrowDown') { cur = Math.min(bs.length - 1, cur + 1); } else if (e.key === 'ArrowUp') { cur = Math.max(0, cur - 1); } else if (e.key === 'Enter') { e.preventDefault(); if (list[Math.max(0, cur)]) pick(list[Math.max(0, cur)]); return; } else if (e.key === 'Escape') { box.hidden = true; return; } else return; e.preventDefault(); bs.forEach((b, i) => b.setAttribute('aria-selected', String(i === cur))); };
+  document.addEventListener('click', e => { if (!e.target.closest('.search')) box.hidden = true; });
+}
+
+/* ---------- parties, councils, timeline, feed ---------- */
+function partyRows() {
+  const y = Y(), n = y.national; if (!n) return [];
+  const seats = {}, led = {}, ctrl = {}; (y.seats || []).forEach(s => { s.parties.forEach(p => { seats[p[0]] = (seats[p[0]] || 0) + (p[2] || 0); }); if (s.status && s.status.status === 'majority') ctrl[s.status.party] = (ctrl[s.status.party] || 0) + 1; });
+  (y.municipalities || []).forEach(m => { if (m.lead) led[m.lead.id] = (led[m.lead.id] || 0) + 1; });
+  const prev = S.cmp && S.cmp.national ? S.cmp.national.parties : null;
+  return (n.parties || []).filter(p => p.total != null).map(p => { const old = prev ? prev.find(q => q.id === p.id) || prev.find(q => q.name.toLowerCase() === p.name.toLowerCase()) : null; return { id: p.id, name: p.name, color: p.color, votes: p.total, share: p.pct, prev: prev ? (old ? old.pct : 'dnc') : undefined, change: old && p.pct != null && old.pct != null ? p.pct - old.pct : null, seats: (y.seats || []).length ? seats[p.id] || 0 : null, led: led[p.id] || 0, ctrl: (y.seats || []).length ? ctrl[p.id] || 0 : null }; });
+}
+function renderParties() {
+  const n = Y().national, el = $('#parties');
+  if (!n) { el.innerHTML = '<div class="empty">The party leaderboard appears once the IEC publishes national figures. Rankings are by reported votes only.</div>'; return; }
+  const key = S.sort, rows = partyRows().sort((a, b) => ((b[key] ?? -1e9) - (a[key] ?? -1e9))).slice(0, 10), done = +n.complete === 1;
+  const cols = [['votes', 'Votes'], ['share', 'Vote share'], ['change', 'Change (pp)'], ['seats', 'Seats'], ['led', 'Councils leading'], ['ctrl', 'Councils controlled']];
+  el.innerHTML = '<p class="small"><span class="tag ' + (done ? 'official' : 'provisional') + '">' + (done ? 'Final' : 'Provisional') + '</span> <span class="muted">' + vdOf(n.vd_in, n.vd_total) + ' voting districts reported. ' + (S.cmp ? 'Compared with ' + S.compare + '.' : 'Choose a comparison year under Historical comparisons.') + ' Leading a council (most votes so far) is not the same as controlling it (an outright seat majority).</span></p><div class="scroll"><table class="tbl"><thead><tr><th>#</th><th>Party</th>' + cols.map(c => '<th class="r"><button data-sort="' + c[0] + '">' + c[1] + (key === c[0] ? ' ▾' : '') + '</button></th>').join('') + '</tr></thead><tbody>'
+    + rows.map((r, i) => '<tr><td class="num">' + (i + 1) + '</td><td><span class="chip"><i style="background:' + partyColor(r.id, r.color) + '"></i>' + esc(r.name) + '</span></td><td class="r num">' + fmt(r.votes) + '</td><td class="r num">' + (pct(r.share, 2) || '') + '</td><td class="r num">' + (r.prev === undefined ? '<span class="muted">-</span>' : r.prev === 'dnc' ? '<span class="muted small">No comparable result</span>' : (r.change >= 0 ? '+' : '') + r.change.toFixed(2)) + '</td><td class="r num">' + (r.seats == null ? '<span class="muted small">Pending</span>' : r.seats) + '</td><td class="r num">' + r.led + '</td><td class="r num">' + (r.ctrl == null ? '<span class="muted small">Pending</span>' : r.ctrl) + '</td></tr>').join('') + '</tbody></table></div>';
+  el.querySelectorAll('[data-sort]').forEach(b => b.onclick = () => { S.sort = b.dataset.sort; renderParties(); });
+}
+function renderCouncils() {
+  const y = Y(), total = (y.geography || []).filter(g => g[1] === 'municipality').length, el = $('#councils');
+  if (!total) { el.innerHTML = '<div class="empty">Council outcomes appear once the IEC publishes seat calculations.</div>'; return; }
+  const seats = y.seats || [], seatIds = new Set(seats.map(s => s.geo_id)), munis = y.municipalities || [];
+  const calculated = seats.length, arriving = munis.filter(m => !seatIds.has(m.geo_id)).length, notYet = total - calculated - arriving;
+  const maj = seats.filter(s => s.status.status === 'majority'), hung = seats.filter(s => s.status.status === 'hung'), tied = seats.filter(s => s.status.status === 'tied');
+  const byParty = {}; maj.forEach(s => { byParty[s.status.party] = (byParty[s.status.party] || 0) + 1; });
+  el.innerHTML = '<div class="grid g4">' + [['Total councils', total, 'official', 'local and metropolitan'], ['Seat calculation completed', calculated, calculated ? 'official' : 'unavailable', ''], ['Results still arriving', arriving, 'provisional', 'no seat calculation yet'], ['Not yet calculated', notYet, 'unavailable', 'no results received yet']].map(c => metric(c[0], fmt(c[1]), c[2], c[3])).join('') + '</div>'
+    + '<p class="small muted" style="margin:12px 0">The four numbers above always add up to the total. The outcomes below only cover councils with a completed seat calculation (' + calculated + ').</p>'
+    + '<div class="grid g3">' + [['Outright majority', maj.length], ['No outright majority', hung.length], ['Tied', tied.length]].map(c => metric(c[0], calculated ? fmt(c[1]) : null, calculated ? 'official' : 'unavailable', calculated ? 'of ' + calculated + ' calculated' : '')).join('') + '</div>'
+    + (maj.length ? '<h3 style="font:700 17px var(--serif);margin:16px 0 8px">Councils with an outright majority, by party</h3>' + Object.keys(byParty).sort((a, b) => byParty[b] - byParty[a]).map(id => '<div class="pbar"><span class="chip"><i style="background:' + partyColor(id) + '"></i>' + esc(partyName(id)) + '</span><b class="num">' + byParty[id] + '</b><div class="t"><i style="width:' + byParty[id] / calculated * 100 + '%;background:' + partyColor(id) + '"></i></div></div>').join('') : '')
+    + '<p class="small muted">Coalition or governing arrangements: none listed. They are added only when confirmed by dated, authoritative reporting, never inferred from seats.</p>';
+}
+function renderTimeline() {
+  const sn = (S.sum && S.sum.snapshots || []).filter(s => s.vd_total), el = $('#timeline');
+  if (sn.length < 2) { el.innerHTML = '<div class="empty">The reporting timeline builds up as the hub records official snapshots during the count. Each point shows exactly when it was captured.</div>'; return; }
+  const W = 800, Hh = 200, t0 = Date.parse(sn[0].at), t1 = Date.parse(sn[sn.length - 1].at) || t0 + 1, X = t => (Date.parse(t) - t0) / Math.max(1, t1 - t0) * W, Yv = v => Hh - v * Hh;
+  const line = sn.map((s, i) => (i ? 'L' : 'M') + X(s.at).toFixed(1) + ' ' + Yv(s.vd_in / s.vd_total).toFixed(1)).join('');
+  el.innerHTML = '<svg class="chart" viewBox="0 0 ' + W + ' ' + Hh + '" preserveAspectRatio="none" role="img" aria-label="Share of voting districts reported over time"><line class="ax" x1="0" y1="' + Hh / 2 + '" x2="' + W + '" y2="' + Hh / 2 + '"/><path class="ar" d="' + line + 'L' + W + ' ' + Hh + 'L0 ' + Hh + 'Z"/><path class="ln" d="' + line + '"/></svg>'
+    + '<label class="f" style="margin-top:10px">Play back the count<input type="range" id="tlr" min="0" max="' + (sn.length - 1) + '" value="' + (sn.length - 1) + '"></label><p class="small" id="tlo" aria-live="polite"></p>';
+  const out = i => { const s = sn[i]; $('#tlo').innerHTML = 'Captured <b>' + esc(sast(s.at)) + '</b>: ' + fmt(s.vd_in) + ' of ' + fmt(s.vd_total) + ' voting districts (' + pct(s.vd_in / s.vd_total * 100) + '), ' + fmt(s.munis_complete) + ' municipalities complete, ' + fmt(s.seat_calcs) + ' seat calculations, ' + (fmt(s.votes_valid) || 'no') + ' valid votes published.'; };
+  $('#tlr').oninput = e => out(+e.target.value); out(sn.length - 1);
+}
+const CAT = { results_complete: 'Results complete', reporting_threshold: 'Reporting milestone', seat_calculation: 'Seat calculation', council_status: 'Council outcome', lead_change: 'Lead change in reported votes', correction: 'Official correction', results_published: 'Official results published' };
+function renderFeed() {
+  const ev = (S.sum && S.sum.events) || [], el = $('#feed');
+  if (!ev.length) { el.innerHTML = '<div class="empty">Verified changes appear here as official results arrive: completed municipalities, seat calculations, reporting milestones and corrections.</div>'; return; }
+  el.innerHTML = '<ul class="feed">' + ev.slice(0, 40).map(e => { let n = {}; try { n = JSON.parse(e.numbers || '{}'); } catch (x) {} const nums = Object.keys(n).filter(k => typeof n[k] !== 'object').slice(0, 4).map(k => k.replace(/_/g, ' ') + ': ' + (typeof n[k] === 'number' ? fmt(n[k]) : esc(n[k]))).join(' · ');
+    return '<li><span class="h">' + esc(e.headline) + '</span><span class="m"><span class="tag ' + (/provisional/.test(e.status) ? 'provisional' : 'official') + '">' + esc(e.status) + '</span><span>' + esc(CAT[e.category] || e.category) + '</span><span>' + esc(sast(e.at)) + '</span><span>Source: ' + esc(e.source) + '</span></span>' + (nums ? '<span class="small muted num">' + nums + '</span>' : '') + '</li>'; }).join('') + '</ul>';
+}
+function renderHistory() {
+  const yrs = (S.sum && S.sum.available_years) || [], el = $('#history');
+  const opts = ['2021', '2016', '2011', '2006', '2000'];
+  el.innerHTML = '<div class="toolbar"><label class="small">Compare 2026 with <select id="hcmp">' + '<option value="">Choose a year</option>' + opts.map(y => '<option value="' + y + '"' + (yrs.includes(y) ? '' : ' disabled') + (S.compare === y ? ' selected' : '') + '>' + y + (yrs.includes(y) ? '' : ' (not loaded yet)') + '</option>').join('') + '</select></label></div>'
+    + (S.cmp && S.cmp.national ? compareTable() : '<div class="empty">' + (yrs.length > 1 ? 'Choose a year to compare.' : 'Historical IEC results for 2021, 2016, 2011, 2006 and 2000 are loaded from the same official API once the connection is active. Comparisons only use like-for-like ballots, and areas whose boundaries changed are flagged.') + '</div>');
+  $('#hcmp').onchange = async e => { S.compare = e.target.value; S.cmp = S.compare ? (await get({ a: 'year', year: S.compare })).data : null; renderAll(); };
+}
+function compareTable() {
+  const rows = partyRows().filter(r => r.share != null).sort((a, b) => b.votes - a.votes).slice(0, 12), n = Y().national;
+  return '<p class="small"><span class="tag ' + (+n.complete === 1 ? 'official' : 'provisional') + '">' + (+n.complete === 1 ? 'Final comparison' : 'Provisional comparison') + '</span> <span class="muted">2026 share of reported votes against the ' + S.compare + ' final share (combined ward, PR and district ballots, as published by the IEC). ' + (+n.complete === 1 ? '' : 'Partial 2026 counts are not final national support.') + '</span></p><div class="scroll"><table class="tbl"><thead><tr><th>Party</th><th class="r">' + S.compare + '</th><th class="r">2026</th><th class="r">Change</th></tr></thead><tbody>' + rows.map(r => '<tr><td><span class="chip"><i style="background:' + partyColor(r.id, r.color) + '"></i>' + esc(r.name) + '</span></td><td class="r num">' + (r.prev === 'dnc' ? '<span class="muted small">Did not contest / no comparable result</span>' : pct(r.prev, 2)) + '</td><td class="r num">' + pct(r.share, 2) + '</td><td class="r num">' + (r.change == null ? '' : (r.change >= 0 ? '+' : '') + r.change.toFixed(2) + ' pp') + '</td></tr>').join('') + '</tbody></table></div>';
+}
+
+/* ---------- alerts ---------- */
+function renderAlerts() {
+  const el = $('#alertform'), provs = S.map ? S.map.provinces.map(p => p[0]).sort() : [];
+  el.innerHTML = '<form class="sub" id="fsub" novalidate><label class="f">Email address<input type="email" id="semail" autocomplete="email" required maxlength="200"></label>'
+    + '<label class="f">Area<select id="slevel"><option value="national">National updates</option><option value="province">A province</option><option value="municipality"' + (S.alertMuni ? ' selected' : '') + '>A municipality</option></select></label>'
+    + '<label class="f" id="sprovw" hidden>Province<select id="sprov">' + provs.map(p => '<option>' + esc(p) + '</option>').join('') + '</select></label>'
+    + '<label class="f" id="smuniw"' + (S.alertMuni ? '' : ' hidden') + '>Municipality<select id="smuni">' + (S.map ? S.map.munis.slice().sort((a, b) => a[1].localeCompare(b[1])).map(m => '<option value="' + esc(m[0]) + '"' + (S.alertMuni === m[0] ? ' selected' : '') + '>' + esc(m[1] + ' (' + m[0] + ')') + '</option>').join('') : '') + '</select></label>'
+    + '<fieldset class="radio" style="border:0;padding:0;margin:0"><legend class="f" style="font:600 13px var(--sans);margin-bottom:6px">How often</legend>' + [['2h', 'Every 2 hours', 'A digest at most every two hours, only when something new is published.'], ['3h', 'Every 3 hours', 'A digest at most every three hours, only when something new is published.'], ['important', 'Important changes', 'Completed results, seat calculations, council outcomes, lead changes and official corrections.'], ['final', 'Final results only', 'One email when your area\'s official results or seat calculation are complete.']].map((o, i) => '<label><input type="radio" name="sfreq" value="' + o[0] + '"' + (i === 0 ? ' checked' : '') + '><span><b>' + o[1] + '</b><br><span class="small muted">' + o[2] + '</span></span></label>').join('') + '</fieldset>'
+    + '<label style="display:flex;gap:10px;align-items:flex-start;font-size:14px"><input type="checkbox" id="sconsent" style="margin-top:3px"><span>I agree to receive SA Elections 2026 updates at this address, as chosen above. I can unsubscribe at any time. My details are not shared with political parties or used for marketing. See the <a href="#privacy">privacy notice</a>.</span></label>'
+    + '<button class="btn primary" id="sgo">Subscribe</button><p class="msg" id="smsg" role="status"></p></form>';
+  const lv = $('#slevel'); const sync = () => { $('#sprovw').hidden = lv.value !== 'province'; $('#smuniw').hidden = lv.value !== 'municipality'; }; lv.onchange = sync; sync();
+  $('#fsub').onsubmit = async e => {
+    e.preventDefault(); const b = $('#sgo'); b.disabled = true; $('#smsg').textContent = '';
+    const gi = byCode(), lvl = lv.value; let ids = [];
+    if (lvl === 'municipality') { const g = gi[$('#smuni').value]; ids = g ? [g.id] : []; if (!g) { $('#smsg').textContent = 'Alerts for this municipality open once the IEC data connection is active.'; b.disabled = false; return; } }
+    if (lvl === 'province') { const pg = Object.values(geoIndex()).find(g => g.level === 'province' && g.name.toLowerCase() === $('#sprov').value.toLowerCase()); ids = pg ? [pg.id] : []; if (!pg) { $('#smsg').textContent = 'Provincial alerts open once the IEC data connection is active.'; b.disabled = false; return; } }
+    try { const j = await post({ a: 'subscribe', email: $('#semail').value.trim(), scope_level: lvl, scope_ids: ids, frequency: (document.querySelector('input[name="sfreq"]:checked') || {}).value, consent: $('#sconsent').checked, lang: 'en' }); $('#smsg').textContent = j.ok ? j.message : j.message || 'Could not subscribe.'; }
+    catch (x) { $('#smsg').textContent = 'Could not reach the hub. Please try again.'; }
+    b.disabled = false;
+  };
+}
+async function handleHash() {
+  const h = location.hash;
+  let m = /^#confirm=([a-z0-9.]+)$/.exec(h); if (m) { const j = await post({ a: 'confirm', code: m[1] }); history.replaceState(null, '', location.pathname); toast(j.message || 'Done'); return; }
+  m = /^#prefs=([a-z0-9.]+)$/.exec(h); if (m) { const code = m[1], j = await post({ a: 'prefs', code }); const el = $('#alertform'); location.hash = '#alerts'; history.replaceState(null, '', location.pathname + '#alerts');
+    if (!j.ok) { el.innerHTML = '<div class="notice bad"><div>' + esc(j.message) + '</div></div>'; return; }
+    el.innerHTML = '<div class="card"><p>Updates for <b>' + esc(j.prefs.email) + '</b>: ' + esc(j.prefs.frequency) + ', ' + esc(j.prefs.scope_level) + '.</p><label class="f">Change how often<select id="pf">' + ['2h', '3h', 'important', 'final'].map(f => '<option' + (f === j.prefs.frequency ? ' selected' : '') + '>' + f + '</option>').join('') + '</select></label><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn primary" id="ps">Save</button><button class="btn" id="pu">Unsubscribe</button><button class="btn" id="pe">Delete my details</button></div><p class="msg" id="pm" role="status"></p></div>';
+    $('#ps').onclick = async () => { const r = await post({ a: 'prefs', code, save: { frequency: $('#pf').value, scope_level: j.prefs.scope_level, scope_ids: j.prefs.scope_ids, parties: j.prefs.parties } }); $('#pm').textContent = r.message; };
+    $('#pu').onclick = async () => { const r = await post({ a: 'prefs', code, unsubscribe: true }); $('#pm').textContent = r.message; };
+    $('#pe').onclick = async () => { const r = await post({ a: 'prefs', code, erase: true }); $('#pm').textContent = r.message; };
+    return; }
+  m = /^#m=([A-Z0-9]+)(?:&w=(\d{8}))?$/.exec(h); if (m && S.map) { selectMuni(decodeURIComponent(m[1])); if (m[2]) setTimeout(() => selectWard(m[2]), 1500); }
+}
+
+/* ---------- page ---------- */
+function renderAll() { renderStatus(); renderDashboard(); if (S.map) { renderMapControls(); paintMap(); renderPanel(); } renderParties(); renderCouncils(); renderTimeline(); renderFeed(); renderHistory(); }
+function render() { renderAll(); }
+function theme() { const t = ls.get('el.theme'); if (t) document.documentElement.dataset.theme = t; $('#theme').onclick = () => { const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'), nx = cur === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = nx; ls.set('el.theme', nx); }; }
+function navSpy() { const links = $$('.secnav a'); if (!('IntersectionObserver' in window)) return; const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) links.forEach(a => a.setAttribute('aria-current', String(a.getAttribute('href') === '#' + e.target.id))); }), { rootMargin: '-40% 0px -55% 0px' }); $$('section.s').forEach(s => io.observe(s)); }
+async function start() {
+  theme(); navSpy(); renderAlerts(); $('#refresh').onclick = () => load(true);
+  try { S.map = await (await fetch('map.json')).json(); buildMap(); wireSearch(); renderAlerts(); } catch (e) { $('#mapbox').innerHTML = '<div class="empty">The map could not be loaded.</div>'; }
+  const c = ls.get('el.sum'); if (c) try { S.sum = JSON.parse(c); } catch (x) {}
+  render(); await load(); handleHash();
+  setInterval(() => { if (document.visibilityState === 'visible' && S.sum && ['live', 'pre'].includes(S.sum.mode)) load(); }, 90000);
+}
+start();
+</script>
+</body>
+</html>
