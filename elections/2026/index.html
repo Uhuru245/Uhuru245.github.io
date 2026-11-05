@@ -340,6 +340,7 @@ const byCode = () => { const gi = geoIndex(), o = {}; Object.values(gi).forEach(
 const KNOWN_COLORS = { 'african national congress': '#1f9d55', 'democratic alliance': '#2f80ed', 'economic freedom fighters': '#e5383b', 'inkatha freedom party': '#f2c14e', 'umkhonto wesizwe party': '#8bc34a', 'patriotic alliance': '#f2994a', 'vryheidsfront plus freedom front plus': '#ff8a3d', 'actionsa': '#27c9a1', 'african christian democratic party': '#b07cd8', 'united democratic movement': '#ffd166', 'african transformation movement': '#9b5de5', 'south african communist party': '#d00000', 'good': '#e76f51', 'independent': '#9aa5b1' };
 const PALETTE = ['#4cc9f0', '#f72585', '#b5e48c', '#ffb703', '#90be6d', '#c77dff', '#ff6b6b', '#48bfe3', '#f9844a', '#43aa8b', '#f8961e', '#7209b7', '#ffafcc', '#06d6a0', '#ef476f'];
 const normParty = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const partyColorByName = name => { const n = normParty(name); if (KNOWN_COLORS[n]) return KNOWN_COLORS[n]; let h = 0; for (const ch of n) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return PALETTE[h % PALETTE.length]; };
 const partyColor = (id, fallback) => { const p = ((Y().national || {}).parties || []).find(x => x.id === String(id)); const c = (p && p.color) || fallback || ''; if (/^#?[0-9a-f]{6}$/i.test(c)) return c[0] === '#' ? c : '#' + c; const n = normParty(p ? p.name : String(id).replace(/^n-/, '').replace(/-/g, ' ')); if (KNOWN_COLORS[n]) return KNOWN_COLORS[n]; let h = 0; for (const ch of n) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return PALETTE[h % PALETTE.length]; };
 const partyName = id => { const p = ((Y().national || {}).parties || []).find(x => x.id === String(id)); return p ? p.name : 'Party ' + id; };
 
@@ -577,14 +578,25 @@ function renderCouncils() {
     + '<p class="small muted">Coalition or governing arrangements: none listed. They are added only when confirmed by dated, authoritative reporting, never inferred from seats.</p>';
 }
 function renderTimeline() {
-  const sn = (S.sum && S.sum.snapshots || []).filter(s => s.vd_total), el = $('#timeline');
-  if (sn.length < 2) { el.innerHTML = '<div class="empty">The reporting timeline builds up as the hub records official snapshots during the count. Each point shows exactly when it was captured.</div>'; return; }
-  const W = 800, Hh = 200, t0 = Date.parse(sn[0].at), t1 = Date.parse(sn[sn.length - 1].at) || t0 + 1, X = t => (Date.parse(t) - t0) / Math.max(1, t1 - t0) * W, Yv = v => Hh - v * Hh;
-  const line = sn.map((s, i) => (i ? 'L' : 'M') + X(s.at).toFixed(1) + ' ' + Yv(s.vd_in / s.vd_total).toFixed(1)).join('');
-  el.innerHTML = '<svg class="chart" viewBox="0 0 ' + W + ' ' + Hh + '" preserveAspectRatio="none" role="img" aria-label="Share of voting districts reported over time"><line class="ax" x1="0" y1="' + Hh / 2 + '" x2="' + W + '" y2="' + Hh / 2 + '"/><path class="ar" d="' + line + 'L' + W + ' ' + Hh + 'L0 ' + Hh + 'Z"/><path class="ln" d="' + line + '"/></svg>'
-    + '<label class="f" style="margin-top:10px">Play back the count<input type="range" id="tlr" min="0" max="' + (sn.length - 1) + '" value="' + (sn.length - 1) + '"></label><p class="small" id="tlo" aria-live="polite"></p>';
-  const out = i => { const s = sn[i]; $('#tlo').innerHTML = 'Captured <b>' + esc(sast(s.at)) + '</b>: ' + fmt(s.vd_in) + ' of ' + fmt(s.vd_total) + ' voting districts (' + pct(s.vd_in / s.vd_total * 100) + '), ' + fmt(s.munis_complete) + ' municipalities complete, ' + fmt(s.seat_calcs) + ' seat calculations, ' + (fmt(s.votes_valid) || 'no') + ' valid votes published.'; };
-  $('#tlr').oninput = e => out(+e.target.value); out(sn.length - 1);
+  const all = (S.sum && S.sum.snapshots || []).filter(s => s.vd_in !== '' && s.vd_in != null), el = $('#timeline');
+  const y = Y(), n = y.national, munis = (y.municipalities || []).length, viaFiles = ((S.sum && S.sum.source) || {}).via === 'files';
+  const nn = v => v === '' || v == null ? null : +v;
+  const head = '<div class="grid g4" style="margin-bottom:14px">'
+    + metric(viaFiles ? 'Voting districts in IEC files' : 'Voting districts reported', n ? fmt(nn(n.vd_in)) : null, n ? 'provisional' : 'unavailable', nn(n && n.vd_total) ? 'of ' + fmt(n.vd_total) : 'growing as the IEC publishes', null)
+    + metric('Municipalities with results', munis ? fmt(munis) : null, munis ? 'official' : 'unavailable', 'of 213 municipalities', munis ? munis / 213 * 100 : null)
+    + metric('Valid votes so far', n ? fmt(nn(n.valid)) : null, n ? 'provisional' : 'unavailable', 'ward, PR and district ballots', null)
+    + metric('Last official update', S.sum && S.sum.last_ok ? esc(sast(S.sum.last_ok)) : null, S.sum && S.sum.last_ok ? 'official' : 'unavailable', 'checked every 5 minutes', null) + '</div>';
+  if (all.length < 2) { el.innerHTML = head + '<div class="empty">The progress chart builds up as the hub records each official update during the count. Each point shows exactly when it was captured.</div>'; return; }
+  const share = all.every(s => nn(s.vd_total)), W = 800, Hh = 200, t0 = Date.parse(all[0].at), t1 = Date.parse(all[all.length - 1].at) || t0 + 1;
+  const max = share ? 1 : Math.max(1, ...all.map(s => +s.vd_in)), val = s => share ? s.vd_in / s.vd_total : +s.vd_in / max;
+  const X = t => (Date.parse(t) - t0) / Math.max(1, t1 - t0) * W, Yv = v => Hh - v * (Hh - 8);
+  const line = all.map((s, i) => (i ? 'L' : 'M') + X(s.at).toFixed(1) + ' ' + Yv(val(s)).toFixed(1)).join('');
+  el.innerHTML = head + '<p class="small muted">' + (share ? 'Share of voting districts reported over time.' : 'Voting districts with results in the IEC published files over time (the IEC files do not give a total, so the chart shows the count, not a percentage).') + '</p>'
+    + '<svg class="chart" viewBox="0 0 ' + W + ' ' + Hh + '" preserveAspectRatio="none" role="img" aria-label="Count progress over time"><line class="ax" x1="0" y1="' + Hh / 2 + '" x2="' + W + '" y2="' + Hh / 2 + '"/><path class="ar" d="' + line + 'L' + W + ' ' + Hh + 'L0 ' + Hh + 'Z"/><path class="ln" d="' + line + '"/></svg>'
+    + '<div class="small muted" style="display:flex;justify-content:space-between"><span>' + esc(sast(all[0].at)) + '</span><span>' + esc(sast(all[all.length - 1].at)) + '</span></div>'
+    + '<label class="f" style="margin-top:10px">Play back the count<input type="range" id="tlr" min="0" max="' + (all.length - 1) + '" value="' + (all.length - 1) + '"></label><p class="small" id="tlo" aria-live="polite"></p>';
+  const out = i => { const s = all[i]; $('#tlo').innerHTML = 'Captured <b>' + esc(sast(s.at)) + '</b>: ' + fmt(s.vd_in) + (share ? ' of ' + fmt(s.vd_total) + ' voting districts (' + pct(s.vd_in / s.vd_total * 100) + ')' : ' voting districts in the IEC files') + (s.munis_reported !== '' && s.munis_reported != null ? ', ' + fmt(s.munis_reported) + ' municipalities with results' : '') + ', ' + (fmt(s.votes_valid) || 'no') + ' valid votes.'; };
+  $('#tlr').oninput = e => out(+e.target.value); out(all.length - 1);
 }
 const CAT = { results_complete: 'Results complete', reporting_threshold: 'Reporting milestone', seat_calculation: 'Seat calculation', council_status: 'Council outcome', lead_change: 'Lead change in reported votes', correction: 'Official correction', results_published: 'Official results published' };
 function renderFeed() {
@@ -599,6 +611,25 @@ function renderHistory() {
   el.innerHTML = '<div class="toolbar"><label class="small">Compare 2026 with <select id="hcmp">' + '<option value="">Choose a year</option>' + opts.map(y => '<option value="' + y + '"' + (yrs.includes(y) ? '' : ' disabled') + (S.compare === y ? ' selected' : '') + '>' + y + (yrs.includes(y) ? '' : ' (not loaded yet)') + '</option>').join('') + '</select></label></div>'
     + (S.cmp && S.cmp.national ? compareTable() : '<div class="empty">' + (yrs.length > 1 ? 'Choose a year to compare.' : 'Historical IEC results for 2021, 2016, 2011, 2006 and 2000 are loaded from the same official API once the connection is active. Comparisons only use like-for-like ballots, and areas whose boundaries changed are flagged.') + '</div>');
   $('#hcmp').onchange = async e => { S.compare = e.target.value; S.cmp = S.compare ? (await get({ a: 'year', year: S.compare })).data : null; renderAll(); };
+  const past = yrs.filter(y => y !== '2026').sort().reverse();
+  if (past.length) { el.insertAdjacentHTML('beforeend', '<h3 style="margin:22px 0 6px">2026 against every election</h3><div id="allyrs"><p class="small muted">Loading every election...</p></div>'); allYears(past); }
+}
+async function allYears(past) {
+  S.years = S.years || {};
+  try { for (const y of past) if (!S.years[y]) S.years[y] = (await get({ a: 'year', year: y })).data; } catch (e) { const b = $('#allyrs'); if (b) b.innerHTML = '<p class="small muted">Could not load past elections. Refresh to try again.</p>'; return; }
+  const box = $('#allyrs'); if (!box) return;
+  const cur = Y().national, yrs = past.filter(y => S.years[y] && S.years[y].national);
+  if (!cur || !yrs.length) { box.innerHTML = '<div class="empty">Past elections appear here as they finish loading from the IEC files.</div>'; return; }
+  const norm = s => String(s || '').toLowerCase().replace(/vryheidsfront plus \| /, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const shareMap = nat => { const m = {}, ps = nat.parties || [], tot = ps.reduce((a, p) => a + (+p.total || 0), 0); ps.forEach(p => { if (p.total != null) m[norm(p.name)] = { pct: tot ? p.total / tot * 100 : null, name: p.name }; }); return m; };
+  const now = shareMap(cur), old = yrs.map(y => shareMap(S.years[y].national));
+  const top = Object.entries(now).sort((a, b) => b[1].pct - a[1].pct).slice(0, 12);
+  const cell = v => v == null ? '<span class="muted">No result</span>' : pct(v, 1);
+  const rows = top.map(([k, v]) => '<tr><td><span class="chip"><i style="background:' + partyColorByName(v.name) + '"></i>' + esc(v.name) + '</span></td><td class="r num"><b>' + pct(v.pct, 1) + '</b></td>' + old.map(m => '<td class="r num">' + cell(m[k] && m[k].pct) + '</td>').join('') + '</tr>').join('');
+  const stat = (label, f) => '<tr><td class="muted">' + label + '</td><td class="r num"><b>' + (f(cur) || '-') + '</b></td>' + yrs.map(y => '<td class="r num">' + (f(S.years[y].national) || '-') + '</td>').join('') + '</tr>';
+  box.innerHTML = '<p class="small"><span class="tag ' + (+cur.complete === 1 ? 'official' : 'provisional') + '">' + (+cur.complete === 1 ? 'Final' : '2026 provisional') + '</span> <span class="muted">Share of all valid votes (ward, PR and district ballots combined) in each election, from the IEC published results. Party names must match exactly; a party that did not stand shows No result.</span></p>'
+    + '<div class="scroll"><table class="tbl"><thead><tr><th>Party</th><th class="r">2026</th>' + yrs.map(y => '<th class="r">' + y + '</th>').join('') + '</tr></thead><tbody>' + rows
+    + stat('Valid votes', n => fmt(n.valid)) + stat('Voter turnout', n => n.turnout !== '' && n.turnout != null ? pct(+n.turnout, 1) : '') + stat('Voting districts', n => fmt(n.vd_in)) + '</tbody></table></div>';
 }
 function compareTable() {
   const rows = partyRows().filter(r => r.share != null).sort((a, b) => b.votes - a.votes).slice(0, 12), n = Y().national;
@@ -621,14 +652,26 @@ function renderAlerts() {
     const gi = byCode(), lvl = lv.value; let ids = [];
     if (lvl === 'municipality') { const g = gi[$('#smuni').value]; ids = g ? [g.id] : []; if (!g) { $('#smsg').textContent = 'Alerts for this municipality open once the IEC data connection is active.'; b.disabled = false; return; } }
     if (lvl === 'province') { const pg = Object.values(geoIndex()).find(g => g.level === 'province' && g.name.toLowerCase() === $('#sprov').value.toLowerCase()); ids = pg ? [pg.id] : []; if (!pg) { $('#smsg').textContent = 'Provincial alerts open once the IEC data connection is active.'; b.disabled = false; return; } }
-    try { const j = await post({ a: 'subscribe', email: $('#semail').value.trim(), scope_level: lvl, scope_ids: ids, frequency: (document.querySelector('input[name="sfreq"]:checked') || {}).value, consent: $('#sconsent').checked, lang: 'en' }); $('#smsg').textContent = j.ok ? j.message : j.message || 'Could not subscribe.'; }
+    try { const j = await post({ a: 'subscribe', email: $('#semail').value.trim(), scope_level: lvl, scope_ids: ids, frequency: (document.querySelector('input[name="sfreq"]:checked') || {}).value, consent: $('#sconsent').checked, lang: 'en' }); $('#smsg').textContent = j.ok ? j.message : j.message || 'Could not subscribe.'; if (j.ok) { try { localStorage.setItem('el.pending', JSON.stringify({ email: $('#semail').value.trim(), scope_level: lvl, scope_ids: ids, frequency: (document.querySelector('input[name="sfreq"]:checked') || {}).value, at: Date.now() })); } catch (x) {} pendingBanner(); } }
     catch (x) { $('#smsg').textContent = 'Could not reach the hub. Please try again.'; }
     b.disabled = false;
   };
 }
+/* Someone who subscribed but has not confirmed keeps seeing how to finish, with a resend button. */
+function pendingBanner() {
+  let p = null; try { p = JSON.parse(localStorage.getItem('el.pending') || 'null'); } catch (e) {}
+  const old = $('#pendbar'); if (old) old.remove();
+  if (!p || !p.email || Date.now() - p.at > 14 * 864e5) return;
+  const mask = p.email.replace(/^(.)[^@]*(@.*)$/, '$1***$2');
+  const div = document.createElement('div'); div.id = 'pendbar'; div.className = 'notice warn'; div.setAttribute('role', 'status');
+  div.innerHTML = '<div><b>One step left: confirm your election alerts</b>We emailed a confirmation link to ' + esc(mask) + '. Open it to start your updates (check spam or promotions too). <button class="btn" id="pendre" style="height:32px;margin-top:8px">Send the link again</button> <button class="btn" id="pendno" style="height:32px;margin-top:8px">Cancel this request</button></div>';
+  const host = $('#notice'); if (host) host.after(div);
+  $('#pendre').onclick = async () => { const b = $('#pendre'); b.disabled = true; try { const j = await post({ a: 'subscribe', email: p.email, scope_level: p.scope_level, scope_ids: p.scope_ids, frequency: p.frequency, consent: true, lang: 'en' }); toast(j.message || 'Sent'); } catch (e) { toast('Could not reach the hub.'); } b.disabled = false; };
+  $('#pendno').onclick = () => { try { localStorage.removeItem('el.pending'); } catch (e) {} pendingBanner(); };
+}
 async function handleHash() {
   const h = location.hash;
-  let m = /^#confirm=([a-z0-9.]+)$/.exec(h); if (m) { const j = await post({ a: 'confirm', code: m[1] }); history.replaceState(null, '', location.pathname); toast(j.message || 'Done'); return; }
+  let m = /^#confirm=([a-z0-9.]+)$/.exec(h); if (m) { const j = await post({ a: 'confirm', code: m[1] }); if (j.ok) { try { localStorage.removeItem('el.pending'); } catch (x) {} pendingBanner(); } history.replaceState(null, '', location.pathname); toast(j.message || 'Done'); return; }
   m = /^#prefs=([a-z0-9.]+)$/.exec(h); if (m) { const code = m[1], j = await post({ a: 'prefs', code }); const el = $('#alertform'); location.hash = '#alerts'; history.replaceState(null, '', location.pathname + '#alerts');
     if (!j.ok) { el.innerHTML = '<div class="notice bad"><div>' + esc(j.message) + '</div></div>'; return; }
     el.innerHTML = '<div class="card"><p>Updates for <b>' + esc(j.prefs.email) + '</b>: ' + esc(j.prefs.frequency) + ', ' + esc(j.prefs.scope_level) + '.</p><label class="f">Change how often<select id="pf">' + ['2h', '3h', 'important', 'final'].map(f => '<option' + (f === j.prefs.frequency ? ' selected' : '') + '>' + f + '</option>').join('') + '</select></label><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn primary" id="ps">Save</button><button class="btn" id="pu">Unsubscribe</button><button class="btn" id="pe">Delete my details</button></div><p class="msg" id="pm" role="status"></p></div>';
@@ -648,7 +691,7 @@ async function start() {
   theme(); navSpy(); renderAlerts(); $('#refresh').onclick = () => load(true);
   try { S.map = await (await fetch('map.json')).json(); buildMap(); wireSearch(); renderAlerts(); } catch (e) { $('#mapbox').innerHTML = '<div class="empty">The map could not be loaded.</div>'; }
   const c = ls.get('el.sum'); if (c) try { S.sum = JSON.parse(c); } catch (x) {}
-  render(); await load(); handleHash();
+  render(); await load(); handleHash(); pendingBanner();
   setInterval(() => { if (document.visibilityState === 'visible' && S.sum && ['live', 'pre'].includes(S.sum.mode)) load(); }, 90000);
 }
 start();
