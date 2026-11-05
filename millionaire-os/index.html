@@ -2352,13 +2352,352 @@ document.addEventListener('click', e => {
   render();
 });
 
+/* Rental OS | Powered by Millionaire OS.
+   Phase 1: overview, affordability, move-in planner and monthly rental budget.
+   All money is in cents. Missing values stay null and are reported, never treated as zero. */
+const RENTCALC = {
+  RULES: { comfortRentPct: 30, tightRentPct: 35, comfortHousingPct: 35, tightHousingPct: 45, bufferPct: 10, benchmarks: [25, 30, 35] },
+  INCOME: [['salary', 'Net salaries (take-home)'], ['additional', 'Additional income (net)'], ['contributions', 'Contributions from others in the home']],
+  EXPENSES: [['debt', 'Debt repayments (excluding a home loan)'], ['groceries', 'Groceries and food'], ['transport', 'Transport'], ['school', 'School fees and children'], ['medical', 'Medical expenses and medical aid'], ['insurance', 'Insurance (life, funeral, disability)'], ['subscriptions', 'Subscriptions, cellphone and data'], ['savings', 'Savings and investment contributions'], ['otherExp', 'Other recurring expenses']],
+  HOUSING: [['rent', 'Monthly rent'], ['electricity', 'Electricity estimate'], ['water', 'Water estimate'], ['internet', 'Internet'], ['parking', 'Parking'], ['propOther', 'Other property costs (levies, service charges)'], ['existingHousing', 'Other housing costs you keep (contents insurance, maintenance)']],
+  MOVE: [
+    ['firstRent', 'First month\'s rent', false], ['deposit', 'Security deposit (refundable)', true], ['utilityDeposit', 'Utility deposit', true], ['application', 'Application fee (where lawful)', false],
+    ['leaseFee', 'Lease administration fee (where lawful)', false], ['movers', 'Moving company or bakkie hire', false], ['packing', 'Packing supplies', false], ['cleaning', 'Cleaning', false],
+    ['furniture', 'Furniture', false], ['appliances', 'Appliances', false], ['internetInstall', 'Internet installation', false], ['utilitySetup', 'Utility setup', false], ['storage', 'Storage', false], ['unexpected', 'Unexpected costs (buffer)', false]
+  ],
+  BUDGET: [['rent', 'Rent', ['Rent or bond']], ['electricity', 'Electricity', ['Electricity']], ['water', 'Water (and rates if you pay them)', ['Water and rates']], ['internet', 'Internet', ['Internet']], ['gas', 'Gas', ['Gas']], ['parking', 'Parking', ['Parking']], ['levies', 'Municipal or service charges', ['Levies and service charges']], ['insurance', 'Contents insurance', ['Household insurance']], ['cleaning', 'Cleaning', ['Cleaning']], ['other', 'Other household expenses', ['Maintenance and repairs', 'Other household']]],
+
+  /** A money value: null stays null (not entered); negatives and absurd values are rejected. */
+  money(v) { if (v === null || v === undefined || v === '') return null; const n = Math.round(Number(v)); if (!isFinite(n)) return null; return n; },
+  validate(inp) {
+    const errs = [];
+    Object.keys(inp || {}).forEach(k => { const v = inp[k]; if (v == null) return; if (typeof v !== 'number' || !isFinite(v)) errs.push(k + ' is not a number'); else if (v < 0) errs.push(k + ' cannot be negative'); else if (v > 1e11) errs.push(k + ' is unrealistically large'); });
+    return errs;
+  },
+  sum(inp, keys) { let t = 0, any = false; keys.forEach(k => { const v = inp[k]; if (v != null && v > 0) { t += v; any = true; } }); return { cents: t, any }; },
+  pct(a, b) { return b > 0 ? Math.round(a / b * 1000) / 10 : null; },
+
+  /** Affordability: ratios, cash flow and a rules-based assessment with the reasons shown. */
+  afford(inp, rules) {
+    rules = Object.assign({}, RENTCALC.RULES, rules || {}); inp = inp || {};
+    const errors = RENTCALC.validate(inp), keys = a => a.map(x => x[0]);
+    const inc = RENTCALC.sum(inp, keys(RENTCALC.INCOME)), exp = RENTCALC.sum(inp, keys(RENTCALC.EXPENSES).filter(k => k !== 'savings')), hou = RENTCALC.sum(inp, keys(RENTCALC.HOUSING));
+    const income = inc.cents, rent = inp.rent, savings = inp.savings > 0 ? inp.savings : 0;
+    const missing = [];
+    if (!inc.any) missing.push('income');
+    if (rent == null) missing.push('rent');
+    ['electricity', 'water'].forEach(k => { if (inp[k] == null) missing.push(k); });
+    if (!exp.any) missing.push('living expenses');
+    const out = { rules, errors, missing, incomeCents: income, rentCents: rent, housingCents: hou.cents, livingCents: exp.cents, savingsCents: savings,
+      rentPct: null, housingPct: null, savingsRatePct: null, beforeSavingsCents: null, afterSavingsCents: null, maxRentCents: null, benchmarks: [], level: 'incomplete', label: 'Not enough information', reasons: [], checks: [] };
+    if (errors.length) { out.level = 'invalid'; out.label = 'Check your figures'; out.reasons = errors; return out; }
+    if (income <= 0) { out.level = 'no_income'; out.label = 'No income entered'; out.reasons = ['Enter take-home income to assess affordability. Without income no rent is affordable on paper.']; return out; }
+    out.beforeSavingsCents = income - hou.cents - exp.cents;
+    out.afterSavingsCents = out.beforeSavingsCents - savings;
+    out.savingsRatePct = RENTCALC.pct(savings, income);
+    out.capacityCents = Math.max(0, out.beforeSavingsCents);
+    out.benchmarks = rules.benchmarks.map(b => ({ pct: b, maxRentCents: Math.floor(income * b / 100 / 100) * 100 }));
+    const buffer = Math.round(income * rules.bufferPct / 100);
+    out.bufferCents = buffer;
+    out.maxRentCents = Math.max(0, Math.floor((income - (hou.cents - (rent || 0)) - exp.cents - savings - buffer) / 100) * 100);
+    if (rent == null) { out.reasons = ['Enter the rent you are considering to get an assessment.']; return out; }
+    out.rentPct = RENTCALC.pct(rent, income); out.housingPct = RENTCALC.pct(hou.cents, income);
+    const grade = (v, ok, tight) => v <= ok ? 'ok' : v <= tight ? 'tight' : 'high';
+    const cfPct = out.afterSavingsCents / income * 100;
+    out.checks = [
+      { name: 'Rent to income', value: out.rentPct + '%', status: grade(out.rentPct, rules.comfortRentPct, rules.tightRentPct), rule: 'Comfortable up to ' + rules.comfortRentPct + '%, tight up to ' + rules.tightRentPct + '%' },
+      { name: 'All housing costs to income', value: out.housingPct + '%', status: grade(out.housingPct, rules.comfortHousingPct, rules.tightHousingPct), rule: 'Comfortable up to ' + rules.comfortHousingPct + '%, tight up to ' + rules.tightHousingPct + '%' },
+      { name: 'Left over after expenses and savings', value: Math.round(cfPct * 10) / 10 + '% of income', status: out.afterSavingsCents >= buffer ? 'ok' : out.afterSavingsCents >= 0 ? 'tight' : 'high', rule: 'At least ' + rules.bufferPct + '% of income as a buffer is comfortable; below zero is a deficit' }
+    ];
+    if (out.beforeSavingsCents < 0) { out.level = 'unsustainable'; out.label = 'Unsustainable based on current projections'; out.reasons.push('Income does not cover rent and living costs even before saving: short by ' + FC.fmtR(-out.beforeSavingsCents) + ' a month.'); }
+    else if (out.afterSavingsCents < 0) { out.level = 'high'; out.label = 'High financial pressure'; out.reasons.push('You could pay the rent only by cutting your planned savings by ' + FC.fmtR(-out.afterSavingsCents) + ' a month.'); }
+    else {
+      const worst = out.checks.some(c => c.status === 'high') ? 'high' : out.checks.some(c => c.status === 'tight') ? 'tight' : 'ok';
+      out.level = worst === 'ok' ? 'comfortable' : worst === 'tight' ? 'tight' : 'high';
+      out.label = { comfortable: 'Comfortable affordability', tight: 'Manageable but financially tight', high: 'High financial pressure' }[out.level];
+    }
+    out.checks.filter(c => c.status !== 'ok').forEach(c => out.reasons.push(c.name + ' is ' + c.value + ' (' + c.rule.toLowerCase() + ').'));
+    if (out.level === 'comfortable') out.reasons.push('Rent and housing costs are within the comfortable thresholds and you keep at least ' + rules.bufferPct + '% of income after saving.');
+    return out;
+  },
+
+  /** Splits rent between people by agreed percentages and compares each share with that person's own income. */
+  split(rentCents, shares, incomes) {
+    const total = Object.keys(shares || {}).reduce((a, k) => a + (Number(shares[k]) || 0), 0);
+    if (!rentCents || total <= 0) return [];
+    return Object.keys(shares).filter(k => Number(shares[k]) > 0).map(k => { const share = Math.round(rentCents * shares[k] / total); return { who: k, pct: Math.round(shares[k] / total * 1000) / 10, shareCents: share, incomeCents: incomes[k] || 0, ratioPct: RENTCALC.pct(share, incomes[k] || 0) }; });
+  },
+
+  /** Move-in plan: total cash, refundable versus spent, shortfall and the monthly saving needed. */
+  moveIn(items, savedCents, targetDate, today) {
+    items = items || []; const entered = items.filter(i => i.amountCents != null && i.amountCents >= 0);
+    const total = entered.reduce((a, i) => a + i.amountCents, 0), refundable = entered.filter(i => i.refundable).reduce((a, i) => a + i.amountCents, 0);
+    const saved = Math.max(0, savedCents || 0), shortfall = Math.max(0, total - saved);
+    let months = null, monthly = null;
+    if (targetDate) { const pa = today.split('-').map(Number), pb = targetDate.split('-').map(Number); months = Math.max(0, (pb[0] - pa[0]) * 12 + (pb[1] - pa[1]) + (pb[2] >= pa[2] ? 0 : -1)); monthly = shortfall === 0 ? 0 : months > 0 ? Math.ceil(shortfall / months / 100) * 100 : shortfall; }
+    return { totalCents: total, refundableCents: refundable, expenseCents: total - refundable, savedCents: saved, shortfallCents: shortfall, progressPct: total ? Math.min(100, Math.round(saved / total * 1000) / 10) : 0,
+      monthsLeft: months, monthlyCents: monthly, missing: items.filter(i => i.amountCents == null).map(i => i.label), overdue: !!targetDate && targetDate < today && shortfall > 0 };
+  },
+
+  /** Projected rent over the next 12 months, with the escalation applied from the lease anniversary. */
+  annualRent(rentCents, escalationPct, leaseStart, today) {
+    if (rentCents == null) return null;
+    const passed = d => { if (!escalationPct || !leaseStart) return 0; let k = 0, a = FC.addMonths(leaseStart, 12); while (a <= d && k < 50) { k++; a = FC.addMonths(a, 12); } return k; };
+    const now = passed(today); let total = 0, m = FC.monthKey(today) + '-01';
+    for (let i = 0; i < 12; i++) { let r = rentCents; for (let j = now; j < passed(m); j++) r = Math.round(r * (1 + escalationPct / 100)); total += r; m = FC.addMonths(m, 1); }
+    return total;
+  },
+
+  /** Rental budget versus actual for a month, read from existing transactions (never copied). */
+  budget(data, mk, planned) {
+    const tx = FC.monthTxns(data, mk).filter(t => t.kind === 'expense' && t.category === 'Housing');
+    const used = {};
+    const rows = RENTCALC.BUDGET.map(b => {
+      const list = tx.filter(t => b[2].includes(t.subcategory)); list.forEach(t => { used[t.id] = 1; });
+      const actual = list.reduce((a, t) => a + (t.amountCents | 0), 0), plan = planned && planned[b[0]] != null ? planned[b[0]] : null;
+      return { key: b[0], label: b[1], subs: b[2], plannedCents: plan, actualCents: actual, overCents: plan != null && actual > plan ? actual - plan : 0, count: list.length };
+    });
+    const other = tx.filter(t => !used[t.id]);
+    return { month: mk, rows, plannedCents: rows.reduce((a, r) => a + (r.plannedCents || 0), 0), actualCents: rows.reduce((a, r) => a + r.actualCents, 0), unmatched: other.length, transactionIds: Object.keys(used) };
+  },
+
+  /** Figures from the user's own records, each with where it came from. Used only when the user asks. */
+  fromRecords(data, today) {
+    const mk = FC.monthKey(today), months = []; let m = mk;
+    for (let i = 0; i < 3; i++) { m = FC.prevMonth(m); const l = FC.monthTxns(data, m); if (l.length) months.push(l); }
+    const n = months.length, avg = f => { if (!n) return null; let hit = 0; const tot = months.reduce((a, l) => a + l.filter(t => t.kind === 'expense' && f(t)).reduce((s, t) => { hit++; return s + (t.amountCents | 0); }, 0), 0); return hit ? Math.round(tot / n) : null; };
+    const bud = cat => { const b = FC.budgetsFor(data, mk).filter(x => x.category === cat); return b.length ? b.reduce((a, x) => a + (x.amountCents | 0), 0) : null; };
+    const pick = (fromTx, cat) => fromTx != null ? fromTx : bud(cat);
+    const src = n ? 'average of the last ' + n + ' month' + (n === 1 ? '' : 's') + ' of transactions' : 'your budget';
+    const inc = (data.incomes || []).filter(i => i.active !== false && i.kind !== 'commission');
+    const salary = inc.filter(i => i.kind === 'salary').reduce((a, i) => a + FC.monthlyEquivalent(i), 0), other = inc.filter(i => i.kind !== 'salary').reduce((a, i) => a + FC.monthlyEquivalent(i), 0);
+    const six = FC.addMonths(today, -6), comm = (data.commissions || []).filter(c => c.status === 'received' && c.receivedDate >= six).reduce((a, c) => a + FC.commissionNet(c).netCents, 0);
+    const debts = FC.debtBalances(data, today);
+    const debt = (data.debts || []).filter(d => d.type !== 'home' && (debts[d.id] || 0) > 0).reduce((a, d) => a + (d.minPaymentCents | 0), 0);
+    const goals = (data.goals || []).filter(g => g.active !== false).reduce((a, g) => a + (g.monthlyCents | 0), 0);
+    const H = s => avg(t => t.category === 'Housing' && s.includes(t.subcategory));
+    const v = {
+      salary: inc.length ? salary : null, additional: inc.length || comm ? other + Math.round(comm / 6) : null,
+      debt: (data.debts || []).length ? debt : null,
+      groceries: pick(avg(t => t.category === 'Groceries and food'), 'Groceries and food'),
+      transport: pick(avg(t => t.category === 'Transport' && t.subcategory !== 'Vehicle finance'), 'Transport'),
+      school: pick(avg(t => t.category === 'Kiana'), 'Kiana'), medical: pick(avg(t => t.category === 'Health'), 'Health'), insurance: pick(avg(t => t.category === 'Insurance'), 'Insurance'),
+      subscriptions: pick(avg(t => t.category === 'Communication' || t.subcategory === 'Subscriptions'), 'Communication'),
+      savings: (data.goals || []).length ? goals : null,
+      otherExp: n ? avg(t => ['Personal', 'Lifestyle', 'Giving', 'Other'].includes(t.category) && t.subcategory !== 'Subscriptions') : null,
+      currentRent: n ? H(['Rent or bond']) : null, electricity: n ? H(['Electricity']) : null, water: n ? H(['Water and rates']) : null, internet: n ? H(['Internet']) : null,
+      existingHousing: n ? H(['Household insurance', 'Maintenance and repairs']) : null
+    };
+    const sources = { salary: 'salary incomes on the Income page', additional: 'other incomes' + (comm ? ' plus commission received over 6 months, averaged (variable)' : ''), debt: 'minimum payments on the Debt page, excluding any home loan', savings: 'monthly amounts on your Savings Goals' };
+    Object.keys(v).forEach(k => { if (!sources[k]) sources[k] = src; });
+    return { values: v, sources, variableIncome: comm > 0 || (data.incomes || []).some(i => i.kind === 'commission'), months: n };
+  }
+};
+if (typeof module !== 'undefined') module.exports = RENTCALC;
+
+if (typeof window !== 'undefined' && typeof COLS !== 'undefined') {
+  COLS.push('rentals');
+  NAV.splice(NAV.findIndex(n => n[0] === 'debt'), 0, ['rental', 'Rental OS']);
+  // Rental lines that the household categories did not have yet (added to Housing so transactions can be tagged).
+  const housing = FC.CATEGORIES.find(c => c[0] === 'Housing'); ['Gas', 'Parking', 'Levies and service charges', 'Cleaning', 'Other household'].forEach(s => { if (housing && !housing[1].includes(s)) housing[1].push(s); });
+}
+
+const RENT_TABS = [['overview', 'Rental Overview'], ['afford', 'Affordability'], ['move', 'Move-In Planner'], ['budget', 'Monthly Budget']];
+const RENT_SOON = ['Property Comparison', 'Financial Forecast', 'My Lease', 'Rent vs Buy', 'AI Advisor'];
+function rentRec() { return (S.data.rentals || []).find(r => !r.deleted) || null; }
+function rentPlan() {
+  const r = rentRec(); const p = JSON.parse(JSON.stringify(r || {}));
+  p.inputs = p.inputs || {}; p.move = p.move || {}; p.move.items = p.move.items || RENTCALC.MOVE.map(m => ({ key: m[0], label: m[1], refundable: m[2], amountCents: null }));
+  p.budget = p.budget || {}; p.rules = Object.assign({}, RENTCALC.RULES, p.rules || {}); p.split = p.split || {};
+  return p;
+}
+async function rentSave(p, msg) {
+  const rec = Object.assign({}, p); if (!rec.owner && S.me) rec.owner = S.me.id || S.me.role;
+  try { const saved = await saveRec('rentals', rec); toast(msg || 'Rental plan saved'); render(); return saved; } catch (e) { toast(e.message); }
+}
+const rR = c => c == null ? '<span class="muted">Not entered</span>' : Rr(c);
+const toC = v => { const s = String(v == null ? '' : v).replace(/[^0-9.,-]/g, '').replace(',', '.'); if (s === '' || s === '-') return null; const n = Number(s); return isFinite(n) ? Math.round(n * 100) : NaN; };
+const toR = c => c == null ? '' : String(c / 100);
+const LEVEL_CLS = { comfortable: 'pos', tight: 'warn', high: 'neg', unsustainable: 'neg' };
+
+function rentDerived() {
+  const p = rentPlan(), t = today(), a = RENTCALC.afford(p.inputs, p.rules);
+  const recs = RENTCALC.fromRecords(S.data, t);
+  const goal = p.move.goalId ? S.data.goals.find(g => g.id === p.move.goalId) : null;
+  const firstRent = p.move.items.find(i => i.key === 'firstRent');
+  const items = p.move.items.map(i => i.key === 'firstRent' && i.amountCents == null && p.inputs.rent != null ? Object.assign({}, i, { amountCents: p.inputs.rent, auto: true }) : i);
+  const mv = RENTCALC.moveIn(items, goal ? goal.currentCents : p.move.savedCents, p.move.targetDate, t);
+  const hb = S.data.bills.filter(b => b.active !== false && b.category === 'Housing' && b.subcategory === 'Rent or bond'), rentBill = hb.find(b => /rent/i.test(b.provider || '')) || hb[0];
+  let next = null;
+  if (rentBill) { const o = FC.billOccurrences(rentBill, t, FC.addDays(t, 62)).filter(x => !FC.billsInRange(S.data, x.date, x.date).some(y => y.bill.id === rentBill.id && y.paid))[0]; if (o) next = { date: o.date, cents: o.amountCents, src: 'debit order: ' + (rentBill.provider || 'rent or bond') }; }
+  else if (p.payDay && (p.currentRentCents || p.inputs.rent)) { let d = t.slice(0, 8) + String(Math.min(28, p.payDay)).padStart(2, '0'); if (d < t) d = FC.addMonths(d, 1); next = { date: d, cents: p.currentRentCents || p.inputs.rent, src: 'rental plan' }; }
+  const current = p.currentRentCents != null ? p.currentRentCents : recs.values.currentRent;
+  return { p, a, recs, goal, mv, items, next, rentBill, current, annual: RENTCALC.annualRent(p.inputs.rent != null ? p.inputs.rent : current, p.escalationPct, p.leaseStart, t), firstRent };
+}
+
+VIEWS.rental = () => {
+  const tab = S.rentTab || 'overview', d = rentDerived();
+  const tabs = '<div class="toolbar" role="tablist" style="flex-wrap:wrap;gap:6px;margin-bottom:12px">' + RENT_TABS.map(x => '<button type="button" class="btn sm' + (x[0] === tab ? ' primary' : '') + '" data-rtab="' + x[0] + '" role="tab" aria-selected="' + (x[0] === tab) + '">' + x[1] + '</button>').join('') + RENT_SOON.map(x => '<button type="button" class="btn sm" disabled title="Coming in the next phase" style="opacity:.5">' + x + '</button>').join('') + '</div>';
+  const head = '<div class="alert info" style="margin-bottom:12px"><h3>Rental OS <span class="muted small">| Powered by Millionaire OS</span></h3><div class="small">Can you afford this rental today, what will it cost to move, and can you sustain it? Your rental plan is encrypted like all your records. Guidelines here are planning benchmarks, not a landlord\'s approval criteria and not legal or financial advice.</div></div>';
+  return head + tabs + ({ overview: rentOverview, afford: rentAfford, move: rentMove, budget: rentBudget }[tab] || rentOverview)(d);
+};
+
+function rentOverview(d) {
+  const a = d.a, p = d.p, mv = d.mv, inc = a.incomeCents || d.recs.values.salary;
+  const empty0 = !rentRec();
+  const k = (l, v, s, t) => kpi(l, v, s || '', t);
+  const lvl = a.level;
+  return (empty0 ? '<section class="card"><h2>Start your rental plan</h2><p class="muted">Three steps: bring in your figures, enter the rent you are considering, then list your move-in costs.</p><div class="toolbar">' + btn('1. Check affordability', 'rn:tab:afford', 'primary sm') + btn('2. Plan the move-in costs', 'rn:tab:move', 'sm') + btn('3. Set up the rental budget', 'rn:tab:budget', 'sm') + '</div></section>' : '')
+    + (lvl !== 'incomplete' && lvl !== 'no_income' ? '<section class="card"><div class="card-h"><div><h2>Assessment: <span class="' + (LEVEL_CLS[lvl] || '') + '">' + esc(a.label) + '</span></h2><p>' + esc(a.reasons.join(' ')) + '</p></div>' + btn('See how this is worked out', 'rn:tab:afford', 'sm') + '</div></section>' : '')
+    + '<div class="grid g4 kpis">'
+    + k('Household take-home income', a.incomeCents ? Rr(a.incomeCents) : rR(null), a.incomeCents ? 'From your affordability figures' : 'Enter on Affordability', a.incomeCents ? 'planned' : '')
+    + k('Current monthly rent', rR(d.current), d.p.currentRentCents != null ? 'Entered by you' : d.current != null ? 'From your Rent transactions' : 'Not recorded', d.current != null ? 'actual' : '')
+    + k('Planned rental amount', rR(p.inputs.rent), 'The rent you are considering', 'planned')
+    + k('Total housing expenses', a.rentCents != null ? Rr(a.housingCents) : rR(null), 'Rent, utilities and property costs', 'estimated')
+    + k('Rent-to-income', a.rentPct != null ? a.rentPct + '%' : rR(null), 'Benchmark ' + p.rules.comfortRentPct + '%', 'estimated')
+    + k('Housing-cost-to-income', a.housingPct != null ? a.housingPct + '%' : rR(null), 'Benchmark ' + p.rules.comfortHousingPct + '%', 'estimated')
+    + k('Monthly disposable income', a.beforeSavingsCents != null ? '<span class="' + (a.beforeSavingsCents < 0 ? 'neg' : '') + '">' + Rr(a.beforeSavingsCents) + '</span>' : rR(null), 'After rent and living costs, before saving', 'estimated')
+    + k('Monthly savings capacity', a.afterSavingsCents != null ? '<span class="' + (a.afterSavingsCents < 0 ? 'neg' : '') + '">' + Rr(a.afterSavingsCents) + '</span>' : rR(null), 'Left after planned savings too', 'estimated')
+    + k('Move-in funds required', mv.totalCents ? Rr(mv.totalCents) : rR(null), mv.totalCents ? Rr(mv.refundableCents) + ' of it refundable' : 'List costs on Move-In Planner', 'planned')
+    + k('Available moving savings', d.goal || p.move.savedCents != null ? Rr(mv.savedCents) : rR(null), d.goal ? 'Savings goal: ' + esc(d.goal.name) : 'Entered on Move-In Planner', 'actual')
+    + k('Shortfall to move', mv.totalCents ? '<span class="' + (mv.shortfallCents ? 'neg' : 'pos') + '">' + Rr(mv.shortfallCents) + '</span>' : rR(null), mv.monthlyCents ? 'Save ' + Rr(mv.monthlyCents) + ' a month' : '', 'estimated')
+    + k('Next rent payment', d.next ? dShort(d.next.date) : rR(null), d.next ? Rr(d.next.cents) + ' (' + d.next.src + ')' : 'Add rent as a debit order', d.next ? 'planned' : '')
+    + k('Lease expiry date', p.leaseEnd ? dShort(p.leaseEnd) : rR(null), p.leaseEnd ? Math.max(0, FC.diffDays(today(), p.leaseEnd)) + ' days away' : 'Enter on Affordability', '')
+    + k('Projected annual rental cost', rR(d.annual), p.escalationPct ? 'Includes ' + p.escalationPct + '% escalation at the lease anniversary' : 'Next 12 months', 'estimated')
+    + '</div>'
+    + (a.incomeCents && a.rentCents != null ? card('Where the income goes', 'Planned monthly split', rentBars(a)) : '')
+    + card('Why these numbers matter', '', '<div class="list small"><div class="row"><span><b>Rent-to-income</b><small>Monthly rent divided by take-home income. Many planners aim for 30% or less; it is a guideline, not a law or a landlord rule.</small></span></div><div class="row"><span><b>Housing-cost-to-income</b><small>Rent plus electricity, water, internet, parking and levies. This is what you really pay to live there.</small></span></div><div class="row"><span><b>Savings capacity</b><small>What is left after rent, living costs and your planned savings. A negative figure means the plan does not work as it stands.</small></span></div></div>');
+}
+function rentBars(a) {
+  const parts = [['Housing', a.housingCents, 'var(--accent,#1f6f5c)'], ['Living costs', a.livingCents, '#8a9a95'], ['Savings', a.savingsCents, '#c9a227'], ['Left over', Math.max(0, a.afterSavingsCents), '#4caf87']];
+  const tot = Math.max(a.incomeCents, parts.reduce((s, p) => s + p[1], 0));
+  return '<div style="display:flex;height:22px;border-radius:6px;overflow:hidden;margin:6px 0 10px" role="img" aria-label="Income split">' + parts.map(p => '<i style="width:' + (p[1] / tot * 100) + '%;background:' + p[2] + '"></i>').join('') + '</div><div class="list small">' + parts.map(p => '<div class="row"><span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:' + p[2] + ';margin-right:6px"></i>' + p[0] + '</span><span class="r">' + Rr(p[1]) + ' · ' + (Math.round(p[1] / a.incomeCents * 1000) / 10) + '%</span></div>').join('') + (a.afterSavingsCents < 0 ? '<div class="row"><span class="neg">Deficit</span><span class="r neg">' + Rr(a.afterSavingsCents) + '</span></div>' : '') + '</div>';
+}
+
+function rentAfford(d) {
+  const p = d.p, a = d.a, r = d.recs, f = (k, label) => '<label>' + esc(label) + '<input data-rk="' + k + '" inputmode="decimal" value="' + toR(p.inputs[k]) + '" placeholder="Not entered"></label>';
+  const grp = (title, list) => '<h3 style="margin:10px 0 4px">' + title + '</h3><div class="form">' + list.map(x => f(x[0], x[1])).join('') + '</div>';
+  const st = { ok: '<span class="tag actual">within</span>', tight: '<span class="tag planned">tight</span>', high: '<span class="tag estimated">above</span>' };
+  const people = owners().filter(o => o[0] !== 'shared');
+  const incBy = {}; people.forEach(o => { incBy[o[0]] = S.data.incomes.filter(i => i.active !== false && i.owner === o[0] && i.kind !== 'commission').reduce((s, i) => s + FC.monthlyEquivalent(i), 0); });
+  const sp = RENTCALC.split(p.inputs.rent, p.split, incBy);
+  return '<div class="split">'
+    + card('Your figures', 'Monthly amounts in rand. Leave a field empty if you do not know it yet.', '<div class="toolbar" style="margin-bottom:8px">' + btn('Use my Millionaire OS figures', 'rn:import', 'sm') + '</div><p class="note">This copies figures from your own records into the fields below so you can check and change them. Nothing changes in your records. ' + (r.months ? 'Spending uses the average of the last ' + r.months + ' month' + (r.months === 1 ? '' : 's') + '.' : 'No transactions yet, so spending comes from your budget where there is one.') + (r.variableIncome ? ' <b>Your income includes commission, which varies: plan on a cautious figure.</b>' : '') + '</p>'
+      + grp('Income', RENTCALC.INCOME) + grp('Living expenses', RENTCALC.EXPENSES) + grp('The rental you are considering', RENTCALC.HOUSING)
+      + '<h3 style="margin:10px 0 4px">Lease details (optional)</h3><div class="form"><label>Current rent, if you rent now (R)<input data-rx="currentRentCents" inputmode="decimal" value="' + toR(p.currentRentCents) + '" placeholder="Not entered"></label><label>Lease start<input type="date" data-rd="leaseStart" value="' + esc(p.leaseStart || '') + '"></label><label>Lease end<input type="date" data-rd="leaseEnd" value="' + esc(p.leaseEnd || '') + '"></label><label>Yearly escalation %<input data-rp="escalationPct" inputmode="decimal" value="' + (p.escalationPct != null ? p.escalationPct : '') + '"></label><label>Rent due on day<input data-rp="payDay" inputmode="numeric" value="' + (p.payDay || '') + '"></label></div>'
+      + (people.length > 1 ? '<h3 style="margin:10px 0 4px">Who pays the rent</h3><div class="form">' + people.map(o => '<label>' + esc(o[1]) + ' pays %<input data-rs="' + o[0] + '" inputmode="decimal" value="' + (p.split[o[0]] != null ? p.split[o[0]] : '') + '"></label>').join('') + '</div>' : '')
+      + '<div class="toolbar" style="margin-top:12px">' + btn('Save and assess', 'rn:save', 'primary sm') + '</div>')
+    + '<div>'
+    + card('Assessment', a.level === 'incomplete' || a.level === 'no_income' || a.level === 'invalid' ? esc(a.label) : '<b class="' + (LEVEL_CLS[a.level] || '') + '">' + esc(a.label) + '</b>', (a.reasons.length ? '<p>' + a.reasons.map(esc).join(' ') + '</p>' : '')
+      + (a.missing.length ? '<p class="note">Not entered yet: ' + esc(a.missing.join(', ')) + '. The assessment improves as you add them.</p>' : '')
+      + (a.checks.length ? table(['Check', '#You', 'Rule', ''], a.checks.map(c => ({ cells: [esc(c.name), esc(c.value), esc(c.rule), st[c.status]], wrap: 2 })), {}) : '')
+      + (a.incomeCents ? rentBars(a.rentCents != null ? a : Object.assign({}, a, { housingCents: a.housingCents, afterSavingsCents: a.afterSavingsCents })) : ''))
+    + (a.benchmarks.length ? card('What rent fits your income', 'Planning benchmarks on take-home income of ' + Rr(a.incomeCents), table(['Benchmark', '#Maximum rent'], a.benchmarks.map(b => ({ cells: [b.pct + '% of income', Rr(b.maxRentCents)] })).concat([{ cells: ['<b>Highest rent your budget can carry</b><small class="muted" style="display:block">Keeps your savings and a ' + p.rules.bufferPct + '% buffer</small>', '<b>' + Rr(a.maxRentCents) + '</b>'], wrap: 0 }]), {}) + '<p class="note">These are financial planning guidelines, not South African landlord approval rules. Landlords and agents often ask for gross income of about three times the rent plus a credit check; that is a separate test.</p>') : '')
+    + (sp.length ? card('Each person\'s share', 'Rent split as agreed', table(['Person', '#Share', '#Rent', '#Of own income'], sp.map(s => ({ cells: [esc((people.find(o => o[0] === s.who) || [, s.who])[1]), s.pct + '%', Rr(s.shareCents), s.ratioPct != null ? s.ratioPct + '%' : 'No income recorded'] })), {}) + '<p class="note">Each person\'s income here comes only from incomes in their name that you can see.</p>') : '')
+    + card('How the assessment works', 'Transparent rules you can change', '<div class="form">' + [['comfortRentPct', 'Comfortable rent-to-income up to %'], ['tightRentPct', 'Tight rent-to-income up to %'], ['comfortHousingPct', 'Comfortable housing costs up to %'], ['tightHousingPct', 'Tight housing costs up to %'], ['bufferPct', 'Buffer to keep after saving %']].map(x => '<label>' + x[1] + '<input data-rr="' + x[0] + '" inputmode="decimal" value="' + p.rules[x[0]] + '"></label>').join('') + '</div><p class="note">If income does not cover rent and living costs, the result is <b>unsustainable</b>. If it covers them only by cutting planned savings, it is <b>high pressure</b>. Otherwise the worst of the three checks decides: all within is <b>comfortable</b>, any tight is <b>manageable but tight</b>, any above is <b>high pressure</b>.</p>' + btn('Save rules', 'rn:save', 'sm'))
+    + '</div></div>';
+}
+
+function rentMove(d) {
+  const p = d.p, mv = d.mv, goals = S.data.goals.filter(g => g.active !== false);
+  const rows = d.items.map(i => ({ cells: [esc(i.label) + (i.auto ? ' <span class="tag planned">from planned rent</span>' : ''), i.refundable ? 'Refundable' : 'Cost', '<input data-mi="' + i.key + '" inputmode="decimal" value="' + (i.auto ? '' : toR(i.amountCents)) + '" placeholder="' + (i.auto ? toR(i.amountCents) : 'Not entered') + '" style="max-width:130px;text-align:right" aria-label="' + esc(i.label) + '">'], wrap: 0 }));
+  return '<div class="grid g4 kpis">'
+    + kpi('Total cash required', mv.totalCents ? Rr(mv.totalCents) : rR(null), Rr(mv.refundableCents) + ' refundable, ' + Rr(mv.expenseCents) + ' spent', 'planned', true)
+    + kpi('Available savings', d.goal || p.move.savedCents != null ? Rr(mv.savedCents) : rR(null), d.goal ? 'Goal: ' + esc(d.goal.name) : 'Entered below', 'actual')
+    + kpi('Shortfall', mv.totalCents ? '<span class="' + (mv.shortfallCents ? 'neg' : 'pos') + '">' + Rr(mv.shortfallCents) + '</span>' : rR(null), mv.totalCents ? mv.progressPct + '% saved' : 'Enter your costs below', 'estimated')
+    + kpi('Save each month', mv.monthlyCents != null ? Rr(mv.monthlyCents) : rR(null), p.move.targetDate ? (mv.monthsLeft + ' month' + (mv.monthsLeft === 1 ? '' : 's') + ' until ' + dShort(p.move.targetDate)) : 'Set a moving date', 'planned')
+    + '</div>' + bar(mv.progressPct)
+    + (mv.overdue ? '<div class="alert high"><h3>Your moving date has passed and the costs are not covered</h3><div class="small">Move the date out or reduce the costs.</div></div>' : '')
+    + '<div class="split">'
+    + card('Move-in costs', 'Enter what applies to you. Leave the rest empty.', table(['Item', 'Type', '#Amount (R)'], rows, {}) + (mv.missing.length ? '<p class="note">' + mv.missing.length + ' items not entered yet.</p>' : '') + '<div class="toolbar" style="margin-top:10px">' + btn('Save move-in plan', 'rn:move', 'primary sm') + '</div>')
+    + card('Funding plan', '', '<div class="form"><label>Target moving date<input type="date" data-mv="targetDate" value="' + esc(p.move.targetDate || '') + '"></label>'
+      + '<label>Keep the savings in<select data-mv="goalId"><option value="">Not linked (enter amount)</option>' + goals.map(g => '<option value="' + g.id + '"' + (g.id === p.move.goalId ? ' selected' : '') + '>' + esc(g.name) + ' (' + Rr(g.currentCents) + ')</option>').join('') + '</select></label>'
+      + (p.move.goalId ? '' : '<label>Saved so far (R)<input data-mv="savedCents" inputmode="decimal" value="' + toR(p.move.savedCents) + '"></label>') + '</div>'
+      + '<div class="toolbar" style="margin-top:10px">' + btn('Save', 'rn:move', 'sm') + (p.move.goalId ? '' : btn('Create a Move-in fund savings goal', 'rn:goal', 'sm')) + '</div>'
+      + '<p class="note">The deposit is your money: the Rental Housing Act requires the landlord to keep it in an interest-bearing account and refund it with interest, less proven costs of damage, after an outgoing inspection. Fees such as application or lease fees must be lawful and disclosed. This is general legal information, not legal advice.</p>'
+      + (mv.shortfallCents && mv.monthlyCents && d.a.afterSavingsCents != null ? '<p class="note">' + (mv.monthlyCents <= Math.max(0, d.a.capacityCents) ? 'Your current savings capacity of ' + Rr(d.a.capacityCents) + ' a month can cover this.' : '<b class="neg">This needs more than your current monthly capacity (' + Rr(Math.max(0, d.a.capacityCents)) + ').</b> Move the date out, cut costs, or reduce other spending.') + '</p>' : ''))
+    + '</div>';
+}
+
+function rentBudget(d) {
+  const p = d.p, mk = S.month || FC.monthKey(today()), b = RENTCALC.budget(S.data, mk, p.budget);
+  const housingBudget = FC.budgetsFor(S.data, mk).filter(x => x.category === 'Housing').reduce((a, x) => a + (x.amountCents | 0), 0);
+  const up = FC.billsInRange(S.data, today(), FC.addDays(today(), 31)).filter(x => !x.paid && x.bill.category === 'Housing');
+  const hist = Array.from({ length: 6 }, (_, i) => { const m = FC.monthKey(FC.addMonths(mk + '-01', -5 + i)); const x = RENTCALC.budget(S.data, m, p.budget); return { m, actual: x.actualCents }; });
+  const maxH = Math.max(1, ...hist.map(h => h.actual), b.plannedCents);
+  return '<div class="grid g3 kpis">' + kpi('Rental budget', b.plannedCents ? Rr(b.plannedCents) : rR(null), 'Planned for ' + mName(mk), 'planned') + kpi('Spent so far', Rr(b.actualCents), 'From your Housing transactions', 'actual') + kpi('Remaining', b.plannedCents ? '<span class="' + (b.plannedCents - b.actualCents < 0 ? 'neg' : '') + '">' + Rr(b.plannedCents - b.actualCents) + '</span>' : rR(null), b.rows.filter(r => r.overCents).length + ' line(s) over budget', 'estimated') + '</div>'
+    + '<div class="split">'
+    + card('Budget versus actual', mName(mk) + '. Actuals are read from your transactions in the Housing category, so nothing is counted twice.', table(['Line', '#Budget (R)', '#Actual', '#Left'], b.rows.map(r => ({ cells: [esc(r.label) + '<small class="muted" style="display:block">Tag transactions as Housing: ' + esc(r.subs.join(' or ')) + '</small>', '<input data-rb="' + r.key + '" inputmode="decimal" value="' + toR(r.plannedCents) + '" placeholder="-" style="max-width:110px;text-align:right" aria-label="Budget for ' + esc(r.label) + '">', Rr(r.actualCents) + (r.count ? '<small class="muted" style="display:block">' + r.count + ' transaction' + (r.count === 1 ? '' : 's') + '</small>' : ''), r.plannedCents == null ? '-' : '<span class="' + (r.overCents ? 'neg' : '') + '">' + Rr(r.plannedCents - r.actualCents) + '</span>'], wrap: 0 })), {})
+      + '<div class="toolbar" style="margin-top:10px">' + btn('Save rental budget', 'rn:budget', 'primary sm') + btn('Add a transaction', 'addtx', 'sm') + '</div>'
+      + (b.unmatched ? '<p class="note">' + b.unmatched + ' Housing transaction(s) this month have a subcategory that is not a rental line (for example a bond payment).</p>' : ''))
+    + '<div>' + card('Household budget link', 'One budget, no duplicates', '<div class="list small"><div class="row"><span>Rental budget total</span><span class="r">' + Rr(b.plannedCents) + '</span></div><div class="row"><span>Housing line in your household budget</span><span class="r">' + Rr(housingBudget) + '</span></div></div>' + (b.plannedCents && b.plannedCents !== housingBudget ? '<p class="note">Your household budget uses one Housing line. Set it to the rental total so the Overview, Budget and Financial Director use the same figure.</p>' + btn('Set Housing budget to ' + Rr(b.plannedCents), 'rn:sync', 'sm') : b.plannedCents ? '<p class="note pos">Your household Housing budget matches the rental budget.</p>' : '<p class="note">Enter your rental budget lines first.</p>'))
+      + card('Upcoming obligations', 'Housing debit orders in the next 31 days', up.length ? '<div class="list small">' + up.map(x => '<div class="row"><span>' + esc(x.bill.provider || x.bill.subcategory) + '<small>' + dShort(x.date) + '</small></span><span class="r">' + Rr(x.amountCents) + '</span></div>').join('') + '</div>' : empty('No housing debit orders due.', d.p.inputs.rent != null || d.current != null ? btn('Add rent as a monthly debit order', 'rn:bill', 'sm') : ''))
+      + card('Last six months', 'Actual rental spending', '<div style="display:flex;align-items:flex-end;gap:6px;height:110px">' + hist.map(h => '<div style="flex:1;text-align:center"><div title="' + Rr(h.actual) + '" style="height:' + Math.round(h.actual / maxH * 90) + 'px;background:var(--accent,#1f6f5c);border-radius:3px 3px 0 0"></div><small class="muted">' + MONTHS[+h.m.slice(5) - 1].slice(0, 3) + '</small></div>').join('') + '</div>')
+    + '</div></div>';
+}
+
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-rtab]'); if (t) { S.rentTab = t.dataset.rtab; render(); return; }
+  const a = e.target.closest('[data-act^="rn:"]'); if (!a) return;
+  const act = a.dataset.act.slice(3), p = rentPlan();
+  if (act.startsWith('tab:')) { S.rentTab = act.slice(4); render(); return; }
+  if (act === 'import') {
+    const r = RENTCALC.fromRecords(S.data, today()), v = r.values; let n = 0;
+    Object.keys(v).forEach(k => { const el = document.querySelector(k === 'currentRent' ? '[data-rx="currentRentCents"]' : '[data-rk="' + k + '"]'); if (el && v[k] != null) { el.value = toR(v[k]); el.title = 'From ' + r.sources[k]; el.style.background = 'rgba(201,162,39,.12)'; n++; } });
+    toast(n ? n + ' figures filled in from your records. Check them, then Save and assess.' : 'No figures found in your records yet.'); return;
+  }
+  if (act === 'save') {
+    const inp = {}, bad = [];
+    document.querySelectorAll('[data-rk]').forEach(i => { const c = toC(i.value); if (Number.isNaN(c)) bad.push(i.closest('label').textContent); inp[i.dataset.rk] = c; });
+    document.querySelectorAll('[data-rr]').forEach(i => { const v = parseFloat(i.value); if (isFinite(v) && v >= 0 && v <= 100) p.rules[i.dataset.rr] = v; });
+    const errs = RENTCALC.validate(inp); if (bad.length || errs.length) { toast('Check: ' + (bad.length ? 'numbers only' : errs[0])); return; }
+    if (document.querySelector('[data-rk]')) p.inputs = inp;
+    document.querySelectorAll('[data-rx]').forEach(i => { const c = toC(i.value); p[i.dataset.rx] = Number.isNaN(c) || c < 0 ? null : c; });
+    document.querySelectorAll('[data-rd]').forEach(i => { p[i.dataset.rd] = i.value || null; });
+    document.querySelectorAll('[data-rp]').forEach(i => { const v = parseFloat(i.value); p[i.dataset.rp] = isFinite(v) && v >= 0 && v <= (i.dataset.rp === 'payDay' ? 31 : 50) ? v : null; });
+    const sp = {}; document.querySelectorAll('[data-rs]').forEach(i => { const v = parseFloat(i.value); if (isFinite(v) && v >= 0) sp[i.dataset.rs] = v; }); if (document.querySelector('[data-rs]')) p.split = sp;
+    if (p.leaseStart && p.leaseEnd && p.leaseEnd < p.leaseStart) { toast('The lease end is before the start.'); return; }
+    await rentSave(p, 'Rental plan saved'); return;
+  }
+  if (act === 'move') {
+    let bad = 0;
+    document.querySelectorAll('[data-mi]').forEach(i => { const c = toC(i.value); if (Number.isNaN(c) || c < 0) { bad++; return; } const it = p.move.items.find(x => x.key === i.dataset.mi); if (it) it.amountCents = c; });
+    if (bad) { toast('Amounts must be positive numbers.'); return; }
+    const td = document.querySelector('[data-mv="targetDate"]'), gl = document.querySelector('[data-mv="goalId"]'), sv = document.querySelector('[data-mv="savedCents"]');
+    if (td) p.move.targetDate = td.value || null; if (gl) p.move.goalId = gl.value || null; if (sv) { const c = toC(sv.value); p.move.savedCents = Number.isNaN(c) || c < 0 ? null : c; }
+    await rentSave(p, 'Move-in plan saved'); return;
+  }
+  if (act === 'goal') {
+    const d = rentDerived();
+    try { const g = await saveRec('goals', { name: 'Move-in fund', kind: 'other', targetCents: d.mv.totalCents || 0, currentCents: p.move.savedCents || 0, monthlyCents: d.mv.monthlyCents || 0, targetDate: p.move.targetDate || null, priority: 1, active: true, owner: 'shared' }); p.move.goalId = g.id; p.move.savedCents = null; await rentSave(p, 'Savings goal created and linked'); } catch (er) { toast(er.message); }
+    return;
+  }
+  if (act === 'budget') {
+    let bad = 0; document.querySelectorAll('[data-rb]').forEach(i => { const c = toC(i.value); if (Number.isNaN(c) || c < 0) bad++; else p.budget[i.dataset.rb] = c; });
+    if (bad) { toast('Amounts must be positive numbers.'); return; }
+    await rentSave(p, 'Rental budget saved'); return;
+  }
+  if (act === 'sync') {
+    const mk = S.month || FC.monthKey(today()), total = RENTCALC.budget(S.data, mk, p.budget).plannedCents;
+    const ex = S.data.budgets.find(b => b.category === 'Housing' && b.month === 'default') || S.data.budgets.find(b => b.category === 'Housing' && b.month === mk);
+    if (!confirm('Set the Housing line of your household budget to ' + FC.fmtR(total) + '?')) return;
+    try { await saveRec('budgets', Object.assign({ category: 'Housing', month: 'default', owner: 'shared', type: 'fixed', essential: true }, ex || {}, { amountCents: total })); toast('Household Housing budget updated'); render(); } catch (er) { toast(er.message); }
+    return;
+  }
+  if (act === 'bill') {
+    const d = rentDerived(), amt = d.p.inputs.rent != null ? d.p.inputs.rent : d.current;
+    const acc = S.data.accounts.find(x => !x.closed && x.type === 'cheque');
+    try { await saveRec('bills', { provider: 'Rent', category: 'Housing', subcategory: 'Rent or bond', amountCents: amt, frequency: 'monthly', dayOfMonth: p.payDay || 1, accountId: acc ? acc.id : '', owner: 'shared', essential: true, active: true, startDate: FC.monthStart(FC.monthKey(today())), annualIncreasePct: p.escalationPct || null, increaseFrom: p.leaseStart ? FC.addMonths(p.leaseStart, 12) : null }); toast('Rent added as a monthly debit order'); render(); } catch (er) { toast(er.message); }
+  }
+});
+
 /* ===================== Millionaire OS: SaaS data layer, sign-in, household, billing, support =====================
  * Loads after the Family OS modules and replaces their storage layer. Every record is encrypted here before it is sent. */
 const APP_VERSION = '1.0.0-beta';
 let MOS_API = 'https://script.google.com/macros/s/AKfycbyZ7ODdfUB0y9JkLedWZWq4ukZCB-keLPdav4xcTmB33wELLjApbap1O_chzkUsDNYQ/exec';
 try { MOS_API = localStorage.getItem('mos.api') || MOS_API; } catch (e) {}
 const A = { st: ss.get('mos.st'), user: null, keys: null, me: null, ws: null, wsKey: null, wsRaw: null, keyVersion: 1, meta: {}, role: 'owner', canWrite: true, ent: null, pendingEmail: '', pendingPw: '' };
-const KINDS_OF = { incomes: 'income', commissions: 'income', taxdocs: 'income', accounts: 'balances', debts: 'debts', assets: 'assets', vehicles: 'assets', goals: 'goals' };
+const KINDS_OF = { incomes: 'income', commissions: 'income', taxdocs: 'income', rentals: 'income', accounts: 'balances', debts: 'debts', assets: 'assets', vehicles: 'assets', goals: 'goals' };
 const SHARE_LABEL = { income: 'Income', spending: 'Personal spending', balances: 'Account balances', debts: 'Debts', assets: 'Assets', goals: 'Savings goals' };
 const LEVEL_LABEL = { shared: 'Shared', totals: 'Totals only', private: 'Private' };
 const TYPE_LABEL = { individual: 'Individual', dating_couple: 'Dating couple', married_couple: 'Married couple', family: 'Family', shared_household: 'Shared household' };
