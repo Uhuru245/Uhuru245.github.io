@@ -1851,13 +1851,234 @@ async function demoApi(a, x) {
   throw new Error('Not available in the demonstration. Sign in to use this.');
 }
 
+/* ---------- Tax & SARS ----------
+   Figures from SARS (sars.gov.za), checked 5 November 2026:
+   - Rates of tax for individuals (2027 and 2026 years), rebates and thresholds
+   - Medical scheme fees tax credit rates
+   - Interest exemptions; capital gains annual exclusion
+   - Tax-free investments: R46 000 a year from 1 March 2026 (2027 year), R500 000 lifetime, 40% on excess
+   - Retirement fund deduction: 27.5% of the greater of remuneration or taxable income, cap R430 000 from 1 March 2026 (Budget 2026)
+   - 2026 filing season dates (SARS filing season page)
+   General information to help prepare; not tax advice. */
+const TAXT = {
+  2027: {
+    label: '2026/27', start: '2026-03-01', end: '2027-02-28',
+    brackets: [[245100, 0, 18], [383100, 44118, 26], [530200, 79998, 31], [695800, 125599, 36], [887000, 185215, 39], [1878600, 259783, 41], [Infinity, 666339, 45]],
+    rebates: { primary: 17820, secondary: 9765, tertiary: 3249 }, thresholds: { u65: 99000, u75: 153250, o75: 171300 },
+    medical: { main: 376, first: 752, extra: 254 }, raPct: 27.5, raCap: 430000, tfsaYear: 46000, tfsaLife: 500000,
+    interest: { u65: 23800, o65: 34500 }, cgtExclusion: 50000, donationsPct: 10,
+    dates: [
+      ['2026-08-31', 'First provisional tax payment (IRP6) for 2026/27', 'provisional'],
+      ['2027-01-22', 'Deadline: provisional taxpayers file the 2025/26 return', 'provisional'],
+      ['2027-02-28', 'Tax year ends. Last day for retirement annuity and tax-free savings contributions to count for 2026/27', 'all'],
+      ['2027-02-28', 'Second provisional tax payment (IRP6) for 2026/27', 'provisional'],
+      ['2027-09-30', 'Optional third (top-up) provisional payment for 2026/27', 'provisional']
+    ],
+    filingNote: 'SARS announces the 2027 filing season dates around May or June 2027. In 2026, auto-assessments ran 1 to 12 July, non-provisional individuals filed 13 July to 23 October, and provisional taxpayers had until 22 January 2027.'
+  },
+  2026: {
+    label: '2025/26', start: '2025-03-01', end: '2026-02-28',
+    brackets: [[237100, 0, 18], [370500, 42678, 26], [512800, 77362, 31], [673000, 121475, 36], [857900, 179147, 39], [1817000, 251258, 41], [Infinity, 644489, 45]],
+    rebates: { primary: 17235, secondary: 9444, tertiary: 3145 }, thresholds: { u65: 95750, u75: 148217, o75: 165689 },
+    medical: { main: 364, first: 728, extra: 246 }, raPct: 27.5, raCap: 350000, tfsaYear: 36000, tfsaLife: 500000,
+    interest: { u65: 23800, o65: 34500 }, cgtExclusion: 40000, donationsPct: 10,
+    dates: [
+      ['2026-07-12', 'Auto-assessment period ended (1 to 12 July 2026)', 'all'],
+      ['2026-10-23', 'Deadline: non-provisional individuals file the 2025/26 return', 'nonprov'],
+      ['2027-01-22', 'Deadline: provisional taxpayers file the 2025/26 return', 'provisional']
+    ],
+    filingNote: '2026 filing season (SARS): auto-assessments 1 to 12 July 2026; non-provisional individuals 13 July to 23 October 2026; provisional taxpayers 13 July 2026 to 22 January 2027.'
+  }
+};
+const TAXCALC = {
+  yearFor(iso) { const y = +iso.slice(0, 4), m = +iso.slice(5, 7); return m >= 3 ? y + 1 : y; },
+  bracketTax(t, inc) { let floor = 0; for (const [top, base, pct] of t.brackets) { if (inc <= top) return base + (inc - floor) * pct / 100; floor = top; } return 0; },
+  marginal(t, inc) { for (const [top, , pct] of t.brackets) if (inc <= top) return pct; return 45; },
+  rebate(t, age) { const r = t.rebates; return r.primary + (age >= 65 ? r.secondary : 0) + (age >= 75 ? r.tertiary : 0); },
+  /** Monthly medical scheme fees credit for the number of people on the scheme (including you). */
+  msftcMonthly(t, people) { if (!people) return 0; return people === 1 ? t.medical.main : t.medical.first + Math.max(0, people - 2) * t.medical.extra; },
+  /**
+   * p: amounts in rand. salary, commission, otherIncome, interest, raContrib, businessExpenses, donations, schemeFees (yearly),
+   * medicalPeople, schemeMonths, outOfPocket, paye, provisionalPaid, age, disability
+   */
+  estimate(year, p) {
+    const t = TAXT[year], n = v => Math.max(0, +v || 0), age = +p.age || 0;
+    const salary = n(p.salary), comm = n(p.commission), other = n(p.otherIncome), interest = n(p.interest);
+    const remuneration = salary + comm;
+    const interestExempt = Math.min(interest, age >= 65 ? t.interest.o65 : t.interest.u65), interestTaxable = interest - interestExempt;
+    const commMostly = remuneration > 0 && comm / remuneration > 0.5;
+    const bizAllowed = commMostly ? Math.min(n(p.businessExpenses), comm) : 0;
+    const before = remuneration + other + interestTaxable - bizAllowed;
+    const raLimit = Math.min(t.raCap, Math.max(remuneration, before) * t.raPct / 100), raAllowed = Math.min(n(p.raContrib), raLimit);
+    const afterRa = Math.max(0, before - raAllowed);
+    const donAllowed = Math.min(n(p.donations), afterRa * t.donationsPct / 100);
+    const taxable = Math.max(0, afterRa - donAllowed);
+    const normal = this.bracketTax(t, taxable), reb = this.rebate(t, age);
+    const months = Math.min(12, Math.max(0, +p.schemeMonths || 0)), people = Math.max(0, +p.medicalPeople || 0);
+    const msftc = this.msftcMonthly(t, people) * months;
+    const fees = n(p.schemeFees), oop = n(p.outOfPocket);
+    let ametc = 0;
+    if (age >= 65 || p.disability) ametc = 0.333 * Math.max(0, fees - 3 * msftc + oop);
+    else ametc = 0.25 * Math.max(0, fees - 4 * msftc + oop - 0.075 * taxable);
+    const afterRebate = Math.max(0, normal - reb), tax = Math.max(0, afterRebate - msftc - ametc);
+    const paid = n(p.paye) + n(p.provisionalPaid), balance = tax - paid;
+    return { year, t, remuneration, interestExempt, interestTaxable, commMostly, bizAllowed, raLimit, raAllowed, raRoom: Math.max(0, raLimit - n(p.raContrib)), donAllowed, taxable, normal, rebate: reb, msftc, ametc, tax, paid, balance,
+      marginal: this.marginal(t, taxable), effective: remuneration + other + interest > 0 ? tax / (remuneration + other + interest) * 100 : 0,
+      threshold: age >= 75 ? t.thresholds.o75 : age >= 65 ? t.thresholds.u75 : t.thresholds.u65 };
+  },
+  /** Rules-based ways to pay less tax legally, each with the saving worked out from the person's own figures. */
+  ideas(e, p) {
+    const t = e.t, out = [], m = e.marginal / 100, rand = v => 'R' + Math.round(v).toLocaleString('en-ZA').replace(/,/g, ' ');
+    if (e.raRoom > 1000 && e.taxable > e.threshold) out.push({ h: 'Use your retirement annuity allowance', b: 'You can deduct up to ' + rand(e.raLimit) + ' of retirement fund contributions this tax year (' + t.raPct + '% of income, capped at ' + rand(t.raCap) + '). You have ' + rand(e.raRoom) + ' unused. Contributing it before ' + t.end.slice(8) + ' February would cut your tax by about ' + rand(e.raRoom * m) + ' at your ' + e.marginal + '% marginal rate. The money stays invested for retirement.', save: e.raRoom * m });
+    const tfsaRoom = Math.max(0, Math.min(t.tfsaYear - (+p.tfsaYear || 0), t.tfsaLife - (+p.tfsaLifetime || 0)));
+    if (tfsaRoom > 0) out.push({ h: 'Fill your tax-free savings account', b: 'Growth, interest and dividends in a tax-free investment are never taxed. You can still add ' + rand(tfsaRoom) + ' this year (limit ' + rand(t.tfsaYear) + ' a year, ' + rand(t.tfsaLife) + ' in a lifetime). Do not go over: SARS taxes the excess at 40%.', save: 0 });
+    if ((+p.tfsaYear || 0) > t.tfsaYear) out.push({ h: 'Warning: tax-free savings over the annual limit', b: 'Your contributions of ' + rand(+p.tfsaYear) + ' exceed ' + rand(t.tfsaYear) + '. SARS charges 40% on the excess. Speak to your provider before the year ends.', save: 0, warn: true });
+    if (e.interestTaxable > 0) out.push({ h: 'Interest above your exemption is taxed', b: rand(e.interestTaxable) + ' of your interest is taxable (the first ' + rand(e.interestExempt) + ' is exempt). Moving savings into a tax-free account would shelter future interest.', save: 0 });
+    if (+p.commission > 0) {
+      if (e.commMostly) out.push({ h: 'Claim your business expenses as a commission earner', b: 'More than half of your income is commission, so you may deduct expenses incurred to earn it (for example marketing, cellphone, portal and franchise fees, and vehicle costs supported by a logbook). Keep every receipt and a SARS-compliant logbook. ' + (e.bizAllowed ? 'You entered ' + rand(e.bizAllowed) + ', worth about ' + rand(e.bizAllowed * m) + ' in tax.' : 'Add your expenses above to see the effect.'), save: e.bizAllowed * m });
+      else out.push({ h: 'Business expenses are limited for you', b: 'Commission is half or less of your income, so most employment-related expenses cannot be deducted. A travel allowance with a logbook may still reduce tax on business kilometres. Confirm with a tax practitioner.', save: 0 });
+      out.push({ h: 'Put tax aside from every commission', b: 'Commission is usually paid without enough tax deducted. Your estimated marginal rate is ' + e.marginal + '%: set aside at least that share of each commission in a separate savings account so the provisional payments and final assessment do not hurt cash flow.', save: 0 });
+    }
+    if (!p.donationsCert && e.taxable > e.threshold) out.push({ h: 'Get section 18A receipts for donations', b: 'Donations to approved public benefit organisations are deductible up to ' + t.donationsPct + '% of taxable income if you have a section 18A receipt. Ask your church or charity for one.', save: 0 });
+    if ((+p.medicalPeople || 0) > 0 && !(+p.outOfPocket)) out.push({ h: 'Keep out-of-pocket medical receipts', b: 'Medical costs your scheme did not pay (co-payments, pharmacy, specialists) can add to the additional medical expenses credit. Keep the receipts and your scheme\'s tax certificate.', save: 0 });
+    out.push({ h: 'Avoid two-pot savings withdrawals if you can', b: 'Withdrawals from the savings pot of a retirement fund are added to your income and taxed at your marginal rate (' + e.marginal + '% for you), on top of losing future growth.', save: 0 });
+    return out;
+  }
+};
+if (typeof module !== 'undefined') module.exports = { TAXT, TAXCALC };
+
+if (typeof window !== 'undefined' && typeof COLS !== 'undefined') {
+  COLS.push('taxdocs');
+  NAV.splice(NAV.findIndex(n => n[0] === 'reports'), 0, ['tax', 'Tax & SARS']);
+}
+
+const TAX_CHECKS = [
+  ['docs', 'Documents to collect', [
+    ['irp5', 'IRP5 / IT3(a) from each employer'],
+    ['it3b', 'IT3(b) interest certificates from every bank'],
+    ['it3c', 'IT3(c) for shares or unit trusts sold (capital gains)'],
+    ['it3s', 'Tax-free investment certificate (IT3(s))'],
+    ['ra', 'Retirement annuity contribution certificate'],
+    ['med', 'Medical scheme tax certificate'],
+    ['medoop', 'Receipts for medical costs the scheme did not pay'],
+    ['s18a', 'Section 18A receipts for donations'],
+    ['comm', 'Commission statements for the full tax year', 'commission'],
+    ['bizexp', 'Receipts for business expenses (marketing, phone, fees)', 'commission'],
+    ['logbook', 'Vehicle logbook with business kilometres', 'commission'],
+    ['rental', 'Rental income and expense records (if you rent out property)']
+  ]],
+  ['efiling', 'SARS eFiling ready', [
+    ['login', 'I can sign in to SARS eFiling or the SARS MobiApp'],
+    ['bank', 'My banking details at SARS are correct and verified'],
+    ['contact', 'My cellphone number, email and address at SARS are current'],
+    ['irp6', 'Provisional tax (IRP6) payments made on time', 'provisional']
+  ]],
+  ['file', 'Filing', [
+    ['auto', 'Checked whether I received an auto-assessment in July'],
+    ['review', 'Compared the pre-filled return with my certificates'],
+    ['filed', 'Filed my return before the deadline'],
+    ['keep', 'Stored everything for 5 years (SARS can ask for proof)']
+  ]]
+];
+
+function taxProfile(year) {
+  const mine = S.data.taxdocs.filter(r => +r.year === year && (r.owner === S.me.role || r.owner === S.me.id || (S.demo && !r.memberId)));
+  return mine[0] || null;
+}
+function taxPrefill(year) {
+  const t = TAXT[year], inYear = d => d && d >= t.start && d <= t.end;
+  const comm = S.data.commissions.filter(c => (c.earner === S.me.role || S.demo) && ((c.status === 'received' && inYear(c.receivedDate)) || (c.status === 'expected' && inYear(c.expectedDate) && !c.receivedDate)));
+  return { commission: comm.reduce((a, c) => a + (c.grossCents || 0), 0) / 100, commCount: comm.length };
+}
+VIEWS.tax = () => {
+  const years = Object.keys(TAXT).map(Number).sort((a, b) => b - a), cur = TAXCALC.yearFor(today());
+  const year = S.taxYear || (TAXT[cur] ? cur : years[0]), t = TAXT[year];
+  const rec = taxProfile(year), pre = taxPrefill(year);
+  const p = Object.assign({ age: 40, salary: 0, commission: pre.commission, otherIncome: 0, interest: 0, raContrib: 0, businessExpenses: 0, donations: 0, schemeFees: 0, medicalPeople: 0, schemeMonths: 12, outOfPocket: 0, paye: 0, provisionalPaid: 0, tfsaYear: 0, tfsaLifetime: 0, provisional: pre.commission > 0, checks: {} }, rec || {});
+  if (S.demo && !rec) Object.assign(p, { age: 38, salary: 252000, otherIncome: 0, interest: 9200, raContrib: 18000, businessExpenses: 38000, donations: 6000, schemeFees: 49200, medicalPeople: 3, outOfPocket: 6400, paye: 21500, provisionalPaid: 9000, tfsaYear: 12000, tfsaLifetime: 64000, provisional: true });
+  const e = TAXCALC.estimate(year, p), ideas = TAXCALC.ideas(e, p), rand = v => R(Math.round(v * 100));
+  const endD = new Date(t.end + 'T23:59:59'), daysLeft = Math.ceil((endD - new Date()) / 864e5);
+  const allChecks = TAX_CHECKS.flatMap(g => g[2].filter(c => !c[2] || (c[2] === 'commission' ? p.commission > 0 : p.provisional)));
+  const done = allChecks.filter(c => p.checks && p.checks[c[0]]).length;
+  const f = (k, label, hint, type) => '<label>' + esc(label) + (hint ? '<small class="muted" style="display:block;font-weight:400">' + hint + '</small>' : '') + '<input data-tax="' + k + '" inputmode="' + (type === 'n' ? 'numeric' : 'decimal') + '" value="' + esc(type === 'n' ? (p[k] || 0) : (+p[k] || 0).toFixed(2)) + '"></label>';
+  const yearSel = '<select id="taxYear" aria-label="Tax year">' + years.map(y => '<option value="' + y + '"' + (y === year ? ' selected' : '') + '>' + TAXT[y].label + ' tax year' + (y === cur ? ' (current)' : '') + '</option>').join('') + '</select>';
+  const due = e.balance > 0;
+  const dates = t.dates.filter(d => d[2] === 'all' || (d[2] === 'provisional' ? p.provisional : !p.provisional));
+  return '<div class="alert info" style="margin-bottom:14px"><h3>Get SARS-ready, pay what you owe and not a rand more</h3><div class="small">Enter your figures once and this page estimates your tax, shows legal ways to reduce it, and keeps a checklist for filing season. Estimates use the official SARS tables for the year. This is general information, not tax advice: confirm your return with a registered tax practitioner.</div></div>'
+    + '<div class="toolbar" style="margin-bottom:12px">' + yearSel + '<span class="muted small">' + t.label + ' runs ' + dShort(t.start) + ' ' + t.start.slice(0, 4) + ' to ' + dShort(t.end) + ' ' + t.end.slice(0, 4) + '</span></div>'
+    + '<div class="grid g4 kpis">'
+    + kpi('Estimated tax for ' + t.label, rand(e.tax), 'Effective rate ' + e.effective.toFixed(1) + '%', 'estimated', true)
+    + kpi('Already paid', rand(e.paid), 'PAYE plus provisional payments', 'actual')
+    + kpi(due ? 'Estimated amount to pay SARS' : 'Estimated refund', '<span class="' + (due ? 'neg' : 'pos') + '">' + rand(Math.abs(e.balance)) + '</span>', due ? 'Plan for it now' : 'If your figures are complete', 'estimated')
+    + kpi('Marginal tax rate', e.marginal + '%', daysLeft > 0 ? daysLeft + ' days until the tax year ends' : 'Tax year closed', 'estimated')
+    + '</div>'
+    + '<div class="split">'
+    + card('Your figures for ' + t.label, 'Use gross amounts before tax, from your payslips, IRP5 and certificates. Saved to your own encrypted records' + (S.demo ? ' (sample data in the demo)' : '') + '.',
+      '<div class="form">' + f('age', 'Your age at the end of the tax year', '', 'n')
+      + f('salary', 'Salary and bonuses, gross (R a year)', 'Total remuneration on your IRP5 before tax')
+      + f('commission', 'Commission, gross (R a year)', pre.commCount ? 'Pre-filled from ' + pre.commCount + ' received or expected deals in this tax year' : 'From your commission statements')
+      + f('otherIncome', 'Other taxable income (R)', 'For example net rental income')
+      + f('interest', 'Interest earned (R)', 'From IT3(b) certificates; the first R' + (p.age >= 65 ? t.interest.o65 : t.interest.u65).toLocaleString('en-ZA') + ' is exempt')
+      + f('raContrib', 'Retirement annuity and fund contributions (R)', 'Your own contributions in the tax year')
+      + (+p.commission > 0 ? f('businessExpenses', 'Business expenses to earn commission (R)', 'Only deductible if commission is more than half your income') : '')
+      + f('donations', 'Donations with section 18A receipts (R)', '')
+      + f('schemeFees', 'Medical scheme contributions you paid (R a year)', '')
+      + f('medicalPeople', 'People on your medical scheme, including you', '', 'n')
+      + f('schemeMonths', 'Months on the scheme in this tax year', '', 'n')
+      + f('outOfPocket', 'Medical costs the scheme did not pay (R)', '')
+      + f('paye', 'PAYE already deducted (R)', 'From payslips or IRP5')
+      + f('provisionalPaid', 'Provisional tax paid for this year (R)', '')
+      + f('tfsaYear', 'Tax-free savings contributions this tax year (R)', '')
+      + f('tfsaLifetime', 'Tax-free savings contributions in your lifetime (R)', '')
+      + '<label class="opt" style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-taxb="provisional"' + (p.provisional ? ' checked' : '') + ' style="width:auto"> I am a provisional taxpayer (for example I earn commission or income without PAYE)</label>'
+      + '</div><div class="toolbar" style="margin-top:12px">' + btn('Save my tax figures', 'tx:save', 'primary sm') + '</div>')
+    + card('How your estimate is worked out', 'Official SARS ' + t.label + ' tables. Estimate only.', table(['Step', '#Amount'], [
+      ['Salary and commission', rand(e.remuneration)], ['Other income', rand(+p.otherIncome || 0)], ['Taxable interest (after ' + rand(e.interestExempt) + ' exemption)', rand(e.interestTaxable)],
+      ['Less business expenses' + (+p.commission > 0 && !e.commMostly ? ' (not allowed: commission is half or less of income)' : ''), '-' + rand(e.bizAllowed)],
+      ['Less retirement contributions (limit ' + rand(e.raLimit) + ')', '-' + rand(e.raAllowed)], ['Less donations (limit ' + t.donationsPct + '%)', '-' + rand(e.donAllowed)],
+      ['<b>Taxable income</b>', '<b>' + rand(e.taxable) + '</b>'], ['Tax from the SARS table', rand(e.normal)], ['Less rebates', '-' + rand(e.rebate)],
+      ['Less medical scheme fees credit', '-' + rand(e.msftc)], ['Less additional medical expenses credit', '-' + rand(e.ametc)],
+      ['<b>Estimated tax for the year</b>', '<b>' + rand(e.tax) + '</b>'], ['Less PAYE and provisional tax paid', '-' + rand(e.paid)],
+      ['<b>' + (due ? 'Estimated amount to pay' : 'Estimated refund') + '</b>', '<b>' + rand(Math.abs(e.balance)) + '</b>']
+    ].map(r => ({ cells: r, wrap: 0 })), {}) + (e.taxable <= e.threshold ? '<p class="note">Your taxable income is below the ' + rand(e.threshold) + ' tax threshold for your age, so no income tax is due.</p>' : ''))
+    + '</div>'
+    + card('Legal ways to pay less tax', 'Worked out from your figures. Savings are estimates at your marginal rate.', '<div class="list">' + ideas.map(i => '<div class="row"><span><b' + (i.warn ? ' class="neg"' : '') + '>' + esc(i.h) + '</b><small>' + esc(i.b) + '</small></span>' + (i.save > 50 ? '<span class="num pos" style="white-space:nowrap">about ' + rand(i.save) + '</span>' : '') + '</div>').join('') + '</div>')
+    + '<div class="split">'
+    + card('Key dates', t.label + (p.provisional ? ' (provisional taxpayer)' : ''), '<div class="list">' + dates.map(d => { const past = d[0] < today(); return '<div class="row"><span><b>' + (+d[0].slice(8)) + ' ' + MONTHS[+d[0].slice(5, 7) - 1] + ' ' + d[0].slice(0, 4) + '</b><small>' + esc(d[1]) + '</small></span>' + tag(past ? 'actual' : 'planned').replace('>actual<', '>passed<').replace('>planned<', '>coming<') + '</div>'; }).join('') + '</div><p class="note">' + esc(t.filingNote) + ' Always confirm dates on sars.gov.za.</p>'
+      + (p.provisional && e.tax > 0 ? '<p class="note"><b>Provisional tax:</b> the first payment is roughly half of the year\'s estimated tax less PAYE; the second covers the rest. A top-up payment by 30 September after year-end avoids interest. If your second estimate is too low, SARS can add a penalty.</p>' : ''))
+    + card('SARS readiness checklist', done + ' of ' + allChecks.length + ' done for ' + t.label, bar(allChecks.length ? done / allChecks.length * 100 : 0) + TAX_CHECKS.map(g => { const items = g[2].filter(c => !c[2] || (c[2] === 'commission' ? +p.commission > 0 : p.provisional)); return items.length ? '<h3 style="margin:14px 0 6px;font-size:.95rem">' + esc(g[1]) + '</h3>' + items.map(c => '<label class="opt" style="margin-bottom:6px"><input type="checkbox" data-taxc="' + c[0] + '"' + (p.checks && p.checks[c[0]] ? ' checked' : '') + ' style="width:auto"><span>' + esc(c[1]) + '</span></label>').join('') : ''; }).join('') + '<p class="note">Ticks save straight away.</p>')
+    + '</div>'
+    + card('SARS tables used for ' + t.label, 'From sars.gov.za, checked 5 November 2026', table(['Taxable income', 'Tax'], t.brackets.map((b, i) => { const lo = i ? t.brackets[i - 1][0] + 1 : 0; return { wrap: 1, cells: [(i === t.brackets.length - 1 ? 'R' + lo.toLocaleString('en-ZA') + ' and above' : 'R' + lo.toLocaleString('en-ZA') + ' to R' + b[0].toLocaleString('en-ZA')), (i ? 'R' + b[1].toLocaleString('en-ZA') + ' + ' + b[2] + '% of the amount above R' + t.brackets[i - 1][0].toLocaleString('en-ZA') : b[2] + '% of taxable income')] }; }), {})
+      + '<p class="note">Rebates: primary R' + t.rebates.primary.toLocaleString('en-ZA') + ', 65 and older R' + t.rebates.secondary.toLocaleString('en-ZA') + ', 75 and older R' + t.rebates.tertiary.toLocaleString('en-ZA') + '. Tax thresholds: R' + t.thresholds.u65.toLocaleString('en-ZA') + ' (under 65), R' + t.thresholds.u75.toLocaleString('en-ZA') + ' (65 to 74), R' + t.thresholds.o75.toLocaleString('en-ZA') + ' (75 and older). Medical scheme fees credit: R' + t.medical.main + ' a month for you, R' + t.medical.first + ' for you and one dependant, plus R' + t.medical.extra + ' for each extra dependant. Retirement deduction: ' + t.raPct + '% of income up to R' + t.raCap.toLocaleString('en-ZA') + '. Tax-free savings: R' + t.tfsaYear.toLocaleString('en-ZA') + ' a year, R' + t.tfsaLife.toLocaleString('en-ZA') + ' lifetime. Interest exemption: R' + t.interest.u65.toLocaleString('en-ZA') + ' (under 65), R' + t.interest.o65.toLocaleString('en-ZA') + ' (65 and older). Capital gains annual exclusion: R' + t.cgtExclusion.toLocaleString('en-ZA') + '.</p>');
+};
+VIEWS.tax.after = () => {
+  const s = $('taxYear'); if (s) s.onchange = () => { S.taxYear = +s.value; render(); };
+};
+async function taxSave(patch, quiet) {
+  const year = S.taxYear || TAXCALC.yearFor(today()), cur = taxProfile(year);
+  const rec = Object.assign({ year, owner: S.me.role || S.me.id, checks: {} }, cur || {}, patch);
+  try { await saveRec('taxdocs', rec); if (!quiet) { toast('Tax figures saved'); render(); } } catch (er) { toast(er.message); }
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-act="tx:save"]'); if (!a) return;
+  const p = {}; document.querySelectorAll('[data-tax]').forEach(i => { const v = String(i.value).replace(/[^0-9.,-]/g, '').replace(',', '.'); p[i.dataset.tax] = Math.max(0, +v || 0); });
+  document.querySelectorAll('[data-taxb]').forEach(i => { p[i.dataset.taxb] = i.checked; });
+  taxSave(p);
+});
+document.addEventListener('change', e => {
+  const c = e.target.closest('[data-taxc]'); if (!c) return;
+  const year = S.taxYear || TAXCALC.yearFor(today()), cur = taxProfile(year) || {};
+  const checks = Object.assign({}, cur.checks || {}); checks[c.dataset.taxc] = c.checked;
+  taxSave({ checks }, true).then(() => { const v = $('view'); const y = window.scrollY; render(); window.scrollTo(0, y); });
+});
+
 /* ===================== Millionaire OS: SaaS data layer, sign-in, household, billing, support =====================
  * Loads after the Family OS modules and replaces their storage layer. Every record is encrypted here before it is sent. */
 const APP_VERSION = '1.0.0-beta';
 let MOS_API = 'https://script.google.com/macros/s/AKfycbyZ7ODdfUB0y9JkLedWZWq4ukZCB-keLPdav4xcTmB33wELLjApbap1O_chzkUsDNYQ/exec';
 try { MOS_API = localStorage.getItem('mos.api') || MOS_API; } catch (e) {}
 const A = { st: ss.get('mos.st'), user: null, keys: null, me: null, ws: null, wsKey: null, wsRaw: null, keyVersion: 1, meta: {}, role: 'owner', canWrite: true, ent: null, pendingEmail: '', pendingPw: '' };
-const KINDS_OF = { incomes: 'income', commissions: 'income', accounts: 'balances', debts: 'debts', assets: 'assets', vehicles: 'assets', goals: 'goals' };
+const KINDS_OF = { incomes: 'income', commissions: 'income', taxdocs: 'income', accounts: 'balances', debts: 'debts', assets: 'assets', vehicles: 'assets', goals: 'goals' };
 const SHARE_LABEL = { income: 'Income', spending: 'Personal spending', balances: 'Account balances', debts: 'Debts', assets: 'Assets', goals: 'Savings goals' };
 const LEVEL_LABEL = { shared: 'Shared', totals: 'Totals only', private: 'Private' };
 const TYPE_LABEL = { individual: 'Individual', dating_couple: 'Dating couple', married_couple: 'Married couple', family: 'Family', shared_household: 'Shared household' };
