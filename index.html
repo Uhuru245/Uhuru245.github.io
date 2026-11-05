@@ -353,6 +353,16 @@ section.blk:first-child { padding-top: 22px; }
 @media (max-width: 920px) { .gate { grid-template-columns: minmax(0, 1fr); padding: 12px; } .gate-art { min-height: 220px; } .acct { display: none; } }
 @media (max-width: 600px) { .g-types { grid-template-columns: minmax(0, 1fr); } }
 .gate-art .pill { position: relative; z-index: 1; align-self: flex-start; margin-bottom: 18px; }
+
+/* ===== speed: glass without live blur =====
+   Live backdrop blur over the animated scene had to be recomputed every frame (about 27 fps on mid-range devices).
+   The panels now use a pre-tinted frosted fill that reads the same on the dark scene; only the small header bar and menu keep a blur. */
+.glass { backdrop-filter: none; -webkit-backdrop-filter: none; background: linear-gradient(160deg, rgba(40, 96, 89, .58), rgba(6, 26, 24, .74)); }
+.portal { backdrop-filter: none; -webkit-backdrop-filter: none; background: linear-gradient(160deg, rgba(48, 108, 100, .55), rgba(5, 24, 22, .78)); }
+.orbit, .case .num { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+.portal, .scene .ly { contain: paint; }
+.scene { contain: strict; }
+.gate-panel.glass { background: linear-gradient(160deg, rgba(30, 78, 72, .9), rgba(5, 22, 20, .94)); }
 </style>
 </head>
 <body>
@@ -728,8 +738,16 @@ document.addEventListener('click', e => {
   const a = e.target.closest && e.target.closest('a[href]'); if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.target === '_blank' || CALM()) return;
   let u; try { u = new URL(a.href, location.href); } catch (x) { return; }
   if (u.origin !== location.origin || u.pathname === location.pathname) return;
-  e.preventDefault(); document.body.classList.add('leaving'); setTimeout(() => { location.href = u.href; }, 220);
+  e.preventDefault(); document.body.classList.add('leaving'); setTimeout(() => { location.href = u.href; }, 90);
 });
+/* Fetch the next space while the visitor is still pointing at its link, so it opens almost at once. */
+const PREF = new Set();
+function prefetch(a) {
+  if (!a || !a.href) return; let u; try { u = new URL(a.href, location.href); } catch (x) { return; }
+  if (u.origin !== location.origin || u.pathname === location.pathname || PREF.has(u.pathname)) return;
+  PREF.add(u.pathname); const l = document.createElement('link'); l.rel = 'prefetch'; l.href = u.pathname; document.head.appendChild(l);
+}
+['pointerover', 'touchstart', 'focusin'].forEach(ev => document.addEventListener(ev, e => prefetch(e.target.closest && e.target.closest('a[href]')), { passive: true }));
 window.addEventListener('pageshow', () => document.body.classList.remove('leaving'));
 function wire() {
   motion(); tilt();

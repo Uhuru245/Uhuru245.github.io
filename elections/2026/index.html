@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Syncopate:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>:root {
   /* Futuristic command-centre theme, aligned with the MRET Digital Universe palette. Dark by default. */
-  --bg: #061512; --bg-2: rgba(166, 255, 240, .07); --card: rgba(12, 42, 39, .62); --card-solid: #0b2522; --ink: #f2fffb; --ink-2: rgba(222, 245, 240, .82); --ink-3: rgba(178, 214, 207, .62);
+  --bg: #061512; --bg-2: rgba(166, 255, 240, .07); --card: rgba(11, 40, 37, .84); --card-solid: #0b2522; --ink: #f2fffb; --ink-2: rgba(222, 245, 240, .82); --ink-3: rgba(178, 214, 207, .62);
   --line: rgba(166, 255, 240, .12); --line-2: rgba(166, 255, 240, .22);
   --accent: #37e3ce; --accent-2: #a6fff0; --accent-bg: rgba(55, 227, 206, .13); --ok: #6ff0b0; --ok-bg: rgba(111, 240, 176, .1); --warn: #ffd27a; --warn-bg: rgba(255, 210, 122, .1); --bad: #ff9a9a; --bad-bg: rgba(255, 120, 120, .1);
   --neutral: #1d3b37; --pending: #2a4a46; --shadow: 0 1px 0 rgba(255, 255, 255, .06) inset, 0 24px 60px -30px rgba(0, 0, 0, .8);
@@ -28,7 +28,7 @@
   color-scheme: dark;
 }
 :root[data-theme="light"] {
-  --bg: #eef7f5; --bg-2: rgba(9, 44, 41, .06); --card: rgba(255, 255, 255, .72); --card-solid: #ffffff; --ink: #062421; --ink-2: #2c4a46; --ink-3: #5d7b76;
+  --bg: #eef7f5; --bg-2: rgba(9, 44, 41, .06); --card: rgba(255, 255, 255, .9); --card-solid: #ffffff; --ink: #062421; --ink-2: #2c4a46; --ink-3: #5d7b76;
   --line: rgba(9, 44, 41, .1); --line-2: rgba(9, 44, 41, .2);
   --accent: #0b8f80; --accent-2: #13b3a0; --accent-bg: rgba(19, 179, 160, .12); --ok: #18744c; --ok-bg: #e2f5ec; --warn: #8a5a00; --warn-bg: #fbf0d9; --bad: #9b1c1c; --bad-bg: #fbe9e9;
   --neutral: #d3e3e0; --pending: #b9cfcb; --shadow: 0 1px 2px rgba(6, 36, 33, .06), 0 18px 40px -26px rgba(6, 36, 33, .35);
@@ -165,12 +165,12 @@ footer .disc { font-weight: 600; color: var(--ink); max-width: 60em; }
 body { background:
   radial-gradient(70vw 45vw at 12% -5%, rgba(55, 227, 206, .16), transparent 60%),
   radial-gradient(55vw 40vw at 105% 40%, rgba(220, 199, 167, .09), transparent 60%),
-  linear-gradient(180deg, #061512 0%, #072320 55%, #061512 100%) fixed; }
-:root[data-theme="light"] body { background: radial-gradient(70vw 45vw at 12% -5%, rgba(19, 179, 160, .14), transparent 60%), linear-gradient(180deg, #f3fbf9, #e7f3f0) fixed; }
+  linear-gradient(180deg, #061512 0%, #072320 55%, #061512 100%); background-attachment: scroll; }
+:root[data-theme="light"] body { background: radial-gradient(70vw 45vw at 12% -5%, rgba(19, 179, 160, .14), transparent 60%), linear-gradient(180deg, #f3fbf9, #e7f3f0); }
 body::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .5;
   background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 56px 56px;
   -webkit-mask-image: radial-gradient(ellipse at 50% 0%, #000 0%, transparent 70%); mask-image: radial-gradient(ellipse at 50% 0%, #000 0%, transparent 70%); }
-main, footer, header { position: relative; z-index: 1; }
+main, footer, header { position: relative; z-index: 1; } body::before { will-change: transform; }
 .top { background: rgba(6, 21, 18, .7); border-bottom: 1px solid var(--line); box-shadow: 0 1px 0 rgba(166, 255, 240, .06), 0 10px 30px -20px rgba(0, 0, 0, .8); }
 :root[data-theme="light"] .top { background: rgba(243, 251, 249, .8); }
 .top::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: .6; }
@@ -195,7 +195,7 @@ main, footer, header { position: relative; z-index: 1; }
   background: linear-gradient(100deg, var(--ink) 0%, var(--ink) 45%, var(--accent-2) 75%, var(--accent) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 :root[data-theme="light"] .hero h1 { background: linear-gradient(100deg, var(--ink) 0%, var(--ink) 50%, var(--accent) 100%); -webkit-background-clip: text; background-clip: text; }
 .hero p.sub { font: 500 clamp(15px, 1.5vw, 19px)/1.55 var(--sans); }
-.notice { border-radius: 14px; background: var(--card); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-left: 3px solid var(--accent); }
+.notice { border-radius: 14px; background: var(--card); border-left: 3px solid var(--accent); }
 .notice.warn { border-left-color: var(--warn); } .notice.bad { border-left-color: var(--bad); } .notice.ok { border-left-color: var(--ok); }
 
 section.s { border-top: 0; padding: 34px 0; position: relative; }
@@ -204,7 +204,7 @@ section.s h2 { font: 700 clamp(16px, 2vw, 22px)/1.2 var(--serif); letter-spacing
 section.s h2::before { content: ''; width: 8px; height: 8px; background: var(--accent); transform: rotate(45deg); box-shadow: 0 0 12px var(--accent); flex: none; }
 section.s .lead { font-size: 14.5px; }
 
-.card, .metric, .panel, .mapbox, .feed li, .empty, .radio label, .sugg { background: var(--card); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-color: var(--line-2); }
+.card, .metric, .panel, .mapbox, .feed li, .empty, .radio label, .sugg { background: var(--card); border-color: var(--line-2); } /* no live blur: it repainted every frame while scrolling */
 .card, .metric, .panel, .mapbox { box-shadow: var(--shadow); }
 .metric { position: relative; border-radius: var(--r); padding: 15px 16px 14px; transition: transform .25s, box-shadow .25s, border-color .25s; overflow: hidden; }
 .metric::before, .metric::after { content: ''; position: absolute; width: 12px; height: 12px; border: 1.5px solid var(--accent); opacity: .7; pointer-events: none; }
