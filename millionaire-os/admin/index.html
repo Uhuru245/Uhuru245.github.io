@@ -109,7 +109,7 @@ var MCrypto = (function () {
   async function decRecord(aesKey, id, s) { var p = String(s).split('.'); if (p[0] !== 'v1') throw new Error('Unknown format'); var pt = await subtle.decrypt({ name: 'AES-GCM', iv: unb64(p[1]), additionalData: te.encode(id) }, aesKey, unb64(p[2])); return JSON.parse(td.decode(pt)); }
   async function fingerprint(pubB64) { var h = new Uint8Array(await subtle.digest('SHA-256', unb64(pubB64))); return Array.from(h.slice(0, 8)).map(function (x) { return ('0' + x.toString(16)).slice(-2); }).join('').toUpperCase().match(/.{4}/g).join(' '); }
   function newRecordId() { var b = rnd(12), s = 'r'; for (var i = 0; i < b.length; i++) s += ('0' + b[i].toString(16)).slice(-2); return s; }
-  return { fromPassword: fromPassword, fromRecovery: fromRecovery, newAccount: newAccount, unlockAccount: unlockAccount, rewrap: rewrap, newWorkspaceKey: newWorkspaceKey, wrapFor: wrapFor, unwrapWs: unwrapWs, encRecord: encRecord, decRecord: decRecord, seal: seal, open: open, fingerprint: fingerprint, newRecordId: newRecordId, normCode: normCode, b64: b64, unb64: unb64, ITER: ITER };
+  return { fromPassword: fromPassword, fromRecovery: fromRecovery, newAccount: newAccount, unlockAccount: unlockAccount, rewrap: rewrap, newWorkspaceKey: newWorkspaceKey, wrapFor: wrapFor, unwrapWs: unwrapWs, encRecord: encRecord, decRecord: decRecord, seal: seal, open: open, aesFromRaw: aesFromRaw, fingerprint: fingerprint, newRecordId: newRecordId, normCode: normCode, b64: b64, unb64: unb64, ITER: ITER };
 })();
 if (typeof module !== 'undefined') module.exports = MCrypto;
 

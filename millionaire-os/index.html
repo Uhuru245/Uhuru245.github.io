@@ -983,7 +983,7 @@ var MCrypto = (function () {
   async function decRecord(aesKey, id, s) { var p = String(s).split('.'); if (p[0] !== 'v1') throw new Error('Unknown format'); var pt = await subtle.decrypt({ name: 'AES-GCM', iv: unb64(p[1]), additionalData: te.encode(id) }, aesKey, unb64(p[2])); return JSON.parse(td.decode(pt)); }
   async function fingerprint(pubB64) { var h = new Uint8Array(await subtle.digest('SHA-256', unb64(pubB64))); return Array.from(h.slice(0, 8)).map(function (x) { return ('0' + x.toString(16)).slice(-2); }).join('').toUpperCase().match(/.{4}/g).join(' '); }
   function newRecordId() { var b = rnd(12), s = 'r'; for (var i = 0; i < b.length; i++) s += ('0' + b[i].toString(16)).slice(-2); return s; }
-  return { fromPassword: fromPassword, fromRecovery: fromRecovery, newAccount: newAccount, unlockAccount: unlockAccount, rewrap: rewrap, newWorkspaceKey: newWorkspaceKey, wrapFor: wrapFor, unwrapWs: unwrapWs, encRecord: encRecord, decRecord: decRecord, seal: seal, open: open, fingerprint: fingerprint, newRecordId: newRecordId, normCode: normCode, b64: b64, unb64: unb64, ITER: ITER };
+  return { fromPassword: fromPassword, fromRecovery: fromRecovery, newAccount: newAccount, unlockAccount: unlockAccount, rewrap: rewrap, newWorkspaceKey: newWorkspaceKey, wrapFor: wrapFor, unwrapWs: unwrapWs, encRecord: encRecord, decRecord: decRecord, seal: seal, open: open, aesFromRaw: aesFromRaw, fingerprint: fingerprint, newRecordId: newRecordId, normCode: normCode, b64: b64, unb64: unb64, ITER: ITER };
 })();
 if (typeof module !== 'undefined') module.exports = MCrypto;
 
@@ -2371,7 +2371,7 @@ const RENTCALC = {
   money(v) { if (v === null || v === undefined || v === '') return null; const n = Math.round(Number(v)); if (!isFinite(n)) return null; return n; },
   validate(inp) {
     const errs = [];
-    Object.keys(inp || {}).forEach(k => { const v = inp[k]; if (v == null) return; if (typeof v !== 'number' || !isFinite(v)) errs.push(k + ' is not a number'); else if (v < 0) errs.push(k + ' cannot be negative'); else if (v > 1e11) errs.push(k + ' is unrealistically large'); });
+    Object.keys(inp || {}).forEach(k => { const v = inp[k]; if (v == null) return; if (k === 'sharePct') { if (!(v >= 0 && v <= 100)) errs.push('share must be 0 to 100%'); return; } if (typeof v !== 'number' || !isFinite(v)) errs.push(k + ' is not a number'); else if (v < 0) errs.push(k + ' cannot be negative'); else if (v > 1e11) errs.push(k + ' is unrealistically large'); });
     return errs;
   },
   sum(inp, keys) { let t = 0, any = false; keys.forEach(k => { const v = inp[k]; if (v != null && v > 0) { t += v; any = true; } }); return { cents: t, any }; },
@@ -2382,13 +2382,15 @@ const RENTCALC = {
     rules = Object.assign({}, RENTCALC.RULES, rules || {}); inp = inp || {};
     const errors = RENTCALC.validate(inp), keys = a => a.map(x => x[0]);
     const inc = RENTCALC.sum(inp, keys(RENTCALC.INCOME)), exp = RENTCALC.sum(inp, keys(RENTCALC.EXPENSES).filter(k => k !== 'savings')), hou = RENTCALC.sum(inp, keys(RENTCALC.HOUSING));
-    const income = inc.cents, rent = inp.rent, savings = inp.savings > 0 ? inp.savings : 0;
+    const share = inp.sharePct > 0 && inp.sharePct < 100 ? inp.sharePct / 100 : 1;
+    if (share !== 1) hou.cents = Math.round(hou.cents * share);
+    const income = inc.cents, rent = inp.rent == null ? null : Math.round(inp.rent * share), savings = inp.savings > 0 ? inp.savings : 0;
     const missing = [];
     if (!inc.any) missing.push('income');
     if (rent == null) missing.push('rent');
     ['electricity', 'water'].forEach(k => { if (inp[k] == null) missing.push(k); });
     if (!exp.any) missing.push('living expenses');
-    const out = { rules, errors, missing, incomeCents: income, rentCents: rent, housingCents: hou.cents, livingCents: exp.cents, savingsCents: savings,
+    const out = { rules, errors, missing, sharePct: share * 100, incomeCents: income, rentCents: rent, housingCents: hou.cents, livingCents: exp.cents, savingsCents: savings,
       rentPct: null, housingPct: null, savingsRatePct: null, beforeSavingsCents: null, afterSavingsCents: null, maxRentCents: null, benchmarks: [], level: 'incomplete', label: 'Not enough information', reasons: [], checks: [] };
     if (errors.length) { out.level = 'invalid'; out.label = 'Check your figures'; out.reasons = errors; return out; }
     if (income <= 0) { out.level = 'no_income'; out.label = 'No income entered'; out.reasons = ['Enter take-home income to assess affordability. Without income no rent is affordable on paper.']; return out; }
@@ -2399,7 +2401,7 @@ const RENTCALC = {
     out.benchmarks = rules.benchmarks.map(b => ({ pct: b, maxRentCents: Math.floor(income * b / 100 / 100) * 100 }));
     const buffer = Math.round(income * rules.bufferPct / 100);
     out.bufferCents = buffer;
-    out.maxRentCents = Math.max(0, Math.floor((income - (hou.cents - (rent || 0)) - exp.cents - savings - buffer) / 100) * 100);
+    out.maxRentCents = Math.max(0, Math.floor((income - (hou.cents - (rent || 0)) - exp.cents - savings - buffer) / share / 100) * 100);
     if (rent == null) { out.reasons = ['Enter the rent you are considering to get an assessment.']; return out; }
     out.rentPct = RENTCALC.pct(rent, income); out.housingPct = RENTCALC.pct(hou.cents, income);
     const grade = (v, ok, tight) => v <= ok ? 'ok' : v <= tight ? 'tight' : 'high';
@@ -2502,8 +2504,8 @@ if (typeof window !== 'undefined' && typeof COLS !== 'undefined') {
   const housing = FC.CATEGORIES.find(c => c[0] === 'Housing'); ['Gas', 'Parking', 'Levies and service charges', 'Cleaning', 'Other household'].forEach(s => { if (housing && !housing[1].includes(s)) housing[1].push(s); });
 }
 
-const RENT_TABS = [['overview', 'Rental Overview'], ['afford', 'Affordability'], ['move', 'Move-In Planner'], ['budget', 'Monthly Budget']];
-const RENT_SOON = ['Property Comparison', 'Financial Forecast', 'My Lease', 'Rent vs Buy', 'AI Advisor'];
+const RENT_TABS = [['overview', 'Rental Overview'], ['afford', 'Affordability'], ['compare', 'Property Comparison'], ['move', 'Move-In Planner'], ['budget', 'Monthly Budget'], ['forecast', 'Financial Forecast'], ['lease', 'My Lease'], ['buy', 'Rent vs Buy'], ['ai', 'AI Advisor']];
+const RENT_VIEWS = {};
 function rentRec() { return (S.data.rentals || []).find(r => !r.deleted) || null; }
 function rentPlan() {
   const r = rentRec(); const p = JSON.parse(JSON.stringify(r || {}));
@@ -2537,9 +2539,9 @@ function rentDerived() {
 
 VIEWS.rental = () => {
   const tab = S.rentTab || 'overview', d = rentDerived();
-  const tabs = '<div class="toolbar" role="tablist" style="flex-wrap:wrap;gap:6px;margin-bottom:12px">' + RENT_TABS.map(x => '<button type="button" class="btn sm' + (x[0] === tab ? ' primary' : '') + '" data-rtab="' + x[0] + '" role="tab" aria-selected="' + (x[0] === tab) + '">' + x[1] + '</button>').join('') + RENT_SOON.map(x => '<button type="button" class="btn sm" disabled title="Coming in the next phase" style="opacity:.5">' + x + '</button>').join('') + '</div>';
+  const tabs = '<div class="toolbar" role="tablist" style="flex-wrap:wrap;gap:6px;margin-bottom:12px">' + RENT_TABS.map(x => '<button type="button" class="btn sm' + (x[0] === tab ? ' primary' : '') + '" data-rtab="' + x[0] + '" role="tab" aria-selected="' + (x[0] === tab) + '">' + x[1] + '</button>').join('') + '</div>';
   const head = '<div class="alert info" style="margin-bottom:12px"><h3>Rental OS <span class="muted small">| Powered by Millionaire OS</span></h3><div class="small">Can you afford this rental today, what will it cost to move, and can you sustain it? Your rental plan is encrypted like all your records. Guidelines here are planning benchmarks, not a landlord\'s approval criteria and not legal or financial advice.</div></div>';
-  return head + tabs + ({ overview: rentOverview, afford: rentAfford, move: rentMove, budget: rentBudget }[tab] || rentOverview)(d);
+  return head + tabs + (Object.assign({ overview: rentOverview, afford: rentAfford, move: rentMove, budget: rentBudget }, RENT_VIEWS)[tab] || rentOverview)(d);
 };
 
 function rentOverview(d) {
@@ -2565,6 +2567,7 @@ function rentOverview(d) {
     + k('Lease expiry date', p.leaseEnd ? dShort(p.leaseEnd) : rR(null), p.leaseEnd ? Math.max(0, FC.diffDays(today(), p.leaseEnd)) + ' days away' : 'Enter on Affordability', '')
     + k('Projected annual rental cost', rR(d.annual), p.escalationPct ? 'Includes ' + p.escalationPct + '% escalation at the lease anniversary' : 'Next 12 months', 'estimated')
     + '</div>'
+    + (typeof rentAlertsHtml === 'function' ? rentAlertsHtml(d) : '')
     + (a.incomeCents && a.rentCents != null ? card('Where the income goes', 'Planned monthly split', rentBars(a)) : '')
     + card('Why these numbers matter', '', '<div class="list small"><div class="row"><span><b>Rent-to-income</b><small>Monthly rent divided by take-home income. Many planners aim for 30% or less; it is a guideline, not a law or a landlord rule.</small></span></div><div class="row"><span><b>Housing-cost-to-income</b><small>Rent plus electricity, water, internet, parking and levies. This is what you really pay to live there.</small></span></div><div class="row"><span><b>Savings capacity</b><small>What is left after rent, living costs and your planned savings. A negative figure means the plan does not work as it stands.</small></span></div></div>');
 }
@@ -2585,6 +2588,7 @@ function rentAfford(d) {
     + card('Your figures', 'Monthly amounts in rand. Leave a field empty if you do not know it yet.', '<div class="toolbar" style="margin-bottom:8px">' + btn('Use my Millionaire OS figures', 'rn:import', 'sm') + '</div><p class="note">This copies figures from your own records into the fields below so you can check and change them. Nothing changes in your records. ' + (r.months ? 'Spending uses the average of the last ' + r.months + ' month' + (r.months === 1 ? '' : 's') + '.' : 'No transactions yet, so spending comes from your budget where there is one.') + (r.variableIncome ? ' <b>Your income includes commission, which varies: plan on a cautious figure.</b>' : '') + '</p>'
       + grp('Income', RENTCALC.INCOME) + grp('Living expenses', RENTCALC.EXPENSES) + grp('The rental you are considering', RENTCALC.HOUSING)
       + '<h3 style="margin:10px 0 4px">Lease details (optional)</h3><div class="form"><label>Current rent, if you rent now (R)<input data-rx="currentRentCents" inputmode="decimal" value="' + toR(p.currentRentCents) + '" placeholder="Not entered"></label><label>Lease start<input type="date" data-rd="leaseStart" value="' + esc(p.leaseStart || '') + '"></label><label>Lease end<input type="date" data-rd="leaseEnd" value="' + esc(p.leaseEnd || '') + '"></label><label>Yearly escalation %<input data-rp="escalationPct" inputmode="decimal" value="' + (p.escalationPct != null ? p.escalationPct : '') + '"></label><label>Rent due on day<input data-rp="payDay" inputmode="numeric" value="' + (p.payDay || '') + '"></label></div>'
+      + '<h3 style="margin:10px 0 4px">Household</h3><div class="form"><label>Household type<select data-rh="household">' + [['individual', 'Individual renter'], ['couple', 'Couple'], ['married', 'Married household'], ['family', 'Family with children'], ['student', 'Student'], ['shared', 'Shared accommodation']].map(o => '<option value="' + o[0] + '"' + ((p.household || 'individual') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></label><label>My share of rent and housing costs %<small class="muted" style="display:block;font-weight:400">For shared accommodation. Empty means 100%.</small><input data-rk="sharePct" inputmode="decimal" value="' + (p.inputs.sharePct != null ? p.inputs.sharePct : '') + '"></label></div>'
       + (people.length > 1 ? '<h3 style="margin:10px 0 4px">Who pays the rent</h3><div class="form">' + people.map(o => '<label>' + esc(o[1]) + ' pays %<input data-rs="' + o[0] + '" inputmode="decimal" value="' + (p.split[o[0]] != null ? p.split[o[0]] : '') + '"></label>').join('') + '</div>' : '')
       + '<div class="toolbar" style="margin-top:12px">' + btn('Save and assess', 'rn:save', 'primary sm') + '</div>')
     + '<div>'
@@ -2648,12 +2652,13 @@ document.addEventListener('click', async e => {
   }
   if (act === 'save') {
     const inp = {}, bad = [];
-    document.querySelectorAll('[data-rk]').forEach(i => { const c = toC(i.value); if (Number.isNaN(c)) bad.push(i.closest('label').textContent); inp[i.dataset.rk] = c; });
+    document.querySelectorAll('[data-rk]').forEach(i => { const c = toC(i.value); if (Number.isNaN(c)) bad.push(i.closest('label').textContent); inp[i.dataset.rk] = i.dataset.rk === 'sharePct' ? (c == null || c === 0 ? null : c / 100) : c; });
     document.querySelectorAll('[data-rr]').forEach(i => { const v = parseFloat(i.value); if (isFinite(v) && v >= 0 && v <= 100) p.rules[i.dataset.rr] = v; });
     const errs = RENTCALC.validate(inp); if (bad.length || errs.length) { toast('Check: ' + (bad.length ? 'numbers only' : errs[0])); return; }
     if (document.querySelector('[data-rk]')) p.inputs = inp;
     document.querySelectorAll('[data-rx]').forEach(i => { const c = toC(i.value); p[i.dataset.rx] = Number.isNaN(c) || c < 0 ? null : c; });
     document.querySelectorAll('[data-rd]').forEach(i => { p[i.dataset.rd] = i.value || null; });
+    const hh = document.querySelector('[data-rh]'); if (hh) p.household = hh.value;
     document.querySelectorAll('[data-rp]').forEach(i => { const v = parseFloat(i.value); p[i.dataset.rp] = isFinite(v) && v >= 0 && v <= (i.dataset.rp === 'payDay' ? 31 : 50) ? v : null; });
     const sp = {}; document.querySelectorAll('[data-rs]').forEach(i => { const v = parseFloat(i.value); if (isFinite(v) && v >= 0) sp[i.dataset.rs] = v; }); if (document.querySelector('[data-rs]')) p.split = sp;
     if (p.leaseStart && p.leaseEnd && p.leaseEnd < p.leaseStart) { toast('The lease end is before the start.'); return; }
@@ -2690,6 +2695,472 @@ document.addEventListener('click', async e => {
     try { await saveRec('bills', { provider: 'Rent', category: 'Housing', subcategory: 'Rent or bond', amountCents: amt, frequency: 'monthly', dayOfMonth: p.payDay || 1, accountId: acc ? acc.id : '', owner: 'shared', essential: true, active: true, startDate: FC.monthStart(FC.monthKey(today())), annualIncreasePct: p.escalationPct || null, increaseFrom: p.leaseStart ? FC.addMonths(p.leaseStart, 12) : null }); toast('Rent added as a monthly debit order'); render(); } catch (er) { toast(er.message); }
   }
 });
+
+/* Rental OS: property comparison, forecasts and scenarios, readiness score, lease and payments, documents,
+   rent versus buy, reminders and the rental advisor. Calculations live in RENT2 and are unit-tested; the advisor only
+   calls these functions and never does its own arithmetic. */
+const RENT2 = {
+  // SARS transfer duty, all persons. Unchanged in the February 2026 Budget; from 1 April 2025. Update here when SARS changes it.
+  TRANSFER_DUTY: { from: '2025-04-01', checked: '2026-11-05', source: 'SARS transfer duty rates (Budget 2025, unchanged in Budget 2026)',
+    brackets: [[1210000, 0, 0], [1663800, 0, 3], [2329300, 13614, 6], [2994800, 53544, 8], [13310000, 106784, 11], [Infinity, 1241456, 13]] },
+  READINESS_WEIGHTS: { affordability: 30, deposit: 20, cashflow: 20, emergency: 15, stability: 10, obligations: 5 },
+  PREF_WEIGHTS: { affordability: 40, location: 20, transport: 15, security: 15, amenities: 10 },
+
+  transferDuty(priceRand) {
+    const b = RENT2.TRANSFER_DUTY.brackets; let lo = 0;
+    for (let i = 0; i < b.length; i++) { if (priceRand <= b[i][0]) return i === 0 ? 0 : Math.round(b[i][1] + (priceRand - lo) * b[i][2] / 100); lo = b[i][0]; }
+    return 0;
+  },
+  instalment(principal, aprPct, months) { const r = aprPct / 1200; if (principal <= 0) return 0; if (!r) return Math.round(principal / months); return Math.round(principal * r / (1 - Math.pow(1 + r, -months))); },
+  balanceAfter(principal, aprPct, months, paid) { const r = aprPct / 1200, pmt = RENT2.instalment(principal, aprPct, months); let b = principal; for (let i = 0; i < paid && b > 0; i++) b = Math.max(0, b + Math.round(b * r) - pmt); return b; },
+
+  /** One property's monthly and upfront picture. All money in cents; null fields are reported as missing. */
+  propCost(p) {
+    const n = v => (v == null || v === '' ? null : Math.max(0, Math.round(+v)));
+    const rent = n(p.rentCents), monthlyParts = ['electricityCents', 'waterCents', 'internetCents', 'parkingCents', 'otherCents', 'commuteCents'].map(k => n(p[k]));
+    const missing = []; if (rent == null) missing.push('rent'); if (n(p.electricityCents) == null) missing.push('electricity'); if (n(p.waterCents) == null) missing.push('water'); if (n(p.depositCents) == null) missing.push('deposit');
+    const effective = rent == null ? null : rent + monthlyParts.reduce((a, v) => a + (v || 0), 0);
+    const upfront = rent == null ? null : rent + (n(p.depositCents) || 0) + (n(p.movingCents) || 0);
+    const esc = Math.max(0, +p.escalationPct || 0), lease = Math.max(1, +p.leaseMonths || 12);
+    let year1 = 0, year2 = 0; if (effective != null) { for (let m = 0; m < 24; m++) { const r = m >= lease ? Math.round(rent * (1 + esc / 100)) : rent; const c = effective - rent + r; if (m < 12) year1 += c; else year2 += c; } }
+    return { rentCents: rent, effectiveCents: effective, upfrontCents: upfront, refundableCents: n(p.depositCents) || 0, annualCents: effective == null ? null : year1, year2Cents: effective == null ? null : year2, missing };
+  },
+
+  /** Compare saved properties against the household's own income and costs, with a weighted, explained preference score. */
+  compare(props, ctx, weights, rules) {
+    weights = Object.assign({}, RENT2.PREF_WEIGHTS, weights || {});
+    const rows = (props || []).map(p => {
+      const c = RENT2.propCost(p);
+      const a = c.rentCents == null ? null : RENTCALC.afford(Object.assign({}, ctx.inputs, { rent: c.rentCents, electricity: p.electricityCents != null ? +p.electricityCents : ctx.inputs.electricity, water: p.waterCents != null ? +p.waterCents : ctx.inputs.water, internet: p.internetCents != null ? +p.internetCents : ctx.inputs.internet, parking: +p.parkingCents || 0, propOther: (+p.otherCents || 0) + (+p.commuteCents || 0) }), rules);
+      return { p, c, a, remainingCents: a && a.afterSavingsCents != null ? a.afterSavingsCents : null };
+    });
+    const commutes = rows.map(r => +r.p.commuteCents || 0).filter(v => v > 0), minCommute = commutes.length ? Math.min(...commutes) : 0;
+    const affScore = { comfortable: 100, tight: 65, high: 30, unsustainable: 0 };
+    const tw = Object.values(weights).reduce((a, b) => a + (+b || 0), 0) || 1;
+    rows.forEach(r => {
+      const parts = {
+        affordability: r.a && affScore[r.a.level] != null ? affScore[r.a.level] : 0,
+        location: (Math.min(5, Math.max(0, +r.p.locationRating || 0))) * 20,
+        transport: !(+r.p.commuteCents) ? 100 : Math.round(minCommute / (+r.p.commuteCents) * 100),
+        security: (Math.min(5, Math.max(0, +r.p.securityRating || 0))) * 20,
+        amenities: (Math.min(5, Math.max(0, +r.p.amenitiesRating || 0))) * 20
+      };
+      r.parts = parts; r.score = Math.round(Object.keys(weights).reduce((a, k) => a + (parts[k] || 0) * (+weights[k] || 0), 0) / tw);
+    });
+    const eligible = rows.filter(r => r.a && r.a.level !== 'unsustainable' && r.a.level !== 'invalid' && r.c.rentCents != null);
+    const best = eligible.slice().sort((x, y) => y.score - x.score || (x.c.effectiveCents - y.c.effectiveCents))[0] || null;
+    const cheapest = rows.filter(r => r.c.effectiveCents != null).sort((x, y) => x.c.effectiveCents - y.c.effectiveCents)[0] || null;
+    let why = '';
+    if (!rows.length) why = 'Save at least two properties to compare them.';
+    else if (!best) why = 'None of the saved properties is sustainable on your current figures.';
+    else why = (best.p.name || 'This property') + ' scores highest (' + best.score + ' of 100) on your weights: ' + Object.keys(weights).filter(k => +weights[k] > 0).map(k => k + ' ' + best.parts[k]).join(', ') + '.' + (cheapest && cheapest !== best ? ' It is not the cheapest: ' + (cheapest.p.name || 'another property') + ' costs ' + FC.fmtR(best.c.effectiveCents - cheapest.c.effectiveCents) + ' a month less but scores ' + cheapest.score + '.' : '');
+    return { rows, best, cheapest, why, weights };
+  },
+
+  /** Month-by-month projection. Every growth rate is an editable assumption; nothing is guessed silently. */
+  project(s, months) {
+    months = months || 36; const out = []; let cum = 0, saved = Math.max(0, s.startSavingsCents || 0), depositHit = null;
+    const g = (base, pct, m) => Math.round(base * Math.pow(1 + (pct || 0) / 100, Math.floor(m / 12)));
+    for (let m = 0; m < months; m++) {
+      const income = g(s.incomeCents || 0, s.incomeGrowthPct, m) + g(s.contributionsCents || 0, s.contributionsGrowthPct, m) - (s.incomeDropFrom != null && m >= s.incomeDropFrom ? Math.round((s.incomeCents || 0) * (s.incomeDropPct || 0) / 100) : 0);
+      const moveAt = s.moveMonth != null ? s.moveMonth : Infinity;
+      const rentBase = m >= moveAt ? s.newRentCents : s.rentCents, monthsInLease = m >= moveAt ? m - moveAt : m + (s.monthsSinceEscalation || 0);
+      const rent = rentBase == null ? 0 : Math.round(rentBase * Math.pow(1 + (s.escalationPct || 0) / 100, Math.floor(monthsInLease / 12)));
+      const overlap = m >= moveAt && m < moveAt + (s.overlapMonths || 0) ? (s.rentCents || 0) : 0;
+      const util = g(m >= moveAt && s.newUtilitiesCents != null ? s.newUtilitiesCents : (s.utilitiesCents || 0), s.utilityInflationPct, m);
+      const living = g(s.livingCents || 0, s.inflationPct, m);
+      const debt = s.debtEndsMonth != null && m >= s.debtEndsMonth ? 0 : (s.debtCents || 0);
+      const once = m === moveAt ? (s.moveCostCents || 0) : 0;
+      const plannedSave = s.savingsCents || 0;
+      const net = income - rent - overlap - util - living - debt - once - plannedSave;
+      cum += net; saved += plannedSave + Math.max(0, net) * (s.surplusToSavings ? 1 : 0);
+      if (s.depositTargetCents && depositHit == null && saved >= s.depositTargetCents) depositHit = m + 1;
+      out.push({ m: m + 1, income, rent: rent + overlap, utilities: util, living, debt, once, savings: plannedSave, net, cumulative: cum, saved });
+    }
+    const at = n => { const l = out.slice(0, n); return { rentCents: l.reduce((a, r) => a + r.rent, 0), netCents: l.reduce((a, r) => a + r.net, 0), savedCents: l.length ? l[l.length - 1].saved : saved, negativeMonths: l.filter(r => r.net < 0).length }; };
+    return { rows: out, y1: at(12), y2: at(24), y3: at(36), depositMonth: depositHit };
+  },
+
+  /** Scenarios A to D from one set of assumptions. */
+  scenarios(base, opts) {
+    const A = RENT2.project(Object.assign({}, base));
+    const B = opts.cheaperRentCents != null ? RENT2.project(Object.assign({}, base, { moveMonth: opts.moveMonth || 0, newRentCents: opts.cheaperRentCents, newUtilitiesCents: opts.cheaperUtilitiesCents, moveCostCents: opts.moveCostCents || 0, overlapMonths: opts.overlapMonths || 0 })) : null;
+    const C = opts.dearerRentCents != null ? RENT2.project(Object.assign({}, base, { moveMonth: opts.moveMonth || 0, newRentCents: opts.dearerRentCents, newUtilitiesCents: opts.dearerUtilitiesCents, moveCostCents: opts.moveCostCents || 0, overlapMonths: opts.overlapMonths || 0 })) : null;
+    const D = opts.depositTargetCents ? RENT2.project(Object.assign({}, base, { savingsCents: (base.savingsCents || 0) + (opts.extraSavingsCents || 0), depositTargetCents: opts.depositTargetCents })) : null;
+    return { A, B, C, D };
+  },
+
+  /** Rental Readiness Score: an internal planning indicator, not a credit score or tenant screening result. */
+  readiness(x, weights) {
+    weights = Object.assign({}, RENT2.READINESS_WEIGHTS, weights || {});
+    const clamp = v => Math.max(0, Math.min(1, v));
+    const lvl = { comfortable: 1, tight: 0.6, high: 0.25, unsustainable: 0 };
+    const parts = [
+      ['affordability', 'Affordability', x.afford && lvl[x.afford.level] != null ? lvl[x.afford.level] : null, x.afford ? x.afford.label : 'Enter a rent'],
+      ['deposit', 'Deposit preparedness', x.move && x.move.totalCents ? clamp(x.move.savedCents / x.move.totalCents) : null, x.move && x.move.totalCents ? Math.round(clamp(x.move.savedCents / x.move.totalCents) * 100) + '% of move-in costs saved' : 'List move-in costs'],
+      ['cashflow', 'Monthly cash flow', x.afford && x.afford.afterSavingsCents != null ? clamp(x.afford.afterSavingsCents / Math.max(1, x.afford.incomeCents * 0.1)) : null, x.afford && x.afford.afterSavingsCents != null ? FC.fmtR(x.afford.afterSavingsCents) + ' left after saving' : 'Enter income and costs'],
+      ['emergency', 'Emergency savings', x.emergencyMonths != null ? clamp(x.emergencyMonths / 3) : null, x.emergencyMonths != null ? x.emergencyMonths + ' months of essentials' : 'No emergency fund recorded'],
+      ['stability', 'Income stability', x.incomeCents ? clamp(1 - (x.variableIncomeCents || 0) / x.incomeCents * 0.6 + (x.incomeSources > 1 ? 0.1 : 0)) : null, x.incomeCents ? Math.round((x.variableIncomeCents || 0) / x.incomeCents * 100) + '% variable income, ' + (x.incomeSources || 0) + ' source(s)' : 'Enter income'],
+      ['obligations', 'Financial obligations', x.incomeCents ? clamp((25 - (x.debtCents || 0) / x.incomeCents * 100) / 15) : null, x.incomeCents ? Math.round((x.debtCents || 0) / x.incomeCents * 1000) / 10 + '% of income to debt' : 'Enter income']
+    ].map(p => ({ key: p[0], name: p[1], weight: +weights[p[0]] || 0, value: p[2], detail: p[3] }));
+    const known = parts.filter(p => p.value != null && p.weight > 0), wsum = known.reduce((a, p) => a + p.weight, 0);
+    const score = wsum ? Math.round(known.reduce((a, p) => a + p.value * p.weight, 0) / wsum * 100) : null;
+    parts.forEach(p => { p.points = p.value == null ? null : Math.round(p.value * p.weight * 10) / 10; });
+    const coverage = Math.round(wsum / Math.max(1, parts.reduce((a, p) => a + p.weight, 0)) * 100);
+    return { score, parts, coverage, band: score == null ? 'Not enough information' : score >= 80 ? 'Ready' : score >= 60 ? 'Nearly ready' : score >= 40 ? 'Building' : 'Not ready yet' };
+  },
+
+  /** Lease key dates. Notice periods are what the user enters; defaults are general guidance only. */
+  leaseDates(l, today) {
+    const out = [];
+    if (!l || !l.start || !l.end) return out;
+    const add = (date, label, kind) => { if (date) out.push({ date, label, kind, past: date < today, days: FC.diffDays(today, date) }); };
+    let e = FC.addMonths(l.start, 12); while (e <= l.end) { add(e, 'Rent escalation' + (l.escalationPct ? ' (' + l.escalationPct + '%)' : ''), 'escalation'); e = FC.addMonths(e, 12); }
+    add(FC.addDays(l.end, -Math.round((+l.noticeDays || 60))), 'Last day to give notice or agree a renewal', 'notice');
+    add(FC.addDays(l.end, -120), 'Start renewal planning', 'renewal');
+    add(FC.addDays(l.end, -3), 'Joint outgoing inspection (within 3 days before the lease ends)', 'inspection');
+    add(l.end, 'Lease ends', 'expiry');
+    if (l.inspectionIn) add(l.inspectionIn, 'Incoming inspection', 'inspection');
+    return out.sort((a, b) => a.date < b.date ? -1 : 1);
+  },
+
+  /** Payment status per due month. A payment the user records is never treated as the landlord's confirmation. */
+  payments(lease, pays, today) {
+    if (!lease || !lease.start || lease.rentCents == null) return [];
+    const day = Math.min(28, +lease.dueDay || 1), end = lease.end && lease.end < today ? lease.end : today, out = [];
+    let m = lease.start.slice(0, 7), n = 0;
+    while (m + '-01' <= end && n++ < 120) {
+      const due = m + '-' + String(day).padStart(2, '0'); let months = 0, ann = FC.addMonths(lease.start, 12); while (ann <= due && months < 50) { months++; ann = FC.addMonths(ann, 12); }
+      const rent = Math.round(lease.rentCents * Math.pow(1 + (+lease.escalationPct || 0) / 100, Math.max(0, months)));
+      const list = (pays || []).filter(p => p.month === m), paid = list.reduce((a, p) => a + (Math.round(+p.amountCents) || 0), 0);
+      const status = paid >= rent ? 'paid' : paid > 0 ? 'partial' : due < today ? 'unpaid' : 'due';
+      out.push({ month: m, due, rentCents: rent, paidCents: paid, outstandingCents: Math.max(0, rent - paid), status, confirmed: list.length > 0 && list.every(p => p.confirmed), records: list });
+      m = FC.monthKey(FC.addMonths(m + '-01', 1));
+    }
+    return out.reverse();
+  },
+
+  /** Rent versus buy over several horizons. Cash flow and net worth are kept separate. */
+  rentVsBuy(x, years) {
+    years = years || [1, 3, 5, 10];
+    const price = Math.max(0, +x.priceRand || 0), dep = Math.min(price, Math.max(0, +x.depositRand || 0)), bond = price - dep, term = Math.max(12, (+x.termYears || 20) * 12);
+    const duty = RENT2.transferDuty(price), fees = Math.max(0, x.feesRand != null && x.feesRand !== '' ? +x.feesRand : 0);
+    const pmt = RENT2.instalment(bond, +x.ratePct || 0, term);
+    const own0 = (+x.leviesRand || 0) + (+x.ratesRand || 0) + (+x.insuranceRand || 0), maintPct = +x.maintenancePct || 0;
+    const res = years.map(y => {
+      let buyCash = dep + duty + fees, rentCash = 0, invest = dep + duty + fees, value = price, monthly = [];
+      for (let m = 0; m < y * 12; m++) {
+        const yr = Math.floor(m / 12), rent = (+x.rentRand || 0) * Math.pow(1 + (+x.rentEscalationPct || 0) / 100, yr);
+        const own = own0 * Math.pow(1 + (+x.inflationPct || 0) / 100, yr) + value * maintPct / 100 / 12;
+        const buyM = (m < term ? pmt : 0) + own; buyCash += buyM; rentCash += rent;
+        invest = invest * (1 + (+x.investReturnPct || 0) / 100 / 12) + Math.max(0, buyM - rent);
+        value = value * Math.pow(1 + (+x.growthPct || 0) / 100, 1 / 12);
+        monthly.push(buyM);
+      }
+      const bal = RENT2.balanceAfter(bond, +x.ratePct || 0, term, y * 12), sell = value * (+x.sellCostPct || 0) / 100;
+      const equity = Math.round(value - bal - sell);
+      return { years: y, buyCashRand: Math.round(buyCash), rentCashRand: Math.round(rentCash), firstBuyMonthRand: Math.round(monthly[0] || 0), valueRand: Math.round(value), bondLeftRand: Math.round(bal), buyerNetRand: equity, renterNetRand: Math.round(invest), difference: equity - Math.round(invest) };
+    });
+    return { upfrontRand: dep + duty + fees, depositRand: dep, dutyRand: duty, feesRand: fees, bondRand: bond, instalmentRand: pmt, ownMonthlyRand: Math.round(own0 + price * maintPct / 100 / 12), horizons: res, breakEven: (res.find(r => r.difference > 0) || {}).years || null };
+  },
+
+  /** The rental advisor: maps a question to a calculation. Returns figures and the missing information. */
+  ask(q, ctx) {
+    q = String(q || '').toLowerCase(); const R = c => FC.fmtR(c), inp = ctx.inputs || {}, rules = ctx.rules;
+    const money = (() => { const m = q.replace(/,/g, '').match(/r\s?(\d[\d\s]*(?:\.\d+)?)\s*(k)?/); if (!m) return null; let v = parseFloat(m[1].replace(/\s/g, '')); if (m[2]) v *= 1000; return Math.round(v * 100); })();
+    const pct = (() => { const m = q.match(/(\d+(?:\.\d+)?)\s*%/); return m ? +m[1] : null; })();
+    const need = [], A = RENTCALC.afford(inp, rules);
+    if (!A.incomeCents) need.push('your take-home income (Affordability tab)');
+    const lines = [];
+    const say = (t) => lines.push(t);
+    let topic = 'help';
+    if (/lose|drop|cut|loss/.test(q) && /income|salary|job/.test(q)) {
+      topic = 'income_drop'; const p = pct != null ? pct : 20;
+      if (!A.incomeCents || inp.rent == null) { if (inp.rent == null) need.push('the rent you are considering'); }
+      else { const scale = (100 - p) / 100, x = Object.assign({}, inp); ['salary', 'additional', 'contributions'].forEach(k => { if (x[k] != null) x[k] = Math.round(x[k] * scale); }); const B = RENTCALC.afford(x, rules);
+        say('If household income falls by ' + p + '%, take-home drops from ' + R(A.incomeCents) + ' to ' + R(B.incomeCents) + ' a month.');
+        say('Rent would take ' + B.rentPct + '% of income (now ' + A.rentPct + '%). After living costs and savings you would have ' + R(B.afterSavingsCents) + ' a month (now ' + R(A.afterSavingsCents) + ').');
+        say('Assessment: ' + B.label + '.' + (B.beforeSavingsCents < 0 ? ' You would be short ' + R(-B.beforeSavingsCents) + ' a month even after stopping all savings; an emergency fund of at least ' + R(-B.beforeSavingsCents * 6) + ' would cover six months.' : B.afterSavingsCents < 0 ? ' You could keep paying rent only by cutting savings by ' + R(-B.afterSavingsCents) + ' a month.' : '')); }
+    } else if (/increase|escalat|goes up|rise/.test(q) && /rent/.test(q)) {
+      topic = 'increase'; const p = pct != null ? pct : (ctx.escalationPct || 8);
+      if (inp.rent == null) need.push('the rent you are considering');
+      else { const nr = Math.round(inp.rent * (1 + p / 100)), B = RENTCALC.afford(Object.assign({}, inp, { rent: nr }), rules);
+        say('A ' + p + '% increase takes rent from ' + R(inp.rent) + ' to ' + R(nr) + ': ' + R(nr - inp.rent) + ' more a month, ' + R((nr - inp.rent) * 12) + ' more a year.');
+        if (B.incomeCents) say('Rent would be ' + B.rentPct + '% of income and you would keep ' + R(B.afterSavingsCents) + ' a month after saving. Assessment: ' + B.label + '.'); }
+    } else if (/cheaper|move to a cheaper|downgrade/.test(q)) {
+      topic = 'cheaper'; const c = ctx.compare;
+      if (!c || !c.cheapest) need.push('at least one saved property on Property Comparison');
+      else { const cur = inp.rent != null ? A : null, ch = c.cheapest;
+        say('The cheapest saved property is ' + (ch.p.name || 'unnamed') + ' at ' + R(ch.c.effectiveCents) + ' a month all-in, with ' + R(ch.c.upfrontCents) + ' needed upfront.');
+        if (cur && ch.a) { const diff = (cur.afterSavingsCents || 0) - (ch.a.afterSavingsCents || 0); say(diff < 0 ? 'It would leave you ' + R(-diff) + ' a month better off. The move costs pay back in about ' + Math.ceil((ch.c.upfrontCents - ch.c.refundableCents) / Math.max(1, -diff)) + ' months.' : 'It would not leave you better off than your planned rental.'); }
+        if (c.best && c.best !== ch) say('On your own priorities ' + (c.best.p.name || 'another property') + ' scores higher (' + c.best.score + ' versus ' + ch.score + '). Cheapest is not automatically best.'); }
+    } else if (/save|saving/.test(q) && /mov/.test(q)) {
+      topic = 'move'; const mv = ctx.move;
+      if (!mv || !mv.totalCents) need.push('your move-in costs (Move-In Planner)');
+      else { say('Moving needs ' + R(mv.totalCents) + ' in cash (' + R(mv.refundableCents) + ' of it refundable deposits). You have ' + R(mv.savedCents) + ', so the shortfall is ' + R(mv.shortfallCents) + '.'); if (mv.monthlyCents != null) say(mv.shortfallCents ? 'To move on the target date, save ' + R(mv.monthlyCents) + ' a month for ' + mv.monthsLeft + ' months.' : 'You have enough saved.'); else need.push('a target moving date'); }
+    } else if (/(three|3)\s*years|36 months|over\s+\w+\s+years|how much will i spend/.test(q)) {
+      topic = 'three_years'; const f = ctx.forecast;
+      if (!f) need.push('a current or planned rent');
+      else { say('Rent over 12 months: ' + R(f.A.y1.rentCents) + '. Over 24 months: ' + R(f.A.y2.rentCents) + '. Over 36 months: ' + R(f.A.y3.rentCents) + ', using a ' + (ctx.escalationPct || 0) + '% yearly increase.'); }
+    } else if (/buy|bond|purchase|own/.test(q)) {
+      topic = 'buy'; const b = ctx.buy;
+      if (!b) need.push('a property price and rent on Rent vs Buy');
+      else { const h = b.horizons; say('Buying needs ' + R(b.upfrontRand * 100) + ' upfront (deposit, ' + R(b.dutyRand * 100) + ' transfer duty and costs) and about ' + R(h[0].firstBuyMonthRand * 100) + ' a month.'); h.forEach(r => say('After ' + r.years + ' year' + (r.years > 1 ? 's' : '') + ': buyer\'s equity ' + R(r.buyerNetRand * 100) + ', renter\'s invested savings ' + R(r.renterNetRand * 100) + '.')); say(b.breakEven ? 'On these assumptions buying comes out ahead from about year ' + b.breakEven + '.' : 'On these assumptions renting and investing stays ahead over 10 years.'); }
+    } else if (/afford|can i|can we/.test(q)) {
+      topic = 'afford'; const rent = money != null ? money : inp.rent;
+      if (rent == null) need.push('a rent amount, for example "Can I afford R12 000?"');
+      else if (A.incomeCents) { const B = RENTCALC.afford(Object.assign({}, inp, { rent }), rules);
+        say('At ' + R(rent) + ' a month, rent is ' + B.rentPct + '% of take-home income and all housing costs are ' + B.housingPct + '%.');
+        say('After living costs ' + (B.savingsCents ? 'and your planned ' + R(B.savingsCents) + ' of savings ' : '') + 'you would have ' + R(B.afterSavingsCents) + ' a month left.');
+        say('Assessment: ' + B.label + '. The highest rent your budget can carry while keeping savings and a ' + B.rules.bufferPct + '% buffer is ' + R(B.maxRentCents) + '.');
+        if (/sav/.test(q)) say(B.afterSavingsCents >= 0 ? 'Yes, you can keep saving at the current rate.' : 'Not without cutting savings by ' + R(-B.afterSavingsCents) + ' a month.'); }
+    }
+    if (topic === 'help') say('I can answer: "Can I afford R12 000 rent?", "What if I lose 20% of my income?", "Should I move to a cheaper property?", "How much must I save before moving?", "What does a 7% rent increase do?", "Can we afford this rental and keep saving?", "How much will I spend on rent over three years?" and "Is buying better for me?"');
+    if (need.length) say('Missing information: ' + need.join('; ') + '.');
+    return { topic, lines, missing: need, uses: 'Calculated from your saved Rental OS figures with fixed formulas. No guarantee of rental approval or future returns.' };
+  }
+};
+if (typeof module !== 'undefined') module.exports = RENT2;
+
+if (typeof window !== 'undefined' && typeof COLS !== 'undefined') COLS.push('rentprops', 'rentpays', 'rentdocs');
+
+/* ---------------- UI ---------------- */
+const rr0 = c => c == null ? '<span class="muted">Not entered</span>' : Rr(c);
+function rentCtx() {
+  const d = rentDerived(), p = d.p, t = today();
+  const props = (S.data.rentprops || []).filter(x => !x.deleted);
+  const cmp = RENT2.compare(props, { inputs: p.inputs }, p.prefWeights, p.rules);
+  const fc = rentForecast(p, cmp);
+  const buy = p.buy && p.buy.priceRand ? RENT2.rentVsBuy(rentBuyInputs(p, d)) : null;
+  return { d, p, props, cmp, fc, buy, t };
+}
+function rentForecast(p, cmp) {
+  const a = RENTCALC.afford(p.inputs, p.rules), f = p.fc || {};
+  const rent = p.currentRentCents != null ? p.currentRentCents : p.inputs.rent;
+  if (rent == null || !a.incomeCents) return null;
+  const inc = (p.inputs.salary || 0) + (p.inputs.additional || 0), util = (p.inputs.electricity || 0) + (p.inputs.water || 0) + (p.inputs.internet || 0) + (p.inputs.parking || 0) + (p.inputs.propOther || 0) + (p.inputs.existingHousing || 0);
+  const base = { incomeCents: inc, contributionsCents: p.inputs.contributions || 0, incomeGrowthPct: f.incomeGrowthPct != null ? f.incomeGrowthPct : 5, contributionsGrowthPct: f.contributionsGrowthPct || 0, rentCents: rent, escalationPct: p.escalationPct != null ? p.escalationPct : (f.escalationPct != null ? f.escalationPct : 7),
+    monthsSinceEscalation: p.leaseStart ? Math.max(0, Math.round(FC.diffDays(p.leaseStart, today()) / 30.44) % 12) : 0, utilitiesCents: util, utilityInflationPct: f.utilityInflationPct != null ? f.utilityInflationPct : 10, livingCents: a.livingCents, inflationPct: f.inflationPct != null ? f.inflationPct : 5,
+    debtCents: p.inputs.debt || 0, debtEndsMonth: f.debtEndsMonth != null && f.debtEndsMonth !== '' ? +f.debtEndsMonth : null, savingsCents: p.inputs.savings || 0, startSavingsCents: f.startSavingsCents || 0 };
+  const cheaper = cmp.rows.filter(r => r.c.rentCents != null && r.c.rentCents < rent).sort((x, y) => x.c.rentCents - y.c.rentCents)[0];
+  const dearer = cmp.rows.filter(r => r.c.rentCents != null && r.c.rentCents > rent).sort((x, y) => y.c.rentCents - x.c.rentCents)[0];
+  const ut = r => r ? (+r.p.electricityCents || 0) + (+r.p.waterCents || 0) + (+r.p.internetCents || 0) + (+r.p.parkingCents || 0) + (+r.p.otherCents || 0) + (+r.p.commuteCents || 0) + (p.inputs.existingHousing || 0) : null;
+  const opts = { moveMonth: f.moveMonth != null ? +f.moveMonth : 3, overlapMonths: f.overlapMonths != null ? +f.overlapMonths : 0, moveCostCents: f.moveCostCents != null ? f.moveCostCents : null,
+    cheaperRentCents: f.cheaperRentCents != null ? f.cheaperRentCents : cheaper ? cheaper.c.rentCents : null, cheaperUtilitiesCents: f.cheaperRentCents != null ? null : ut(cheaper),
+    dearerRentCents: f.dearerRentCents != null ? f.dearerRentCents : dearer ? dearer.c.rentCents : null, dearerUtilitiesCents: f.dearerRentCents != null ? null : ut(dearer),
+    depositTargetCents: f.depositTargetCents != null ? f.depositTargetCents : (p.buy && p.buy.priceRand ? Math.round(((+p.buy.depositRand || 0) + RENT2.transferDuty(+p.buy.priceRand) + (+p.buy.feesRand || 0)) * 100) : null), extraSavingsCents: f.extraSavingsCents || 0 };
+  if (opts.moveCostCents == null) { const mv = rentDerived().mv; opts.moveCostCents = mv.expenseCents || 0; }
+  return Object.assign(RENT2.scenarios(base, opts), { base, opts, names: { B: cheaper && f.cheaperRentCents == null ? cheaper.p.name : 'Cheaper rental', C: dearer && f.dearerRentCents == null ? dearer.p.name : 'More expensive rental' } });
+}
+function rentBuyInputs(p, d) {
+  const b = p.buy || {}, rent = p.currentRentCents != null ? p.currentRentCents : p.inputs.rent;
+  return Object.assign({ termYears: 20, ratePct: 10.75, rentEscalationPct: p.escalationPct || 7, growthPct: 5, investReturnPct: 9, inflationPct: 5, maintenancePct: 1, sellCostPct: 5, rentRand: rent != null ? rent / 100 : 0 }, b);
+}
+
+RENT_VIEWS.compare = () => {
+  const x = rentCtx(), c = x.cmp, w = c.weights;
+  const fld = (k, l, cls) => '<th>' + l + '</th>';
+  const head = ['Property', '#Advertised rent', '#Monthly living cost', '#Upfront cash', '#First year', '#Rent to income', '#Left each month', '#Your score', ''];
+  const rows = c.rows.map(r => ({ cells: [
+    '<b>' + esc(r.p.name || 'Unnamed') + '</b>' + (c.best === r ? ' <span class="tag actual">recommended</span>' : '') + (c.cheapest === r ? ' <span class="tag planned">cheapest</span>' : '') + '<small class="muted" style="display:block">' + esc([r.p.area, r.p.type, r.p.bedrooms ? r.p.bedrooms + ' bed' : '', r.p.bathrooms ? r.p.bathrooms + ' bath' : '', r.p.parkingSpaces ? r.p.parkingSpaces + ' parking' : ''].filter(Boolean).join(' · ')) + '</small>' + (r.p.url && /^https:\/\//.test(r.p.url) ? '<a class="small" href="' + esc(r.p.url) + '" target="_blank" rel="noopener noreferrer">Listing</a>' : '') + (r.c.missing.length ? '<small class="muted" style="display:block">Missing: ' + esc(r.c.missing.join(', ')) + '</small>' : ''),
+    rr0(r.c.rentCents), rr0(r.c.effectiveCents), rr0(r.c.upfrontCents), rr0(r.c.annualCents), r.a && r.a.rentPct != null ? r.a.rentPct + '%' : '-',
+    r.remainingCents == null ? '-' : '<span class="' + (r.remainingCents < 0 ? 'neg' : '') + '">' + Rr(r.remainingCents) + '</span>', '<b>' + r.score + '</b>/100<small class="muted" style="display:block">' + esc(r.a ? r.a.label : '') + '</small>',
+    '<button class="btn sm" data-rpe="' + r.p.id + '">Edit</button>'], wrap: 0 }));
+  return '<div class="split">'
+    + card('Compare rentals', c.rows.length + ' saved. Living cost includes utilities, parking, levies and commuting.', table(head, rows, { empty: 'No properties saved yet.' }) + '<div class="toolbar" style="margin-top:10px">' + btn('Add a property', 'rn:propnew', 'primary sm') + '</div>'
+      + (c.rows.length ? '<div class="alert info" style="margin-top:12px"><h3>' + (c.best ? 'Recommendation: ' + esc(c.best.p.name || 'unnamed') : 'No recommendation') + '</h3><div class="small">' + esc(c.why) + '</div></div>' : ''))
+    + card('What matters to you', 'Weights for the preference score. Set any to 0 to ignore it.', '<div class="form">' + [['affordability', 'Affordability'], ['location', 'Location'], ['transport', 'Transport cost'], ['security', 'Security'], ['amenities', 'Amenities']].map(k => '<label>' + k[1] + '<input data-pw="' + k[0] + '" inputmode="numeric" value="' + w[k[0]] + '"></label>').join('') + '</div>' + btn('Save weights', 'rn:weights', 'sm')
+      + '<p class="note">Affordability scores 100 when comfortable, 65 when tight, 30 under high pressure and 0 when unsustainable. Location, security and amenities use your own 1 to 5 ratings. Transport scores the lowest commute 100. Unsustainable properties are never recommended.</p>')
+    + '</div>';
+};
+const PROP_FIELDS = [['name', 'Property name', 'text'], ['area', 'Address or area', 'text'], ['type', 'Property type', 'select', { list: [['apartment', 'Apartment'], ['townhouse', 'Townhouse'], ['house', 'House'], ['cottage', 'Cottage or garden flat'], ['room', 'Room in shared home'], ['other', 'Other']] }],
+  ['bedrooms', 'Bedrooms', 'num'], ['bathrooms', 'Bathrooms', 'num'], ['parkingSpaces', 'Parking spaces', 'num'], ['rentCents', 'Monthly rent (R)', 'money'], ['depositCents', 'Security deposit (R)', 'money'], ['leaseMonths', 'Lease length (months)', 'num'], ['escalationPct', 'Yearly escalation %', 'pct'],
+  ['electricityCents', 'Electricity estimate (R a month)', 'money'], ['waterCents', 'Water estimate (R a month)', 'money'], ['internetCents', 'Internet (R a month)', 'money'], ['parkingCents', 'Parking charges (R a month)', 'money'], ['otherCents', 'Other recurring charges (R a month)', 'money'],
+  ['distanceKm', 'Distance to work (km)', 'num'], ['commuteCents', 'Commuting cost (R a month)', 'money'], ['movingCents', 'Once-off moving costs (R)', 'money'],
+  ['locationRating', 'Location rating (1 to 5)', 'num'], ['securityRating', 'Security rating (1 to 5)', 'num'], ['amenitiesRating', 'Amenities rating (1 to 5)', 'num'], ['amenities', 'Amenities', 'text'], ['url', 'Listing link (https)', 'text'], ['notes', 'Notes', 'text']];
+function propEditor(r) {
+  editor({ col: 'rentprops', title: r.id ? 'Edit property' : 'Add a property', rec: Object.assign({ leaseMonths: 12, owner: 'shared' }, r), fields: PROP_FIELDS,
+    before: x => { if (!x.name) throw new Error('Give the property a name.'); if (x.rentCents == null || x.rentCents <= 0) throw new Error('Enter the monthly rent.'); ['locationRating', 'securityRating', 'amenitiesRating'].forEach(k => { if (x[k] != null && x[k] !== '' && (+x[k] < 0 || +x[k] > 5)) throw new Error('Ratings are 1 to 5.'); }); if (x.url && !/^https:\/\//.test(x.url)) throw new Error('The listing link must start with https://'); return x; } });
+}
+
+RENT_VIEWS.forecast = () => {
+  const x = rentCtx(), f = x.fc, p = x.p, a = (p.fc || {});
+  if (!f) return card('Financial forecast', '', empty('Enter your income and a current or planned rent on Affordability first.', btn('Go to Affordability', 'rn:tab:afford', 'primary sm')));
+  const sc = [['A', 'Stay in the current rental', f.A], ['B', 'Move to ' + f.names.B, f.B], ['C', 'Move to ' + f.names.C, f.C], ['D', 'Keep renting and save for a deposit', f.D]];
+  const rows = sc.map(s => ({ cells: ['<b>' + s[0] + '</b> ' + esc(s[1]), s[2] ? Rr(s[2].y1.rentCents) : '-', s[2] ? Rr(s[2].y3.rentCents) : '-', s[2] ? '<span class="' + (s[2].y1.netCents < 0 ? 'neg' : '') + '">' + Rr(s[2].y1.netCents) + '</span>' : '-', s[2] ? '<span class="' + (s[2].y2.netCents < 0 ? 'neg' : '') + '">' + Rr(s[2].y2.netCents) + '</span>' : '-', s[2] ? '<span class="' + (s[2].y3.netCents < 0 ? 'neg' : '') + '">' + Rr(s[2].y3.netCents) + '</span>' : 'Not set up', s[2] && s[0] !== 'A' ? '<span class="' + (s[2].y3.netCents - f.A.y3.netCents < 0 ? 'neg' : 'pos') + '">' + (s[2].y3.netCents - f.A.y3.netCents >= 0 ? '+' : '') + Rr(s[2].y3.netCents - f.A.y3.netCents) + '</span>' : '-'], wrap: 0 }));
+  const chart = (() => { const ser = sc.filter(s => s[2]).map((s, i) => ({ k: s[0], c: ['#1f6f5c', '#c9a227', '#b5523b', '#4a78b0'][i], v: s[2].rows.map(r => r.cumulative) })); const all = ser.flatMap(s => s.v), mx = Math.max(1, ...all), mn = Math.min(0, ...all), W = 600, H = 180, y = v => H - 10 - (v - mn) / (mx - mn || 1) * (H - 20);
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto" role="img" aria-label="Cumulative cash by scenario"><line x1="0" x2="' + W + '" y1="' + y(0) + '" y2="' + y(0) + '" stroke="currentColor" stroke-opacity=".25"/>' + ser.map(s => '<polyline fill="none" stroke="' + s.c + '" stroke-width="2.5" points="' + s.v.map((v, i) => (i / 35 * W).toFixed(1) + ',' + y(v).toFixed(1)).join(' ') + '"/>').join('') + '</svg><div class="small">' + ser.map(s => '<span style="margin-right:12px"><i style="display:inline-block;width:10px;height:10px;background:' + s.c + ';border-radius:2px"></i> ' + s.k + '</span>').join('') + '</div>'; })();
+  const fi = (k, l, v) => '<label>' + l + '<input data-fc="' + k + '" inputmode="decimal" value="' + (v == null ? '' : v) + '"></label>';
+  const fm = (k, l, v) => '<label>' + l + '<input data-fcm="' + k + '" inputmode="decimal" value="' + (v == null ? '' : v / 100) + '" placeholder="From your properties"></label>';
+  const neg = f.A.rows.filter(r => r.net < 0).length;
+  return '<div class="grid g3 kpis">' + kpi('Rent over 12 months', Rr(f.A.y1.rentCents), 'Staying put', 'estimated') + kpi('Rent over 36 months', Rr(f.A.y3.rentCents), 'With ' + f.base.escalationPct + '% yearly escalation', 'estimated') + kpi('Left over in 36 months', '<span class="' + (f.A.y3.netCents < 0 ? 'neg' : '') + '">' + Rr(f.A.y3.netCents) + '</span>', neg ? neg + ' months in deficit' : 'After rent, living costs and savings', 'estimated') + '</div>'
+    + card('Scenarios', 'Cumulative cash left after rent, living costs and planned savings', table(['Scenario', '#Rent year 1', '#Rent 3 years', '#Left 12 months', '#Left 24 months', '#Left 36 months', '#Versus A'], rows, {}) + chart
+      + (f.D ? '<p class="note">Scenario D saves an extra ' + Rr(f.opts.extraSavingsCents) + ' a month towards ' + Rr(f.opts.depositTargetCents) + (f.D.depositMonth ? ': the target is reached in month ' + f.D.depositMonth + '.' : ': the target is not reached within 36 months.') + '</p>' : '<p class="note">Scenario D needs a deposit target: set one below or fill in Rent vs Buy.</p>'))
+    + card('Assumptions', 'Every future amount is an estimate. Change any of them; empty rent fields use your saved properties.', '<div class="form">'
+      + fi('incomeGrowthPct', 'Salary increase % a year', f.base.incomeGrowthPct) + fi('contributionsGrowthPct', 'Household contributions increase % a year', f.base.contributionsGrowthPct) + fi('escalationPct', 'Rent escalation % a year', f.base.escalationPct) + fi('inflationPct', 'Living cost inflation %', f.base.inflationPct) + fi('utilityInflationPct', 'Electricity and water increase % a year', f.base.utilityInflationPct)
+      + fi('debtEndsMonth', 'Debt repayments end after month', a.debtEndsMonth) + fi('moveMonth', 'Move in month (B and C)', f.opts.moveMonth) + fi('overlapMonths', 'Months paying both rents', f.opts.overlapMonths)
+      + fm('moveCostCents', 'Moving costs, excluding deposits (R)', f.opts.moveCostCents) + fm('cheaperRentCents', 'Cheaper rent, scenario B (R)', a.cheaperRentCents) + fm('dearerRentCents', 'More expensive rent, scenario C (R)', a.dearerRentCents) + fm('depositTargetCents', 'Deposit and buying costs target, D (R)', a.depositTargetCents) + fm('extraSavingsCents', 'Extra monthly saving in D (R)', a.extraSavingsCents) + fm('startSavingsCents', 'Savings you start with (R)', a.startSavingsCents)
+      + '</div>' + btn('Save assumptions', 'rn:fc', 'primary sm'))
+    + card('Month by month (scenario A)', '', table(['Month', '#Income', '#Rent', '#Utilities', '#Living', '#Debt', '#Savings', '#Left', '#Running total'], f.A.rows.map(r => ({ cells: [r.m, Rr(r.income), Rr(r.rent), Rr(r.utilities), Rr(r.living), Rr(r.debt), Rr(r.savings), '<span class="' + (r.net < 0 ? 'neg' : '') + '">' + Rr(r.net) + '</span>', Rr(r.cumulative)] })), {}));
+};
+
+RENT_VIEWS.lease = () => {
+  const x = rentCtx(), p = x.p, l = p.lease || {}, t = x.t;
+  const dates = RENT2.leaseDates(l, t), pays = RENT2.payments(l, S.data.rentpays || [], t), docs = (S.data.rentdocs || []).filter(dd => !dd.deleted);
+  const owed = pays.reduce((a, r) => a + (r.status === 'unpaid' || r.status === 'partial' ? r.outstandingCents : 0), 0);
+  const n = p.notify || {};
+  const lf = (k, lbl, type, v) => '<label>' + lbl + '<input data-lz="' + k + '"' + (type === 'date' ? ' type="date"' : ' inputmode="decimal"') + ' value="' + esc(v == null ? '' : v) + '"></label>';
+  const lt = (k, lbl) => '<label>' + lbl + '<input data-lt="' + k + '" value="' + esc(l[k] || '') + '"></label>';
+  const st = { paid: '<span class="tag actual">paid</span>', partial: '<span class="tag planned">partial</span>', unpaid: '<span class="tag estimated">unpaid</span>', due: '<span class="tag">due</span>' };
+  return '<div class="grid g4 kpis">' + kpi('Lease ends', l.end ? dShort(l.end) : rr0(null), l.end ? Math.max(0, FC.diffDays(t, l.end)) + ' days' : '', '') + kpi('Current rent', l.rentCents != null ? Rr(pays[0] ? pays[0].rentCents : l.rentCents) : rr0(null), l.escalationPct ? l.escalationPct + '% yearly escalation' : '', 'actual') + kpi('Outstanding', '<span class="' + (owed ? 'neg' : '') + '">' + Rr(owed) + '</span>', 'Unpaid or partly paid months', 'actual') + kpi('Deposit', l.depositCents != null ? Rr(l.depositCents) : rr0(null), l.depositHeldBy ? 'Held by ' + esc(l.depositHeldBy) : '', 'actual') + '</div>'
+    + '<div class="split">'
+    + card('Lease details', 'From your signed lease agreement', '<div class="form">' + lt('landlord', 'Landlord') + lt('agent', 'Agent or managing agent') + lt('address', 'Address') + lf('start', 'Lease start', 'date', l.start) + lf('end', 'Lease end', 'date', l.end) + lf('rent', 'Monthly rent at start (R)', 'n', l.rentCents != null ? l.rentCents / 100 : '') + lf('dueDay', 'Rent due on day', 'n', l.dueDay) + lf('escalationPct', 'Yearly escalation %', 'n', l.escalationPct) + lf('deposit', 'Deposit paid (R)', 'n', l.depositCents != null ? l.depositCents / 100 : '') + lt('depositHeldBy', 'Deposit held by (name, bank)') + lf('noticeDays', 'Notice period in your lease (days)', 'n', l.noticeDays) + lf('inspectionIn', 'Incoming inspection date', 'date', l.inspectionIn) + '</div>' + btn('Save lease', 'rn:lease', 'primary sm'))
+    + card('Key dates', 'Worked out from your lease', dates.length ? '<div class="list small">' + dates.map(dd => '<div class="row"><span>' + esc(dd.label) + '<small>' + dShort(dd.date) + ' ' + dd.date.slice(0, 4) + '</small></span><span class="r">' + (dd.past ? '<span class="muted">past</span>' : dd.days + ' days') + '</span></div>').join('') + '</div>' : empty('Enter the lease start and end dates.'))
+    + '</div>'
+    + card('Rent payments', 'Recorded by you. A payment you record is not proof that the landlord received it: tick "landlord confirmed" only when you have their receipt or statement.', pays.length ? table(['Month', '#Rent due', '#Paid', '#Outstanding', 'Status', 'Landlord confirmed', ''], pays.map(r => ({ cells: [mName(r.month), Rr(r.rentCents), Rr(r.paidCents), Rr(r.outstandingCents), st[r.status], r.records.length ? (r.confirmed ? 'Yes' : 'Not yet') : '-', '<button class="btn sm" data-rpay="' + r.month + '" data-amt="' + r.outstandingCents + '">Record payment</button>'] })), {}) + (pays.some(r => r.records.length) ? '<div class="list small" style="margin-top:8px">' + pays.flatMap(r => r.records).map(rp => '<div class="row"><span>' + esc(mName(rp.month)) + ': ' + Rr(rp.amountCents) + ' paid ' + dShort(rp.date) + (rp.reference ? ' · ' + esc(rp.reference) : '') + '</span><span class="r"><label class="small"><input type="checkbox" data-rpc="' + rp.id + '"' + (rp.confirmed ? ' checked' : '') + '> landlord confirmed</label> <button class="btn sm link" data-rpd="' + rp.id + '">Remove</button></span></div>').join('') + '</div>' : '') : empty('Enter the lease start date and rent to track payments.'))
+    + '<div class="split">'
+    + card('Documents', 'Lease, inspection reports, deposit receipts. Encrypted in your browser before upload; up to 5 MB each.', (docs.length ? '<div class="list small">' + docs.map(dd => '<div class="row"><span>' + esc(dd.name) + '<small>' + esc(dd.kind || 'Document') + ' · ' + Math.round((dd.size || 0) / 1024) + ' KB · ' + dShort(String(dd.uploadedAt || '').slice(0, 10)) + '</small></span><span class="r"><button class="btn sm" data-rdo="' + dd.id + '">Open</button> <button class="btn sm link" data-rdx="' + dd.id + '">Delete</button></span></div>').join('') + '</div>' : '<p class="muted">No documents yet.</p>')
+      + (S.demo ? '<p class="note">Uploading is not available in the demonstration.</p>' : '<div class="toolbar" style="margin-top:8px"><select id="rdKind" aria-label="Document type"><option>Lease agreement</option><option>Incoming inspection</option><option>Outgoing inspection</option><option>Deposit receipt</option><option>Rent receipt</option><option>Correspondence</option><option>Other</option></select><input type="file" id="rdFile" accept=".pdf,.jpg,.jpeg,.png,.heic,.doc,.docx" aria-label="Choose a document"><button class="btn sm primary" data-act="rn:docup">Upload</button></div>'))
+    + card('Reminders', 'Optional. Emails say what is due and when, never amounts.', '<div class="stack small">' + [['rentDue', 'Rent due dates'], ['leaseExpiry', 'Lease expiry and notice deadline'], ['escalation', 'Rental escalations'], ['renewal', 'Lease renewal planning'], ['inspection', 'Inspections'], ['moveDeadline', 'Move-in savings deadline']].map(k => '<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-rnt="' + k[0] + '"' + (n[k[0]] ? ' checked' : '') + ' style="width:auto"> ' + k[1] + '</label>').join('') + '</div>'
+      + '<p class="note">Email reminders also need <b>Reminders</b> switched on under Settings, Notifications' + (typeof A !== 'undefined' && A.user && A.user.notify && A.user.notify.reminders ? ' (it is on).' : ' (it is off).') + ' Overspending and savings milestones always show as alerts on the Rental Overview. WhatsApp reminders are planned and will only ever be sent with your consent.</p>' + btn('Save reminders', 'rn:notify', 'sm'))
+    + '</div>'
+    + card('Your rights and duties: general information', 'South African law, summarised. Not legal advice.', '<div class="list small">'
+      + '<div class="row"><span><b>Deposit</b><small>Under the Rental Housing Act the landlord must invest the deposit in an interest-bearing account and, at the end of the lease, refund it with interest, less amounts reasonably needed to repair damage. You may ask for proof of the interest earned.</small></span></div>'
+      + '<div class="row"><span><b>Inspections</b><small>The landlord and tenant should inspect the property together before you move in and within three days before the lease ends, and record defects. If the landlord does not do the outgoing inspection, it affects their right to deduct from the deposit.</small></span></div>'
+      + '<div class="row"><span><b>Fixed-term leases</b><small>Where the Consumer Protection Act applies (generally when the landlord rents property out in the ordinary course of business), a tenant may cancel a fixed-term lease with 20 business days\' written notice, subject to a reasonable cancellation penalty, and the landlord must remind you 40 to 80 business days before the lease ends.</small></span></div>'
+      + '<div class="row"><span><b>Disputes</b><small>The Rental Housing Tribunal in your province handles disputes between tenants and landlords at no cost.</small></span></div>'
+      + '</div><p class="note">The exact rules depend on your lease and circumstances. For advice, speak to an attorney or the Rental Housing Tribunal.</p>');
+};
+
+RENT_VIEWS.buy = () => {
+  const x = rentCtx(), p = x.p, inp = rentBuyInputs(p, x.d), b = p.buy && p.buy.priceRand ? RENT2.rentVsBuy(inp) : null, TD = RENT2.TRANSFER_DUTY;
+  const f = (k, l, hint) => '<label>' + l + (hint ? '<small class="muted" style="display:block;font-weight:400">' + hint + '</small>' : '') + '<input data-rvb="' + k + '" inputmode="decimal" value="' + (inp[k] == null ? '' : inp[k]) + '"></label>';
+  const Rd = v => Rr(Math.round(v * 100));
+  return '<div class="split">'
+    + card('Your scenario', 'Amounts in rand. Rates are assumptions you can change.', '<div class="form">' + f('priceRand', 'Purchase price (R)') + f('depositRand', 'Deposit available (R)') + f('ratePct', 'Bond interest rate %', 'Prime was 10.75% in November 2026') + f('termYears', 'Bond term (years)') + f('feesRand', 'Transfer and bond registration costs (R)', 'Ask a conveyancer for a quote') + f('leviesRand', 'Levies (R a month)') + f('ratesRand', 'Municipal rates (R a month)') + f('insuranceRand', 'Homeowners insurance (R a month)') + f('maintenancePct', 'Maintenance % of value a year') + f('rentRand', 'Rent you would pay instead (R a month)') + f('rentEscalationPct', 'Rent escalation % a year') + f('growthPct', 'Property growth % a year') + f('investReturnPct', 'Investment return % a year (money not used to buy)') + f('inflationPct', 'Inflation on levies, rates and insurance %') + f('sellCostPct', 'Selling costs % (agent commission and so on)') + '</div>' + btn('Compare', 'rn:buy', 'primary sm'))
+    + (b ? '<div>' + card('Upfront and monthly', '', '<div class="list small"><div class="row"><span>Deposit</span><span class="r">' + Rd(b.depositRand) + '</span></div><div class="row"><span>Transfer duty (SARS table)</span><span class="r">' + Rd(b.dutyRand) + '</span></div><div class="row"><span>Transfer and bond costs (your figure)</span><span class="r">' + Rd(b.feesRand) + '</span></div><div class="row"><span><b>Cash needed upfront</b></span><span class="r"><b>' + Rd(b.upfrontRand) + '</b></span></div><div class="row"><span>Bond amount</span><span class="r">' + Rd(b.bondRand) + '</span></div><div class="row"><span>Bond instalment</span><span class="r">' + Rd(b.instalmentRand) + '</span></div><div class="row"><span>Levies, rates, insurance and maintenance</span><span class="r">' + Rd(b.ownMonthlyRand) + '</span></div><div class="row"><span><b>Owning costs a month (year 1)</b></span><span class="r"><b>' + Rd(b.horizons[0].firstBuyMonthRand) + '</b></span></div><div class="row"><span>Rent instead</span><span class="r">' + Rd(inp.rentRand || 0) + '</span></div></div>' + (!inp.feesRand ? '<p class="note neg">Add transfer and bond registration costs for a fair comparison.</p>' : ''))
+      + card('Cash flow versus net worth', 'Cash is what you pay. Net worth is what you own at the end.', table(['After', '#Paid to own', '#Paid in rent', '#Buyer\'s equity', '#Renter\'s investments', '#Better off'], b.horizons.map(h => ({ cells: [h.years + ' yr', Rd(h.buyCashRand), Rd(h.rentCashRand), Rd(h.buyerNetRand), Rd(h.renterNetRand), h.difference >= 0 ? '<span class="pos">Buying, ' + Rd(h.difference) + '</span>' : '<span>Renting, ' + Rd(-h.difference) + '</span>'] })), {})
+        + '<p class="note">The renter invests the deposit and buying costs, plus any month where owning costs more than rent, at the investment return you set. Buyer\'s equity is the property value less the bond balance and selling costs. ' + (b.breakEven ? 'Buying pulls ahead from about year ' + b.breakEven + '.' : 'Renting and investing stays ahead over 10 years on these assumptions.') + ' Property growth and investment returns are not guaranteed.</p>') + '</div>'
+      : card('Rent versus buy', '', empty('Enter a purchase price and tap Compare.')))
+    + '</div>'
+    + card('Transfer duty table used', TD.source + '. Applies from ' + dShort(TD.from) + ' ' + TD.from.slice(0, 4) + '; checked ' + dShort(TD.checked) + ' ' + TD.checked.slice(0, 4) + '.', table(['Property value', 'Transfer duty'], TD.brackets.map((r, i) => { const lo = i ? TD.brackets[i - 1][0] : 0; return { cells: [i === 0 ? 'Up to R' + r[0].toLocaleString('en-ZA') : r[0] === Infinity ? 'Above R' + lo.toLocaleString('en-ZA') : 'R' + (lo + 1).toLocaleString('en-ZA') + ' to R' + r[0].toLocaleString('en-ZA'), i === 0 ? 'None' : (r[1] ? 'R' + r[1].toLocaleString('en-ZA') + ' plus ' : '') + r[2] + '% of the value above R' + lo.toLocaleString('en-ZA')] }; }), {}) + '<p class="note">Buying a new property from a VAT-registered developer usually means VAT instead of transfer duty. General information, not financial advice.</p>');
+};
+
+RENT_VIEWS.ai = () => {
+  const x = rentCtx(), hist = S.rentAsk || [];
+  const chips = ['Can I afford R12 000 monthly rent?', 'What happens if I lose 20% of my income?', 'Should I move to a cheaper property?', 'How much must I save before moving?', 'What is the financial impact of a 7% rental increase?', 'Can my household afford this rental while continuing to save?', 'How much will I spend on renting over three years?', 'Is buying a property financially better in my situation?'];
+  const rd = RENT2.readiness(rentReadinessInput(x), x.p.readinessWeights);
+  return '<div class="split"><div>'
+    + card('Rental advisor', 'Ask in your own words. Answers come from your saved figures and fixed formulas, so the numbers are always the same as on the other tabs.', '<div class="toolbar" style="flex-wrap:wrap;gap:6px;margin-bottom:8px">' + chips.map(c => '<button type="button" class="btn sm" data-rq="' + esc(c) + '">' + esc(c) + '</button>').join('') + '</div><div class="toolbar"><input id="rqIn" placeholder="Ask about rent, moving, increases or buying" style="flex:1;min-width:200px" aria-label="Your question"><button class="btn primary sm" data-act="rn:ask">Ask</button></div>'
+      + (hist.length ? hist.slice().reverse().map(h => '<div class="alert info" style="margin-top:10px"><h3>' + esc(h.q) + '</h3><div class="small">' + h.a.lines.map(esc).join('<br>') + '<p class="muted" style="margin:6px 0 0">' + esc(h.a.uses) + '</p></div></div>').join('') : ''))
+    + '</div>'
+    + card('Rental Readiness Score', 'An internal planning indicator, not a credit score or tenant screening result. Uses only your financial figures.', '<div class="kpi hero"><div class="v num">' + (rd.score == null ? '-' : rd.score) + '<span class="small muted"> / 100</span></div><div class="s">' + esc(rd.band) + ' · based on ' + rd.coverage + '% of the measures</div></div>' + bar(rd.score || 0)
+      + table(['Measure', '#Weight', '#Points', 'What we see'], rd.parts.map(q => ({ cells: [esc(q.name), '<input data-rw="' + q.key + '" value="' + q.weight + '" inputmode="numeric" style="max-width:56px;text-align:right" aria-label="Weight for ' + esc(q.name) + '">', q.points == null ? '-' : q.points, esc(q.detail)], wrap: 3 })), {}) + btn('Save weights', 'rn:rweights', 'sm')
+      + '<p class="note">Each measure scores 0 to 1 and is multiplied by its weight; measures without data are left out and the score is scaled to the rest. Age, gender, race, religion, nationality and other personal characteristics are never used.</p>')
+    + '</div>';
+};
+function rentReadinessInput(x) {
+  const p = x.p, a = RENTCALC.afford(p.inputs, p.rules), mv = x.d.mv, dash = S.c && S.c.dashboard;
+  const variable = (S.data.commissions || []).length || (S.data.incomes || []).some(i => i.kind === 'commission') ? (p.inputs.additional || 0) : 0;
+  return { afford: p.inputs.rent != null && a.incomeCents ? a : null, move: mv, emergencyMonths: dash ? dash.emergencyMonths : null, incomeCents: a.incomeCents, variableIncomeCents: variable, incomeSources: ['salary', 'additional', 'contributions'].filter(k => p.inputs[k] > 0).length, debtCents: p.inputs.debt || 0 };
+}
+function rentAskCtx() {
+  const x = rentCtx();
+  return { inputs: x.p.inputs, rules: x.p.rules, compare: x.cmp, move: x.d.mv, forecast: x.fc, buy: x.buy, escalationPct: x.p.escalationPct };
+}
+
+/** Rental reminders for the existing reminder email (dates and plain text only, no amounts). */
+function rentReminders(d) {
+  const p = (d.rentals || []).find(r => !r.deleted); if (!p || !p.notify) return [];
+  const n = p.notify, t = FC.todayISO(), end = FC.addDays(t, 45), out = [], l = p.lease || {};
+  const inWin = x => x >= t && x <= end;
+  if (n.rentDue && l.start && l.dueDay) { let m = t.slice(0, 7); for (let i = 0; i < 2; i++) { const due = m + '-' + String(Math.min(28, +l.dueDay)).padStart(2, '0'); if (inWin(due)) out.push({ date: FC.addDays(due, -1), text: 'Rent due ' + due }); m = FC.monthKey(FC.addMonths(m + '-01', 1)); } }
+  RENT2.leaseDates(l, t).forEach(x => { if (!inWin(x.date)) return; const on = { expiry: n.leaseExpiry, notice: n.leaseExpiry, escalation: n.escalation, renewal: n.renewal, inspection: n.inspection }[x.kind]; if (on) out.push({ date: FC.addDays(x.date, x.kind === 'notice' ? -7 : -1), text: x.label + ' on ' + x.date }); });
+  if (n.moveDeadline && p.move && p.move.targetDate && inWin(p.move.targetDate)) out.push({ date: FC.addDays(p.move.targetDate, -14), text: 'Moving date in two weeks: check your move-in savings' });
+  return out.filter(x => x.date >= t);
+}
+
+/** In-app alerts on the Rental Overview: upcoming lease dates, unpaid rent, overspending and savings milestones. */
+function rentAlertsHtml(d) {
+  const p = d.p, t = today(), al = [];
+  RENT2.leaseDates(p.lease, t).filter(x => !x.past && x.days <= 60).forEach(x => al.push(['medium', x.label, dShort(x.date) + ' (' + x.days + ' days)']));
+  RENT2.payments(p.lease, S.data.rentpays || [], t).filter(r => r.status === 'unpaid' || r.status === 'partial').slice(0, 3).forEach(r => al.push(['high', 'Rent for ' + mName(r.month) + ' is ' + (r.status === 'partial' ? 'partly paid' : 'not recorded as paid'), Rr(r.outstandingCents) + ' outstanding']));
+  const b = RENTCALC.budget(S.data, FC.monthKey(t), p.budget); b.rows.filter(r => r.overCents).forEach(r => al.push(['medium', r.label + ' is over the rental budget', Rr(r.overCents) + ' over this month']));
+  const mv = d.mv; if (mv.totalCents) { const ms = [100, 75, 50, 25].find(m => mv.progressPct >= m); if (ms) al.push(['info', ms === 100 ? 'Move-in savings target reached' : 'Move-in savings ' + ms + '% reached', Rr(mv.savedCents) + ' of ' + Rr(mv.totalCents)]); if (mv.overdue) al.push(['high', 'Moving date passed before the savings were complete', Rr(mv.shortfallCents) + ' short']); }
+  if (!al.length) return '';
+  const cls = { high: 'estimated', medium: 'planned', info: 'actual' };
+  return card('Alerts', 'From your lease, payments, budget and move-in plan', '<div class="list small">' + al.map(x => '<div class="row"><span><b>' + esc(x[1]) + '</b><small>' + esc(x[2]) + '</small></span><span class="r"><span class="tag ' + cls[x[0]] + '">' + (x[0] === 'info' ? 'good' : x[0]) + '</span></span></div>').join('') + '</div>');
+}
+
+/* ---------------- actions ---------------- */
+document.addEventListener('click', async e => {
+  const pe = e.target.closest('[data-rpe]'); if (pe) { propEditor((S.data.rentprops || []).find(x => x.id === pe.dataset.rpe) || {}); return; }
+  const rq = e.target.closest('[data-rq]'); if (rq) { const a = RENT2.ask(rq.dataset.rq, rentAskCtx()); S.rentAsk = (S.rentAsk || []).concat([{ q: rq.dataset.rq, a }]).slice(-6); render(); return; }
+  const rp = e.target.closest('[data-rpay]'); if (rp) { rentPayDialog(rp.dataset.rpay, +rp.dataset.amt); return; }
+  const rpd = e.target.closest('[data-rpd]'); if (rpd) { if (confirm('Remove this payment record?')) { try { await delRec('rentpays', rpd.dataset.rpd); render(); } catch (er) { toast(er.message); } } return; }
+  const rdo = e.target.closest('[data-rdo]'); if (rdo) { rentDocOpen(rdo.dataset.rdo); return; }
+  const rdx = e.target.closest('[data-rdx]'); if (rdx) { rentDocDelete(rdx.dataset.rdx); return; }
+  const a = e.target.closest('[data-act^="rn:"]'); if (!a) return;
+  const act = a.dataset.act.slice(3); if (!['propnew', 'weights', 'fc', 'lease', 'notify', 'buy', 'ask', 'rweights', 'docup'].includes(act)) return;
+  const p = rentPlan();
+  const num = v => { const s = String(v).replace(/[^0-9.,-]/g, '').replace(',', '.'); return s === '' ? null : Number(s); };
+  if (act === 'propnew') { propEditor({}); return; }
+  if (act === 'ask') { const q = ($('rqIn') || {}).value || ''; if (!q.trim()) return; const ans = RENT2.ask(q, rentAskCtx()); S.rentAsk = (S.rentAsk || []).concat([{ q, a: ans }]).slice(-6); render(); return; }
+  if (act === 'weights') { p.prefWeights = {}; document.querySelectorAll('[data-pw]').forEach(i => { const v = num(i.value); if (v != null && v >= 0 && v <= 100) p.prefWeights[i.dataset.pw] = v; }); await rentSave(p, 'Weights saved'); return; }
+  if (act === 'rweights') { p.readinessWeights = {}; document.querySelectorAll('[data-rw]').forEach(i => { const v = num(i.value); if (v != null && v >= 0 && v <= 100) p.readinessWeights[i.dataset.rw] = v; }); await rentSave(p, 'Weights saved'); return; }
+  if (act === 'fc') {
+    p.fc = p.fc || {}; let bad = 0;
+    document.querySelectorAll('[data-fc]').forEach(i => { const v = num(i.value); if (v == null) { p.fc[i.dataset.fc] = null; return; } if (!isFinite(v) || v < -50 || v > 100) bad++; else p.fc[i.dataset.fc] = v; });
+    document.querySelectorAll('[data-fcm]').forEach(i => { const v = num(i.value); if (v == null) { p.fc[i.dataset.fcm] = null; return; } if (!isFinite(v) || v < 0) bad++; else p.fc[i.dataset.fcm] = Math.round(v * 100); });
+    if (bad) { toast('Check the assumptions: percentages between -50 and 100, amounts positive.'); return; }
+    if (p.fc.moveMonth != null && (p.fc.moveMonth < 0 || p.fc.moveMonth > 35)) { toast('Move month must be 0 to 35.'); return; }
+    await rentSave(p, 'Assumptions saved'); return;
+  }
+  if (act === 'lease') {
+    const l = Object.assign({}, p.lease || {}); let bad = 0;
+    document.querySelectorAll('[data-lt]').forEach(i => { l[i.dataset.lt] = i.value.trim().slice(0, 120); });
+    document.querySelectorAll('[data-lz]').forEach(i => { const k = i.dataset.lz; if (i.type === 'date') { l[k] = i.value || null; return; } const v = num(i.value); if (v != null && (!isFinite(v) || v < 0)) { bad++; return; }
+      if (k === 'rent') l.rentCents = v == null ? null : Math.round(v * 100); else if (k === 'deposit') l.depositCents = v == null ? null : Math.round(v * 100); else l[k] = v; });
+    if (bad) { toast('Amounts must be positive numbers.'); return; }
+    if (l.start && l.end && l.end <= l.start) { toast('The lease must end after it starts.'); return; }
+    if (l.dueDay != null && (l.dueDay < 1 || l.dueDay > 31)) { toast('The due day must be 1 to 31.'); return; }
+    p.lease = l; if (l.start) p.leaseStart = l.start; if (l.end) p.leaseEnd = l.end; if (l.escalationPct != null) p.escalationPct = l.escalationPct; if (l.rentCents != null && p.currentRentCents == null) p.currentRentCents = l.rentCents; if (l.dueDay) p.payDay = l.dueDay;
+    await rentSave(p, 'Lease saved'); return;
+  }
+  if (act === 'notify') { p.notify = {}; document.querySelectorAll('[data-rnt]').forEach(i => { p.notify[i.dataset.rnt] = i.checked; }); await rentSave(p, 'Reminder choices saved'); return; }
+  if (act === 'buy') { const b = {}; let bad = 0; document.querySelectorAll('[data-rvb]').forEach(i => { const v = num(i.value); if (v == null) return; if (!isFinite(v) || v < 0) bad++; else b[i.dataset.rvb] = v; }); if (bad) { toast('Use positive numbers only.'); return; } if (!b.priceRand) { toast('Enter a purchase price.'); return; } if ((b.depositRand || 0) > b.priceRand) { toast('The deposit is more than the price.'); return; } p.buy = b; await rentSave(p, 'Rent versus buy saved'); return; }
+  if (act === 'docup') rentDocUpload();
+});
+document.addEventListener('change', async e => {
+  const c = e.target.closest('[data-rpc]'); if (!c) return;
+  const r = (S.data.rentpays || []).find(x => x.id === c.dataset.rpc); if (!r) return;
+  try { await saveRec('rentpays', Object.assign({}, r, { confirmed: c.checked })); toast(c.checked ? 'Marked as confirmed by the landlord' : 'Confirmation removed'); render(); } catch (er) { toast(er.message); }
+});
+function rentPayDialog(month, outstanding) {
+  editor({ col: 'rentpays', title: 'Record rent payment for ' + mName(month), rec: { month, date: today(), amountCents: outstanding || null, owner: 'shared', confirmed: false }, fields: [['date', 'Date paid', 'date'], ['amountCents', 'Amount paid (R)', 'money'], ['method', 'How', 'select', { list: [['eft', 'EFT'], ['debit', 'Debit order'], ['cash', 'Cash'], ['other', 'Other']] }], ['reference', 'Reference', 'text'], ['confirmed', 'The landlord confirmed receipt (receipt or statement)', 'check', { full: true }], ['note', 'Note', 'text']],
+    before: x => { if (!(x.amountCents > 0)) throw new Error('Enter the amount paid.'); if (x.date > today()) throw new Error('The payment date cannot be in the future.'); return x; } });
+}
+async function rentDocUpload() {
+  const f = $('rdFile') && $('rdFile').files[0]; if (!f) { toast('Choose a file first.'); return; }
+  if (f.size > 5 * 1024 * 1024) { toast('Documents can be up to 5 MB.'); return; }
+  try {
+    toast('Encrypting and uploading...');
+    const raw = await MCrypto.newWorkspaceKey(), key = await MCrypto.aesFromRaw(raw), sealed = await MCrypto.seal(key, new Uint8Array(await f.arrayBuffer()));
+    const j = await mpost('mosDocPut', { ws: A.ws.id, iv: sealed.iv, ct: sealed.ct });
+    await saveRec('rentdocs', { name: f.name.slice(0, 120), kind: ($('rdKind') || {}).value || 'Document', mime: f.type || 'application/octet-stream', size: f.size, docId: j.id, fileKey: MCrypto.b64(raw), uploadedAt: new Date().toISOString(), owner: 'shared' });
+    toast('Document saved, encrypted'); render();
+  } catch (er) { toast(er.message); }
+}
+async function rentDocOpen(id) {
+  const dd = (S.data.rentdocs || []).find(x => x.id === id); if (!dd) return;
+  try { const j = await mpost('mosDocGet', { ws: A.ws.id, id: dd.docId }); const key = await MCrypto.aesFromRaw(MCrypto.unb64(dd.fileKey)); const bytes = await MCrypto.open(key, { iv: j.iv, ct: j.ct });
+    const url = URL.createObjectURL(new Blob([bytes], { type: dd.mime })); const a = document.createElement('a'); a.href = url; a.download = dd.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (er) { toast('Could not open the document: ' + er.message); }
+}
+async function rentDocDelete(id) {
+  const dd = (S.data.rentdocs || []).find(x => x.id === id); if (!dd || !confirm('Delete ' + dd.name + '? This cannot be undone.')) return;
+  try { await mpost('mosDocDel', { ws: A.ws.id, id: dd.docId }); await delRec('rentdocs', id); toast('Document deleted'); render(); } catch (er) { toast(er.message); }
+}
 
 /* ===================== Millionaire OS: SaaS data layer, sign-in, household, billing, support =====================
  * Loads after the Family OS modules and replaces their storage layer. Every record is encrypted here before it is sent. */
@@ -2835,7 +3306,9 @@ async function afterLoad(j) {
     if (A.user.notify && A.user.notify.reminders) {
       const occ = FC.billsInRange(d, FC.todayISO(), FC.addDays(FC.todayISO(), 30)).filter(o => !o.paid), by = {};
       occ.forEach(o => { by[o.date] = (by[o.date] || 0) + 1; });
-      mpost('mosReminders', { items: Object.keys(by).map(dt => ({ date: dt, text: by[dt] + ' debit order' + (by[dt] > 1 ? 's' : '') + ' in ' + (A.ws.name || 'your workspace') })) }).catch(() => {});
+      const items = Object.keys(by).map(dt => ({ date: dt, text: by[dt] + ' debit order' + (by[dt] > 1 ? 's' : '') + ' in ' + (A.ws.name || 'your workspace') }));
+      if (typeof rentReminders === 'function') { try { rentReminders(d).forEach(r => items.push(r)); } catch (er) {} }
+      mpost('mosReminders', { items: items.slice(0, 60) }).catch(() => {});
     }
   } catch (e) { report('afterload', 'load'); }
 }
