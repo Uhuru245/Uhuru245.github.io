@@ -2072,6 +2072,286 @@ document.addEventListener('change', e => {
   taxSave({ checks }, true).then(() => { const v = $('view'); const y = window.scrollY; render(); window.scrollTo(0, y); });
 });
 
+/* Financial Director: a rules-based review of the household's own numbers, run in the browser on decrypted data.
+   General information only. Every figure is worked out from the user's records and the stated assumptions. */
+const ADV = {
+  DEFAULTS: { returnPct: 10, inflationPct: 5, feesPct: 1, primePct: 10.75, growthPct: 5 },
+  STAGES: [
+    ['stable', 'Stabilise', 'Spend less than you earn and stop new debt'],
+    ['starter', 'Starter cushion', 'One month of essential costs saved'],
+    ['debt', 'Kill expensive debt', 'Clear credit cards, store accounts, personal loans and overdrafts'],
+    ['emergency', 'Full emergency fund', 'Three to six months of essential costs'],
+    ['invest', 'Invest 15% or more', 'Retirement, tax-free savings and investments'],
+    ['assets', 'Own appreciating assets', 'Home, property or business on sound terms'],
+    ['million', 'Millionaire', 'R1 million net worth'],
+    ['free', 'Financially free', 'Investments can pay your living costs']
+  ],
+  CONSUMER: ['credit_card', 'store', 'personal', 'overdraft'],
+  DISCRETIONARY: ['Eating out', 'Takeaways', 'Subscriptions', 'Entertainment', 'Clothing', 'Personal care', 'Holidays', 'Gifts', 'Celebrations', 'Family outings', 'Allowance', 'Bank fees'],
+
+  months(data, mk, n) {
+    const out = []; let m = mk;
+    for (let i = 0; i < n; i++) { m = FC.prevMonth(m); const l = FC.monthTxns(data, m); if (l.length) out.push({ month: m, list: l }); }
+    return out;
+  },
+  /** Present value of a monthly instalment (what a bank would lend). */
+  loanFor(instalCents, aprPct, months) {
+    const r = aprPct / 1200; if (!r) return instalCents * months;
+    return Math.round(instalCents * (1 - Math.pow(1 + r, -months)) / r);
+  },
+  /** Monthly saving needed to grow startCents to targetCents in n months at a net annual return. */
+  pmtFor(targetCents, startCents, netPct, n) {
+    const r = Math.pow(1 + netPct / 100, 1 / 12) - 1, g = Math.pow(1 + r, n), need = targetCents - Math.max(0, startCents) * g;
+    if (need <= 0) return 0; return Math.ceil(r ? need * r / (g - 1) : need / n);
+  },
+
+  analyse(data, opts) {
+    opts = Object.assign({}, ADV.DEFAULTS, opts || {});
+    const now = opts.now || null, today = FC.todayISO(now), mk = FC.monthKey(today), s = data.settings || {};
+    const d = FC.dashboard(data, now), cf = FC.monthlyCashflow(data, mk), nw = FC.netWorth(data, today);
+    const hist = ADV.months(data, mk, 3), sumK = (l, k) => FC.sum(l.filter(t => t.kind === k), t => t.amountCents | 0);
+    const avg = f => hist.length ? Math.round(FC.sum(hist, h => f(h.list)) / hist.length) : null;
+    const actualIncome = avg(l => sumK(l, 'income')), actualSpend = avg(l => FC.sum(l.filter(t => t.kind === 'expense'), t => t.amountCents | 0) + FC.sum(l.filter(t => t.kind === 'debt_payment'), t => t.amountCents | 0));
+    const commissionEarner = (data.incomes || []).some(i => i.kind === 'commission') || (data.commissions || []).length > 0;
+    const income = cf.incomeCents || actualIncome || 0, incomeBasis = cf.incomeCents ? 'planned take-home income' : actualIncome ? 'average income received over ' + hist.length + ' month' + (hist.length === 1 ? '' : 's') : 'no income recorded';
+    const spend = actualSpend != null ? actualSpend : cf.outgoingCents;
+    const surplus = actualIncome != null && actualSpend != null ? actualIncome - actualSpend : cf.surplusBeforeGoalsCents;
+    const surplusBasis = actualIncome != null && actualSpend != null ? 'actual' : 'planned';
+    const savingsRate = income > 0 ? Math.round(surplus / income * 1000) / 10 : null;
+
+    // ---- debt ----
+    const bal = FC.debtBalances(data, today);
+    const debts = (data.debts || []).map(x => Object.assign({}, x, { balanceCents: bal[x.id] || 0 })).filter(x => x.balanceCents > 0);
+    const consumer = debts.filter(x => ADV.CONSUMER.includes(x.type) || (x.type !== 'home' && (Number(x.aprPct) || 0) >= 15));
+    const consumerCents = FC.sum(consumer, x => x.balanceCents), debtCents = FC.sum(debts, x => x.balanceCents);
+    const debtService = FC.sum(debts, x => x.minPaymentCents | 0), dti = income ? Math.round(debtService / income * 1000) / 10 : null;
+    const otherService = FC.sum(debts.filter(x => x.type !== 'home'), x => x.minPaymentCents | 0), dtiOther = income ? Math.round(otherService / income * 1000) / 10 : null;
+    const missingApr = debts.filter(x => x.aprPct == null || x.aprPct === '');
+    const extra = Math.max(0, Math.round(Math.max(0, surplus) * 0.5 / 10000) * 10000);
+    let debtPlans = null;
+    if (debts.length) {
+      const base = FC.debtPlan(debts, 0, 'avalanche', today), av = FC.debtPlan(debts, extra, 'avalanche', today), sn = FC.debtPlan(debts, extra, 'snowball', today);
+      const method = !av.feasible && sn.feasible ? 'snowball' : 'avalanche';
+      debtPlans = { extraCents: extra, minimum: base, avalanche: av, snowball: sn, method, interestSavedCents: base.feasible && av.feasible ? Math.max(0, base.interestCents - av.interestCents) : null, monthsSaved: base.feasible && av.feasible ? base.months - av.months : null };
+    }
+
+    // ---- emergency ----
+    const ess = d.essentialMonthlyCents || 0, emTarget = s.emergencyMonthsTarget || (commissionEarner ? 6 : 3);
+    const emMonths = d.emergencyMonths, emGapCents = ess ? Math.max(0, ess * emTarget - d.emergencyCents) : null;
+
+    // ---- assets and investing ----
+    const items = nw.items.filter(i => i.side === 'asset');
+    const of = types => FC.sum(items.filter(i => types.includes(i.type)), i => i.cents);
+    const retirement = of(['retirement']), tfsa = of(['tfsa']), invest = of(['investment']), property = of(['property']), business = of(['business']), lifestyle = of(['vehicle', 'valuables']);
+    const cash = FC.sum(items.filter(i => i.source === 'account' && i.type === 'cash'), i => i.cents);
+    const investable = retirement + tfsa + invest + cash;
+    const productive = retirement + tfsa + invest + property + business;
+    const investGoals = FC.sum((data.goals || []).filter(g => g.active !== false && ['retirement'].includes(g.kind)), g => g.monthlyCents | 0);
+    const investTx = avg(l => sumK(l, 'investment')) || 0;
+    const tax = opts.taxProfile && typeof TAXCALC !== 'undefined' ? opts.taxProfile : null;
+    const raMonthly = tax ? Math.round((+tax.raContrib || 0) * 100 / 12) : 0;
+    const investMonthly = Math.max(investTx, investGoals) + raMonthly;
+    const investRate = income ? Math.round(investMonthly / income * 1000) / 10 : null;
+    let taxRoom = null;
+    if (tax) {
+      const e = TAXCALC.estimate(TAXCALC.yearFor(today), tax), t = TAXT[TAXCALC.yearFor(today)] || TAXT[Object.keys(TAXT).sort().pop()];
+      const raRoom = Math.max(0, e.raLimit - e.raAllowed), tfsaRoom = Math.max(0, Math.min(t.tfsaYear - (+tax.tfsaYear || 0), t.tfsaLife - (+tax.tfsaLifetime || 0)));
+      taxRoom = { marginal: e.marginal, raRoomCents: Math.round(raRoom * 100), raSavingCents: Math.round(raRoom * e.marginal), tfsaRoomCents: Math.round(tfsaRoom * 100), grossMonthlyCents: Math.round(((+tax.salary || 0) + (+tax.commission || 0)) * 100 / 12) };
+    }
+
+    // ---- savings opportunities (last three months, discretionary spending) ----
+    const cats = {};
+    hist.forEach(h => h.list.filter(t => t.kind === 'expense').forEach(t => {
+      const key = ADV.DISCRETIONARY.includes(t.subcategory) ? t.subcategory : (!FC.isEssential(t.category, data) && t.category && !['Giving', 'Business'].includes(t.category) ? t.category : null);
+      if (key) cats[key] = (cats[key] || 0) + (t.amountCents | 0);
+    }));
+    const n = hist.length || 1;
+    const cuts = Object.keys(cats).map(k => ({ name: k, monthlyCents: Math.round(cats[k] / n) })).filter(c => c.monthlyCents >= 10000).sort((a, b) => b.monthlyCents - a.monthlyCents).slice(0, 5)
+      .map(c => Object.assign(c, { cutPct: /Bank fees|Subscriptions/.test(c.name) ? 50 : 25 })).map(c => Object.assign(c, { saveCents: Math.round(c.monthlyCents * c.cutPct / 100 / 1000) * 1000 }));
+    const overruns = FC.budgetVsActual(data, FC.prevMonth(mk)).filter(r => r.budgetCents > 0 && r.actualCents > r.budgetCents * 1.05).map(r => ({ name: r.category, overCents: r.actualCents - r.budgetCents }));
+    const cutTotal = FC.sum(cuts, c => c.saveCents);
+
+    // ---- millionaire path ----
+    const monthlyToWealth = Math.max(0, surplus) + investMonthly;
+    const net = opts.returnPct - opts.feesPct;
+    const startW = Math.max(0, nw.netWorthCents - lifestyle);
+    const rm = FC.roadmap({ startCents: startW, monthlyCents: monthlyToWealth, incomeGrowthPct: opts.growthPct, inflationPct: opts.inflationPct, feesPct: opts.feesPct, scenarios: { conservative: opts.returnPct - 3, base: opts.returnPct, optimistic: opts.returnPct + 2 }, targets: [100000000] });
+    const hit = k => rm[k].milestones[0].nominal, hitReal = k => rm[k].milestones[0].real;
+    const millionaire = { already: nw.netWorthCents >= 100000000, monthlyCents: monthlyToWealth, base: hit('base'), conservative: hit('conservative'), optimistic: hit('optimistic'), baseReal: hitReal('base'),
+      startCents: startW, need10: ADV.pmtFor(100000000, startW, net, 120), need15: ADV.pmtFor(100000000, startW, net, 180), need20: ADV.pmtFor(100000000, startW, net, 240) };
+
+    // ---- financial freedom ----
+    const annualCost = Math.max(0, spend - debtService) * 12;
+    const freedomNumber = annualCost * 25, passive = Math.round((investable - cash) * 0.04 / 12);
+    const freedomPct = freedomNumber ? Math.min(100, Math.round((investable - cash) / freedomNumber * 1000) / 10) : null;
+
+    // ---- asset buying ----
+    const gross = taxRoom && taxRoom.grossMonthlyCents ? taxRoom.grossMonthlyCents : 0;
+    const housing = avg(l => FC.sum(l.filter(t => t.kind === 'expense' && /Rent or bond/.test(t.subcategory || '')), t => t.amountCents | 0)) || 0;
+    const bankInstal = gross ? Math.round(gross * 0.3) : Math.round(income * 0.3);
+    const comfortInstal = Math.max(0, Math.min(bankInstal, housing + Math.max(0, surplus) - Math.round(income * 0.1)));
+    const hasHome = debts.some(x => x.type === 'home') || items.some(i => i.type === 'property');
+    const vehicleDebt = debts.filter(x => x.type === 'vehicle'), vehicleInstal = FC.sum(vehicleDebt, x => x.minPaymentCents | 0);
+    const home = { hasHome, basis: gross ? 'gross income from your Tax & SARS figures' : 'take-home income (banks use gross, so the bank figure may be higher)', bankInstalCents: bankInstal, bankBondCents: ADV.loanFor(bankInstal, opts.primePct, 240), comfortInstalCents: comfortInstal, comfortBondCents: ADV.loanFor(comfortInstal, opts.primePct, 240), currentHousingCents: housing };
+    home.depositCents = Math.round(home.comfortBondCents / 0.9 * 0.1); home.costsCents = Math.round(home.comfortBondCents / 0.9 * 0.06);
+    const vehicle = { instalCents: vehicleInstal, pct: income ? Math.round(vehicleInstal / income * 1000) / 10 : null, valueCents: lifestyle };
+
+    // ---- protection ----
+    const allNames = [].concat((data.bills || []).map(b => (b.subcategory || '') + ' ' + (b.provider || '') + ' ' + (b.category || '')), (data.budgets || []).map(b => (b.subcategory || '') + ' ' + (b.category || ''))).join(' | ');
+    const hasLife = /Life cover|life/i.test(allNames), hasDisab = /Disability|income protection/i.test(allNames), hasMed = /Medical aid|medical/i.test(allNames);
+
+    // ---- audit of the records ----
+    const audit = [];
+    const lastTx = (data.transactions || []).reduce((m, t) => t.date > m ? t.date : m, '');
+    if (!income) audit.push(['high', 'No income recorded', 'Add take-home pay on the Income page. Without it every ratio on this page is guesswork.']);
+    if (!lastTx || FC.diffDays(lastTx, today) > 35) audit.push(['high', 'No transactions in the last month', 'Import a bank statement so the advice is based on what you actually spend, not on plans.']);
+    if (!(data.budgets || []).length) audit.push(['medium', 'No budget set', 'A zero-based budget gives every rand a job before the month starts.']);
+    if (missingApr.length) audit.push(['medium', missingApr.length + ' debt' + (missingApr.length === 1 ? ' has' : 's have') + ' no interest rate', 'The payoff order and interest figures need the rate from each statement: ' + missingApr.map(x => x.name).join(', ') + '.']);
+    const stale = (data.assets || []).filter(a => !a.disposed && a.valueDate && FC.diffDays(a.valueDate, today) > 180);
+    if (stale.length) audit.push(['low', stale.length + ' asset value' + (stale.length === 1 ? ' is' : 's are') + ' older than six months', 'Update ' + stale.map(a => a.name).join(', ') + ' so net worth is current.']);
+    const uncat = hist.length ? hist[0].list.filter(t => t.kind === 'expense' && (!t.category || t.category === 'Other')) : [];
+    if (uncat.length >= 3) audit.push(['low', uncat.length + ' expenses last month have no category', 'Uncategorised spending hides where money leaks.']);
+    if (!tax) audit.push(['low', 'No Tax & SARS figures for this year', 'Enter them on the Tax & SARS page to unlock retirement and tax-free savings advice.']);
+    const confidence = audit.some(a => a[0] === 'high') ? 'Low' : audit.filter(a => a[0] === 'medium').length ? 'Medium' : 'High';
+
+    // ---- stages ----
+    const done = {
+      stable: income > 0 && surplus > 0,
+      starter: ess > 0 && d.emergencyCents >= ess,
+      debt: consumerCents === 0,
+      emergency: emMonths != null && emMonths >= emTarget,
+      invest: investRate != null && investRate >= 15,
+      assets: productive > Math.max(lifestyle, 0) && (property > 0 || business > 0 || productive >= 50000000),
+      million: nw.netWorthCents >= 100000000,
+      free: freedomPct != null && freedomPct >= 100
+    };
+    const stageIdx = Math.max(0, ADV.STAGES.findIndex(st => !done[st[0]])), stage = stageIdx === -1 ? ADV.STAGES.length - 1 : stageIdx;
+
+    // ---- health score (100) ----
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const parts = [
+      ['Cash flow', 20, savingsRate == null ? 0 : clamp(savingsRate / 20, 0, 1) * 20, savingsRate == null ? 'No income recorded' : savingsRate + '% of income left over (aim for 20%)'],
+      ['Emergency fund', 20, emMonths == null ? 0 : clamp(emMonths / emTarget, 0, 1) * 20, emMonths == null ? 'No essential cost basis yet' : emMonths + ' of ' + emTarget + ' months'],
+      ['Debt load', 20, dti == null ? (debts.length ? 0 : 20) : (clamp((25 - dtiOther) / 15, 0, 1) * 10 + clamp((50 - dti) / 14, 0, 1) * 10) * (consumerCents ? 0.8 : 1), dti == null ? (debts.length ? 'Income needed' : 'No debt') : dti + '% of income goes to all debt repayments (aim under 36%), ' + dtiOther + '% excluding the home loan (aim under 10%)'],
+      ['Investing', 15, investRate == null ? 0 : clamp(investRate / 15, 0, 1) * 15, investRate == null ? 'Income needed' : investRate + '% of income invested (aim for 15%)'],
+      ['Protection', 10, (hasLife ? 4 : 0) + (hasDisab ? 3 : 0) + (hasMed ? 3 : 0), [hasLife ? 'Life cover' : '', hasDisab ? 'Disability cover' : '', hasMed ? 'Medical aid' : ''].filter(Boolean).join(', ') || 'No cover found in bills or budget'],
+      ['Net worth', 10, nw.netWorthCents <= 0 ? 0 : clamp(productive / Math.max(1, nw.assetsCents), 0, 1) * 6 + (d.netWorthChangeCents == null ? 2 : d.netWorthChangeCents > 0 ? 4 : 0), FC.fmtR(nw.netWorthCents) + (d.netWorthChangeCents != null ? ', ' + (d.netWorthChangeCents >= 0 ? 'up ' : 'down ') + FC.fmtR(Math.abs(d.netWorthChangeCents)) + ' since the last snapshot' : '')],
+      ['Record keeping', 5, confidence === 'High' ? 5 : confidence === 'Medium' ? 3 : 1, confidence + ' confidence in the data']
+    ].map(p => ({ name: p[0], max: p[1], score: Math.round(p[2]), detail: p[3] }));
+    const score = FC.sum(parts, p => p.score), grade = score >= 85 ? 'A' : score >= 70 ? 'B' : score >= 55 ? 'C' : score >= 40 ? 'D' : 'E';
+
+    // ---- action plan ----
+    const A = [], R = c => FC.fmtR(c);
+    if (income > 0 && surplus <= 0) A.push({ area: 'Cash flow', title: 'Close the monthly gap of ' + R(-surplus), detail: 'You spend more than you bring in (' + surplusBasis + ' figures). Freeze new credit, cut the items under "Where to find money" first, and set a hard budget for the rest of the month.', cents: -surplus, when: 'This week' });
+    const under = debts.filter(x => x.aprPct != null && (x.minPaymentCents | 0) <= Math.round(x.balanceCents * Number(x.aprPct) / 1200));
+    if (under.length) A.push({ area: 'Debt', title: 'Pay more than the minimum on ' + under.map(x => x.name).join(' and '), detail: under.map(x => x.name + ': interest is about ' + R(Math.round(x.balanceCents * Number(x.aprPct) / 1200)) + ' a month but the minimum is ' + R(x.minPaymentCents | 0)).join('; ') + '. At the minimum the balance never goes down.', when: 'This month' });
+    if (debtPlans && debtPlans.minimum && !debtPlans.minimum.feasible) A.push({ area: 'Debt', title: 'Your minimum payments do not cover the interest', detail: 'The balances will grow. Speak to the lenders about a lower rate or a payment arrangement, or to a registered debt counsellor.', when: 'This week' });
+    if (ess && d.emergencyCents < ess) A.push({ area: 'Savings', title: 'Build a starter cushion of ' + R(ess), detail: 'One month of essential costs in a separate, accessible savings account stops the next surprise from going on a credit card.', cents: ess - d.emergencyCents, when: 'Next 3 months' });
+    if (consumer.length) {
+      const first = debtPlans ? (debtPlans[debtPlans.method].order || [])[0] : consumer[0].name;
+      const push = extra || cutTotal;
+      A.push({ area: 'Debt', title: (push ? 'Put an extra ' + R(push) + ' a month on ' : 'Once the cash gap is closed, attack ') + (first || 'your most expensive debt'), detail: (!extra && cutTotal ? 'Use the money freed by the spending cuts below. ' : '') + 'Use the ' + (debtPlans ? debtPlans.method : 'avalanche') + ' method. ' + (debtPlans && debtPlans.interestSavedCents ? 'Compared with paying only the minimums this saves about ' + R(debtPlans.interestSavedCents) + ' in interest and ' + debtPlans.monthsSaved + ' months.' : '') + ' When a debt is paid off, roll its payment into the next one. Close store accounts once they are settled.', cents: extra, when: 'From next payday' });
+    }
+    cuts.slice(0, 3).forEach(c => A.push({ area: 'Spending', title: 'Cut ' + c.name.toLowerCase() + ' by ' + c.cutPct + '% to free ' + R(c.saveCents) + ' a month', detail: 'You spent about ' + R(c.monthlyCents) + ' a month on this over the last ' + n + ' month' + (n === 1 ? '' : 's') + '. Move the saving by debit order on payday so it does not get spent.', cents: c.saveCents, when: 'This month' }));
+    if (emGapCents && done.starter && done.debt) A.push({ area: 'Savings', title: 'Grow the emergency fund to ' + emTarget + ' months (' + R(ess * emTarget) + ')', detail: (commissionEarner ? 'Commission income is irregular, so six months is the safer target. ' : '') + 'Still needed: ' + R(emGapCents) + '. Keep it in a money-market or notice account, not in shares.', cents: emGapCents, when: 'Next 6 to 12 months' });
+    if (taxRoom && taxRoom.raRoomCents > 100000 && done.starter) A.push({ area: 'Tax', title: 'Use your retirement deduction: up to ' + R(taxRoom.raRoomCents) + ' more this tax year', detail: 'At your ' + taxRoom.marginal + '% marginal rate SARS effectively pays about ' + R(taxRoom.raSavingCents) + ' of it back. Spread over the remaining months, or as a lump sum before 28 February.', cents: taxRoom.raRoomCents, when: 'Before 28 February' });
+    if (taxRoom && taxRoom.tfsaRoomCents > 0 && done.debt) A.push({ area: 'Investing', title: 'Fill your tax-free savings: ' + R(taxRoom.tfsaRoomCents) + ' left this tax year', detail: 'Growth, interest and dividends in a tax-free account are never taxed. Do not go over the annual or lifetime limit: the excess is taxed at 40%.', cents: taxRoom.tfsaRoomCents, when: 'Before 28 February' });
+    if (!taxRoom) A.push({ area: 'Tax', title: 'Complete the Tax & SARS page', detail: 'It shows how much retirement and tax-free savings room you have, which is usually the cheapest money you will ever invest.', when: 'This month' });
+    if (income && investRate != null && investRate < 15 && done.debt) A.push({ area: 'Investing', title: 'Raise investing to 15% of income (' + R(Math.round(income * 0.15)) + ' a month)', detail: 'You invest about ' + investRate + '% now. Increase it with every raise or commission cheque until you reach 15%, then 20%.', cents: Math.max(0, Math.round(income * 0.15) - investMonthly), when: 'Next 12 months' });
+    if (!hasLife || !hasDisab) A.push({ area: 'Protection', title: 'Check ' + [!hasLife ? 'life cover' : '', !hasDisab ? 'disability or income protection' : ''].filter(Boolean).join(' and '), detail: 'No ' + [!hasLife ? 'life cover' : '', !hasDisab ? 'disability cover' : ''].filter(Boolean).join(' or ') + ' appears in your bills or budget. Your ability to earn is your biggest asset; get quotes from a licensed adviser.', when: 'Next 3 months' });
+    if (vehicle.pct != null && vehicle.pct > 15) A.push({ area: 'Assets', title: 'Vehicle finance takes ' + vehicle.pct + '% of income', detail: 'Keep vehicle instalments under about 15% of take-home pay. Do not trade in early; pay it off and drive it for longer.', when: 'Next vehicle decision' });
+    if (!hasHome && done.debt && home.comfortBondCents > 0) A.push({ area: 'Assets', title: 'Save a home deposit of about ' + R(home.depositCents + home.costsCents), detail: 'A 10% deposit plus transfer and bond costs on a home of about ' + R(Math.round(home.comfortBondCents / 0.9)) + ' keeps the instalment within what your budget can carry.', cents: home.depositCents + home.costsCents, when: 'Next 12 to 36 months' });
+    if (overruns.length) A.push({ area: 'Budget', title: overruns.length + ' budget' + (overruns.length === 1 ? ' was' : 's were') + ' overspent last month', detail: overruns.map(o => o.name + ' by ' + R(o.overCents)).join('; ') + '. Either raise the budget honestly or cut the spending; do not let it drift.', when: 'This month' });
+    if (!millionaire.already && millionaire.need15 > millionaire.monthlyCents) A.push({ area: 'Wealth', title: 'Automate ' + R(millionaire.need15) + ' a month to reach R1 million in 15 years', detail: 'At a ' + net + '% net return. You are currently putting about ' + R(millionaire.monthlyCents) + ' a month towards wealth.', when: 'Ongoing' });
+
+    // ---- director's summary ----
+    const lines = [];
+    if (!income) lines.push('I cannot give you a reliable opinion yet because no income has been recorded.');
+    else lines.push('Your finances score ' + score + ' out of 100 (grade ' + grade + '). You are at stage ' + (stage + 1) + ' of 8: ' + ADV.STAGES[stage][1].toLowerCase() + '.');
+    if (income && surplus <= 0) lines.push('The most urgent problem is cash flow: you are short about ' + R(-surplus) + ' a month, so everything else waits until that gap is closed.');
+    else if (consumerCents) lines.push('Your biggest drag is ' + R(consumerCents) + ' of expensive consumer debt. Every rand that goes to it earns a guaranteed return equal to its interest rate, which beats any investment.');
+    else if (emMonths != null && emMonths < emTarget) lines.push('You have no expensive debt, which is a strong position. The next priority is a full emergency fund so a bad month does not undo your progress.');
+    else if (income) lines.push('The foundation is in place. Your job now is to invest consistently and buy assets that grow or pay you.');
+    if (cutTotal > 0) lines.push('I found about ' + R(cutTotal) + ' a month you could redirect from discretionary spending without touching essentials.');
+    if (millionaire.base && !millionaire.already) lines.push('At your current pace you would reach R1 million in about ' + millionaire.base.years + ' years (' + net + '% net return assumed).');
+
+    return { asOf: today, opts, histMonths: hist.length, income, incomeBasis, spend, surplus, surplusBasis, savingsRate, commissionEarner, debts, consumer, consumerCents, debtCents, debtService, dti, dtiOther, debtPlans,
+      emergency: { months: emMonths, target: emTarget, gapCents: emGapCents, essentialCents: ess, savedCents: d.emergencyCents },
+      wealth: { netWorthCents: nw.netWorthCents, assetsCents: nw.assetsCents, retirement, tfsa, invest, property, business, lifestyle, cash, investable, productive, investMonthly, investRate },
+      taxRoom, cuts, cutTotal, overruns, millionaire, roadmap: rm, freedom: { annualCostCents: annualCost, numberCents: freedomNumber, passiveMonthlyCents: passive, pct: freedomPct },
+      home, vehicle, protection: { life: hasLife, disability: hasDisab, medical: hasMed }, audit, confidence, done, stage, parts, score, grade, actions: A, summary: lines };
+  }
+};
+if (typeof module !== 'undefined') module.exports = ADV;
+
+if (typeof window !== 'undefined' && typeof NAV !== 'undefined') {
+  NAV.splice(NAV.findIndex(n => n[0] === 'overview') + 1, 0, ['advisor', 'Financial Director']);
+}
+
+function advOpts() {
+  let o = {}; try { o = JSON.parse(localStorage.getItem('mos.adv') || '{}') || {}; } catch (e) {}
+  const year = typeof TAXCALC !== 'undefined' ? TAXCALC.yearFor(today()) : null;
+  const tp = typeof taxProfile === 'function' && year ? taxProfile(year) : null;
+  return Object.assign({}, ADV.DEFAULTS, o, { taxProfile: tp });
+}
+VIEWS.advisor = () => {
+  const o = advOpts(), a = ADV.analyse(S.data, o), Rr0 = c => FC.fmtR(c);
+  const sevCls = { high: 'high', medium: 'medium', low: 'low' };
+  const yrs = h => h ? h.years + ' yrs (' + (new Date().getFullYear() + Math.floor((new Date().getMonth() + h.month) / 12)) + ')' : '50+ yrs';
+  const rows = l => '<div class="list small">' + l.map(r => '<div class="row"><span>' + r[0] + (r[2] ? '<small>' + r[2] + '</small>' : '') + '</span><span class="r"><b>' + r[1] + '</b></span></div>').join('') + '</div>';
+  const dp = a.debtPlans, plan = dp ? dp[dp.method] : null;
+  const ladder = '<div class="list">' + ADV.STAGES.map((st, i) => '<div class="row"><span><b>' + (i + 1) + '. ' + esc(st[1]) + '</b><small>' + esc(st[2]) + '</small></span><span class="r">' + (a.done[st[0]] ? '<span class="tag actual">done</span>' : i === a.stage ? '<span class="tag planned">you are here</span>' : '<span class="muted small">later</span>') + '</span></div>').join('') + '</div>';
+  const scoreTbl = table(['Area', '#Score', 'What I see'], a.parts.map(p => ({ cells: [esc(p.name), p.score + ' / ' + p.max, esc(p.detail)], wrap: 2 })), {});
+  const actions = a.actions.length ? '<div class="list">' + a.actions.map((x, i) => '<div class="row"><span><b>' + (i + 1) + '. ' + esc(x.title) + '</b><small>' + esc(x.area) + ' · ' + esc(x.when || '') + '</small><small>' + esc(x.detail) + '</small></span></div>').join('') + '</div>' : empty('No actions: keep doing what you are doing and review monthly.');
+  const debtCard = dp ? card('Getting out of debt', 'Debt-free plan using ' + (dp.extraCents ? 'an extra ' + Rr0(dp.extraCents) + ' a month (half your surplus)' : 'minimum payments only, because there is no surplus yet'),
+    rows([['Total debt', Rr0(a.debtCents), Rr0(a.consumerCents) + ' of it is expensive consumer debt'], ['Debt-free date', plan && plan.feasible ? dShort(plan.debtFreeDate) : 'Not reachable', plan ? plan.months + ' months, ' + dp.method + ' method' : ''], ['Interest saved', dp.interestSavedCents != null ? Rr0(dp.interestSavedCents) : '-', dp.monthsSaved ? dp.monthsSaved + ' months sooner than paying minimums' : 'versus paying minimums only']])
+    + table(['Pay off in this order', '#Rate', '#Balance', 'Paid off'], (plan && plan.payoff ? plan.payoff.slice().sort((x, y) => (x.month || 999) - (y.month || 999)) : []).map(p => { const dbt = a.debts.find(x => x.id === p.id) || {}; return { cells: [esc(p.name), (dbt.aprPct != null ? dbt.aprPct + '%' : '<span class="neg">missing</span>'), Rr0(dbt.balanceCents || 0), p.date ? dShort(p.date) : '-'] }; }), {})
+    + '<p class="note"><b>Avalanche</b> pays the highest interest rate first and costs the least. <b>Snowball</b> pays the smallest balance first for quick wins. Avalanche total interest: ' + Rr0(dp.avalanche.interestCents) + '; snowball: ' + Rr0(dp.snowball.interestCents) + '. Debt repayments take ' + (a.dti != null ? a.dti + '% of income in total and ' + a.dtiOther + '% excluding the home loan' : 'an unknown share of income') + ' (healthy: under 36% in total and under 10% excluding the home loan).</p>')
+    : card('Getting out of debt', '', '<p class="pos"><b>No debt recorded.</b> Stay that way: pay cash for depreciating things, and only borrow for assets that grow.</p>');
+  const cutCard = card('Where to find money', 'Discretionary spending, average of the last ' + (a.histMonths || 1) + ' month' + (a.histMonths === 1 ? '' : 's'), a.cuts.length ? table(['Spending', '#A month', '#Cut', '#Frees up'], a.cuts.map(c => ({ cells: [esc(c.name), Rr0(c.monthlyCents), c.cutPct + '%', '<b>' + Rr0(c.saveCents) + '</b>'] })), {}) + '<p class="note">Total: about <b>' + Rr0(a.cutTotal) + ' a month</b>, or ' + Rr0(a.cutTotal * 12) + ' a year. Redirect it the same day you get paid, by debit order, to the next step in your action plan.</p>' : empty('Not enough categorised spending history yet. Import statements and categorise them.'))
+;
+  const em = a.emergency;
+  const wealthCard = card('Becoming a millionaire', 'Projection of your net worth with ' + Rr0(a.millionaire.monthlyCents) + ' a month going to wealth (surplus plus investing)',
+    (a.millionaire.already ? '<p class="pos"><b>You are already a rand millionaire on paper.</b> The next milestone is financial freedom below.</p>' : '')
+    + table(['Scenario', '#Return', 'R1 million reached'], [['Cautious', (o.returnPct - 3) + '%', yrs(a.millionaire.conservative)], ['Base', o.returnPct + '%', yrs(a.millionaire.base)], ['Strong markets', (o.returnPct + 2) + '%', yrs(a.millionaire.optimistic)]].map(r => ({ cells: r })), {})
+    + table(['To reach R1 million in', '#Invest a month'], [['10 years', Rr0(a.millionaire.need10)], ['15 years', Rr0(a.millionaire.need15)], ['20 years', Rr0(a.millionaire.need20)]].map(r => ({ cells: r })), {})
+    + '<p class="note">Starts from your net worth excluding vehicles and valuables (' + Rr0(a.millionaire.startCents) + '). Returns are before inflation and after ' + o.feesPct + '% fees. In today\'s money (at ' + o.inflationPct + '% inflation) the base case reaches R1 million in ' + (a.millionaire.baseReal ? a.millionaire.baseReal.years + ' years' : 'more than 50 years') + '.</p>');
+  const fr = a.freedom;
+  const freeCard = card('Financial freedom', 'When your investments can pay your living costs', bar(fr.pct || 0) + rows([['Freedom reached', fr.pct != null ? fr.pct + '%' : '-', 'Could pay about ' + Rr0(fr.passiveMonthlyCents) + ' a month now'], ['Freedom number', Rr0(fr.numberCents), '25 times yearly living costs of ' + Rr0(fr.annualCostCents)], ['Investments working for you', Rr0(a.wealth.investable - a.wealth.cash), 'Retirement, tax-free and investments']])
+    + '<p class="note">The 4% rule says a balanced portfolio can usually fund about 4% of its value a year, rising with inflation. Many South African planners use 3.5% to be safer.</p>');
+  const h = a.home, w = a.wealth;
+  const assetCard = card('Buying assets', 'Buy assets that grow or pay you before things that lose value',
+    table(['Your assets', '#Value'], [['Retirement funds', Rr0(w.retirement)], ['Tax-free savings', Rr0(w.tfsa)], ['Investments and unit trusts', Rr0(w.invest)], ['Property', Rr0(w.property)], ['Business interests', Rr0(w.business)], ['Vehicles and valuables (lose value)', Rr0(w.lifestyle)]].map(r => ({ cells: r })), {})
+    + '<p class="note">' + (w.productive >= w.lifestyle ? 'Good: most of your assets grow or earn.' : '<b>More of your wealth sits in things that lose value than in things that grow.</b> Shift new money to investments before upgrading cars or lifestyle.') + '</p>'
+    + (h.hasHome ? '' : '<h3 style="margin-top:12px">Home affordability</h3>' + table(['', '#Instalment', '#Bond at ' + o.primePct + '% over 20 years'], [['What a bank may lend (30% of income)', Rr0(h.bankInstalCents), Rr0(h.bankBondCents)], ['What your budget can carry', Rr0(h.comfortInstalCents), Rr0(h.comfortBondCents)]].map(r => ({ cells: r })), {})
+      + '<p class="note">Based on ' + esc(h.basis) + '. Buy on the lower figure. Save a 10% deposit (' + Rr0(h.depositCents) + ') plus about ' + Rr0(h.costsCents) + ' for transfer and bond costs; get the exact costs from a conveyancer. Rates, rates and taxes, insurance and maintenance come on top of the bond.</p>')
+    + (a.vehicle.instalCents ? '<p class="note">Vehicle instalments: ' + Rr0(a.vehicle.instalCents) + ' a month (' + a.vehicle.pct + '% of income; keep it under 15%).</p>' : '')
+    + (a.taxRoom ? '<p class="note">Tax-efficient first: ' + Rr0(a.taxRoom.raRoomCents) + ' of retirement deduction room (about ' + Rr0(a.taxRoom.raSavingCents) + ' back from SARS) and ' + Rr0(a.taxRoom.tfsaRoomCents) + ' of tax-free savings room left this tax year.</p>' : ''));
+  const auditCard = card('Audit of your records', 'Confidence in this review: ' + a.confidence, a.audit.length ? '<div class="list">' + a.audit.map(x => '<div class="row"><span><b>' + esc(x[1]) + '</b><small>' + esc(x[2]) + '</small></span><span class="r"><span class="tag ' + (x[0] === 'high' ? 'estimated' : 'planned') + '">' + x[0] + '</span></span></div>').join('') + '</div>' : '<p class="pos">Your records are complete enough for a reliable review.</p>');
+  const assum = '<div class="toolbar" style="flex-wrap:wrap;gap:10px">' + [['returnPct', 'Investment return %'], ['inflationPct', 'Inflation %'], ['feesPct', 'Fees %'], ['primePct', 'Home loan rate %'], ['growthPct', 'Yearly increase in saving %']].map(f => '<label class="small">' + f[1] + ' <input data-adv="' + f[0] + '" value="' + o[f[0]] + '" inputmode="decimal" style="width:70px"></label>').join('') + btn('Recalculate', 'adv:set', 'sm') + '</div>';
+  return '<div class="alert info" style="margin-bottom:14px"><h3>Your Financial Director</h3><div class="small">A full review of your own numbers: cash flow, debt, savings, investing, tax, assets and the path to R1 million and financial freedom. Everything is worked out in your browser from your encrypted records; nothing is sent anywhere. This is general information based on the figures you entered, not advice from a licensed financial adviser. For product choices speak to an FSCA-licensed adviser.</div></div>'
+    + '<div class="grid g4 kpis">'
+    + kpi('Financial health', a.score + ' / 100', 'Grade ' + a.grade, 'estimated', true)
+    + kpi('Your stage', (a.stage + 1) + ' of 8', esc(ADV.STAGES[a.stage][1]), 'estimated')
+    + kpi('Left over each month', '<span class="' + (a.surplus < 0 ? 'neg' : 'pos') + '">' + Rr0(a.surplus) + '</span>', (a.savingsRate != null ? a.savingsRate + '% of income, ' : '') + a.surplusBasis + ' figures', a.surplusBasis === 'actual' ? 'actual' : 'planned')
+    + kpi('R1 million in', a.millionaire.already ? 'Reached' : a.millionaire.base ? a.millionaire.base.years + ' years' : '50+ years', 'Base case at ' + o.returnPct + '%', 'estimated')
+    + '</div>'
+    + card('Director\'s opinion', 'Based on ' + esc(a.incomeBasis) + ' and your records up to ' + dShort(a.asOf), '<p>' + a.summary.map(esc).join(' ') + '</p>')
+    + '<div class="split">' + card('Action plan', 'In priority order. Do them in this sequence.', actions) + card('The eight stages to wealth', 'Each stage protects the one after it', ladder) + '</div>'
+    + card('Health score breakdown', '', scoreTbl)
+    + '<div class="split">' + debtCard + card('Emergency fund', em.months == null ? 'No essential cost basis yet' : em.months + ' of ' + em.target + ' months covered', bar(em.months == null ? 0 : em.months / em.target * 100) + '<div class="list small"><div class="row"><span>Saved</span><span class="r">' + Rr0(em.savedCents) + '</span></div><div class="row"><span>Essential costs a month</span><span class="r">' + Rr0(em.essentialCents) + '</span></div><div class="row"><span>Still needed</span><span class="r">' + (em.gapCents != null ? Rr0(em.gapCents) : '-') + '</span></div></div>' + (a.commissionEarner && em.target < 6 ? '<p class="note">You earn commission, so consider six months: deals can slip. Change the target in Settings.</p>' : '')) + '</div>'
+    + '<div class="split">' + cutCard + wealthCard + '</div>'
+    + '<div class="split">' + assetCard + freeCard + '</div>'
+    + auditCard
+    + card('Assumptions', 'Change these to test other scenarios. Saved on this device only.', assum);
+};
+document.addEventListener('click', e => {
+  if (!e.target.closest('[data-act="adv:set"]')) return;
+  const o = {}; document.querySelectorAll('[data-adv]').forEach(i => { const v = parseFloat(String(i.value).replace(',', '.')); if (isFinite(v) && v >= 0 && v < 50) o[i.dataset.adv] = v; });
+  try { localStorage.setItem('mos.adv', JSON.stringify(o)); } catch (er) {}
+  render();
+});
+
 /* ===================== Millionaire OS: SaaS data layer, sign-in, household, billing, support =====================
  * Loads after the Family OS modules and replaces their storage layer. Every record is encrypted here before it is sent. */
 const APP_VERSION = '1.0.0-beta';
@@ -2184,7 +2464,7 @@ reload = async function (quiet) {
   const j = await mpost('mosPull', { ws: A.ws.id });
   if (j.keyVersion !== A.keyVersion) { await openWorkspace(A.ws.id, true); return; }
   const data = { settings: Object.assign({}, DEFAULT_SETTINGS) }; COL_LIST.forEach(c => { if (c !== 'settings') data[c] = []; });
-  A.meta = {}; A.role = j.role; A.canWrite = j.canWrite; let bad = 0;
+  A.meta = {}; A.role = j.role; A.canWrite = j.canWrite; A.wsActive = j.active !== false; let bad = 0;
   for (const r of j.rows) {
     try {
       const env = r.p ? await MCrypto.decRecord(A.keys.personal, r.id, r.p) : r.w ? await MCrypto.decRecord(A.wsKey, r.id, r.w) : null;
@@ -2323,7 +2603,11 @@ async function payshapStart(plan, period) {
   } catch (e) { toast(e.message); }
 }
 async function payshapSent(id) {
-  try { await mpost('mosPayShapSent', { invoice: id }); billingCache = null; if ($('dlg') && $('dlg').open) closeDlg(); toast('Thank you. We will confirm your payment and email you.'); render(); } catch (e) { toast(e.message); }
+  try {
+    const j = await mpost('mosPayShapSent', { invoice: id }); billingCache = null; if ($('dlg') && $('dlg').open) closeDlg();
+    if (j.ownerTest) { await refreshMe(); await reload(true); toast('Owner test: marked as paid until ' + dShort(String(j.periodEnd).slice(0, 10)) + '. No money was collected.'); showApp(); return; }
+    toast('Thank you. We will confirm your payment and email you.'); render();
+  } catch (e) { toast(e.message); }
 }
 async function startCheckout(plan, period) {
   try {
@@ -2468,7 +2752,7 @@ function showApp() {
   $('wsSwitch').innerHTML = wsSwitcherHtml();
   const ann = (A.announcements || [])[0], ro = !S.demo && !A.canWrite;
   $('notice').hidden = !(ann || ro || (A.ent && A.ent.state === 'past_due'));
-  $('notice').innerHTML = ro ? '<b>' + (A.role === 'readonly' ? 'You have read-only access to this workspace.' : 'Read-only.') + '</b> ' + (A.role === 'readonly' ? '' : 'Renew the subscription to add or edit records. You can still view and export. <button class="btn link" data-go="billing">Billing</button>') : A.ent && A.ent.state === 'past_due' ? '<b>Payment failed.</b> You keep full access for a few days. <button class="btn link" data-go="billing">Billing</button>' : ann ? '<b>' + esc(ann.title) + '</b> ' + esc(ann.body) : '';
+  $('notice').innerHTML = ro ? '<b>' + (A.role === 'readonly' ? 'You have read-only access to this workspace.' : 'Read-only.') + '</b> ' + (A.role === 'readonly' ? '' : (A.wsActive === false ? 'The subscription has ended: pay to open the app again. You can still export your data. ' : 'Renew the subscription to add or edit records. You can still view and export. ')+'<button class="btn link" data-go="billing">Billing</button>') : A.ent && A.ent.state === 'past_due' ? '<b>Payment failed.</b> You keep full access for a few days. <button class="btn link" data-go="billing">Billing</button>' : ann ? '<b>' + esc(ann.title) + '</b> ' + esc(ann.body) : '';
   const h = (location.hash || '').slice(1).replace('-done', ''); go(VIEWS[h] ? h : (S.view && VIEWS[S.view] ? S.view : 'overview'));
 }
 async function afterSignIn(j, password) {
@@ -2537,6 +2821,27 @@ let idleT; ['click', 'keydown', 'touchstart'].forEach(ev => document.addEventLis
   if (location.hash === '#billing-done') toast('Payment submitted. Your plan updates as soon as PayFast confirms it.');
   showPanel(location.hash === '#register' ? 'register' : 'signin');
 })();
+
+/* ---------- access: no payment, no use ---------- */
+// When the trial or paid period (plus grace) has ended, the app opens only on Plan & billing, Support, Household and Settings (export).
+// Saving is refused by the server as well; the records stay encrypted and can still be exported.
+const LOCK_OK = ['billing', 'support', 'household', 'settings'];
+const accessLocked = () => !S.demo && A.wsActive === false;
+VIEWS.locked = () => {
+  const owner = A.ws && A.ws.isOwner, st = A.ent && A.ent.state;
+  return '<section class="card" style="max-width:640px;margin:20px auto;text-align:center"><h2 style="margin-bottom:8px">' + (owner ? (st === 'closed' ? 'Your subscription has ended' : 'Your free trial or paid period has ended') : 'This workspace is paused') + '</h2>'
+    + '<p class="muted">' + (owner ? 'Choose a plan and pay to open Millionaire OS again. Everything you captured is still here, encrypted, exactly as you left it.' : 'The owner of this workspace (' + esc((A.ws && A.ws.ownerEmail) || 'the owner') + ') needs to renew the subscription before it can be used again.') + '</p>'
+    + '<div class="toolbar" style="justify-content:center;margin-top:14px">' + (owner ? '<button class="btn primary" data-go="billing">Choose a plan and pay</button>' : '') + '<button class="btn" data-go="settings">Export my data</button><button class="btn" data-go="support">Support</button></div></section>';
+};
+{
+  const _render = render, _renderNav = renderNav;
+  render = function () {
+    if (S.data && accessLocked() && !LOCK_OK.includes(S.view)) { S.view = 'locked'; _render(); $('pageTitle').textContent = 'Plan & billing needed'; return; }
+    if (S.view === 'locked' && !accessLocked()) S.view = 'overview';
+    _render();
+  };
+  renderNav = function () { _renderNav(); if (accessLocked()) document.querySelectorAll('#nav [data-go]').forEach(b => { if (!LOCK_OK.includes(b.dataset.go)) { b.disabled = true; b.style.opacity = '.45'; b.title = 'Pay to unlock'; } }); };
+}
 
 </script>
 </body>
