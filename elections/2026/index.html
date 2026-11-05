@@ -272,9 +272,9 @@ function renderDashboard() {
     viaFiles ? metric('Municipalities with published results', munis.length ? fmt(munis.length) : null, munis.length ? 'official' : 'unavailable', 'of 213 municipalities', munis.length / 213 * 100) : metric('Municipalities with complete results', munis.length ? fmt(munis.filter(m => m.complete).length) : null, munis.length ? 'official' : 'unavailable', totalMunis ? 'of ' + fmt(totalMunis) + ' municipalities' : '', munis.length && totalMunis ? munis.filter(m => m.complete).length / totalMunis * 100 : null),
     metric('Seat calculations completed', seatsKnown ? fmt(seatsKnown) : null, seatsKnown ? 'official' : 'unavailable', viaFiles && !seatsKnown ? 'shown when the IEC API is connected' : totalMunis ? 'of ' + fmt(totalMunis) + ' councils' : '', seatsKnown && totalMunis ? seatsKnown / totalMunis * 100 : null),
     metric('Seats allocated', seatTotal != null ? fmt(seatTotal) : null, seatTotal != null ? 'official' : 'unavailable', seatTotal != null ? 'in councils with a published seat calculation' : ''),
-    metric('Registered voters', n ? fmt(n.registered) : null, n && n.registered != null ? 'official' : 'unavailable', ''),
-    metric('Total votes recorded', n ? fmt(n.cast) : null, tag(n && n.cast), n && !done ? 'in voting districts reported so far' : ''),
-    metric('Valid votes', n ? fmt(n.valid) : null, tag(n && n.valid), ''),
+    metric('Registered voters', n ? fmt(n.registered) : null, n && n.registered != null ? 'official' : 'unavailable', viaFiles && n ? 'in the voting districts reported so far' : ''),
+    metric(viaFiles ? 'Voters who cast a ballot' : 'Total votes recorded', n ? fmt(n.cast) : null, viaFiles && n && n.cast != null ? 'derived' : tag(n && n.cast), viaFiles ? 'larger of ward or PR ballots cast, reported so far' : n && !done ? 'in voting districts reported so far' : ''),
+    metric('Valid votes', n ? fmt(n.valid) : null, tag(n && n.valid), viaFiles ? 'ward, PR and district ballots combined' : ''),
     metric('Spoilt ballots', n ? fmt(n.spoilt) : null, tag(n && n.spoilt), ''),
     metric('Voter turnout', n ? pct(n.turnout, 2) : null, viaFiles && n && n.turnout != null ? 'derived' : tag(n && n.turnout), viaFiles ? 'derived from IEC votes cast and registered voters' : n && !done ? 'IEC figure for districts reported so far' : '')
   ];
