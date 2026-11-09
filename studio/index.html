@@ -3,93 +3,464 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MRET Studio | Stream everywhere at once</title>
-<meta name="description" content="MRET Studio: Uhuru Matlhaji's multistream studio for YouTube, Facebook, TikTok and Instagram.">
+<title>MRET Studio</title>
 <meta name="robots" content="noindex">
 <style>
-:root{--bg:#0e1218;--panel:#161c25;--line:#2a3442;--ink:#e8edf4;--muted:#9aa6b8;--accent:#4f7cff;--red:#b40101}
+:root{--bg:#0e1218;--panel:#161c25;--panel2:#1d2531;--line:#2a3442;--ink:#e8edf4;--muted:#94a1b3;--accent:#4f7cff;--live:#e5484d;--good:#30a46c;--warn:#f5a524;--f:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--mono:ui-monospace,Menlo,monospace}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-a{color:#8fb0ff}
-.wrap{max-width:1000px;margin:0 auto;padding:28px 16px 60px;display:grid;gap:22px}
-.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-.top a{color:var(--muted);text-decoration:none;font-size:.9rem}
-h1{font-size:clamp(1.8rem,5vw,2.6rem);margin:0;line-height:1.15}
-h2{font-size:1.15rem;margin:0 0 8px}
-.lead{color:var(--muted);font-size:1.08rem;max-width:62ch;margin:6px 0 0}
-.cta{display:flex;gap:10px;flex-wrap:wrap}
-.btn{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font-weight:700;padding:10px 18px;border-radius:9px}
-.btn.alt{background:transparent;border:1px solid var(--line);color:var(--ink)}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
-.card b{display:block;margin-bottom:4px}
-.card p{margin:0;color:var(--muted);font-size:.93rem}
-ol,ul{margin:0;padding-left:20px}
-li{margin:4px 0}
-.note{color:var(--muted);font-size:.9rem}
-table{width:100%;border-collapse:collapse;font-size:.92rem}
-th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
-th{color:var(--muted);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.06em}
-.tw{overflow-x:auto}
-.bar{height:4px;width:64px;background:var(--red);border-radius:2px}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--f)}
+button,input,select,textarea{font:inherit;color:inherit}
+.top{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+.brand{font-weight:700;font-size:1.05rem;letter-spacing:.01em}
+.brand small{color:var(--muted);font-weight:400;margin-left:6px}
+.spacer{flex:1}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:.8rem;font-weight:600;background:var(--panel2);color:var(--muted)}
+.pill.live{background:var(--live);color:#fff}
+.pill.rec{background:#3a1d22;color:#ff8a8f}
+.btn{border:1px solid var(--line);background:var(--panel2);border-radius:7px;padding:6px 12px;cursor:pointer;font-weight:600;font-size:.85rem}
+.btn:hover{border-color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.danger{background:var(--live);border-color:var(--live);color:#fff}
+.btn.on{background:#22324f;border-color:var(--accent)}
+.btn.sm{padding:3px 9px;font-size:.78rem}
+.tabs{display:flex;gap:4px}
+.tabs .btn[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;padding:14px 16px 40px;max-width:1500px;margin:0 auto}
+@media (max-width:1050px){.main{grid-template-columns:1fr}}
+.col{display:grid;gap:14px;align-content:start;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:10px;min-width:0}
+.panel h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0;font-weight:700}
+.ph{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.stage{position:relative;background:#000;border-radius:8px;overflow:hidden;aspect-ratio:16/9}
+.stage canvas{width:100%;height:100%;display:block}
+.safe{position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);aspect-ratio:9/16;border-left:2px dashed rgba(255,255,255,.55);border-right:2px dashed rgba(255,255,255,.55);pointer-events:none}
+.safe span{position:absolute;top:6px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);font-size:.7rem;padding:1px 6px;border-radius:4px;white-space:nowrap}
+.scenes{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.scene{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:8px;cursor:pointer;text-align:left}
+.scene b{display:block;font-size:.85rem}
+.scene span{font-size:.72rem;color:var(--muted)}
+.scene[aria-pressed="true"]{border-color:var(--accent);background:#1a2742;box-shadow:inset 0 0 0 1px var(--accent)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row>label{flex:1 1 160px}
+label{display:grid;gap:3px;font-size:.78rem;color:var(--muted);min-width:0}
+input[type=text],input[type=password],input[type=number],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%;min-width:0}
+input[type=color]{width:44px;height:32px;border:1px solid var(--line);border-radius:6px;background:var(--bg);padding:2px}
+.check{display:flex;align-items:center;gap:8px;color:var(--ink);font-size:.88rem}
+.meter{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden;flex:1 1 80px}
+.meter i{display:block;height:100%;width:0;background:var(--good);transition:width .08s}
+.dests{display:grid;gap:6px}
+.dest{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;background:var(--panel2);border-radius:8px;padding:8px}
+.dest .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dest .meta{font-size:.74rem;color:var(--muted)}
+.st{font:600 .72rem var(--mono);padding:2px 7px;border-radius:4px;background:var(--bg);color:var(--muted);white-space:nowrap}
+.st.live{background:#123824;color:#58d68d}.st.connecting{background:#3a2e10;color:var(--warn)}.st.retrying{background:#3a1d22;color:#ff8a8f}
+.note{font-size:.8rem;color:var(--muted)}
+.note.err{color:#ff8a8f}
+.warn{background:#2d2410;border:1px solid #5b4615;color:#ffd68a;border-radius:8px;padding:8px 10px;font-size:.84rem}
+.guests{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.guest{background:var(--panel2);border-radius:8px;overflow:hidden;display:grid}
+.guest video{width:100%;aspect-ratio:16/9;object-fit:cover;background:#000}
+.guest .gb{padding:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.guest .gb b{flex:1;font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.link{font:12px var(--mono);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;overflow-wrap:anywhere}
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:16px;width:min(520px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog form{display:grid;gap:10px}
+.drow{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.hidden{display:none!important}
+.recs{display:grid;gap:6px}
+.recitem{background:var(--panel2);border-radius:8px;padding:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;cursor:pointer;border:1px solid transparent}
+.recitem[aria-selected="true"]{border-color:var(--accent)}
+.recitem b{flex:1 1 200px}
+video.player{width:100%;border-radius:8px;background:#000;max-height:60vh}
+.marks{display:flex;gap:6px;flex-wrap:wrap}
+kbd{font:11px var(--mono);background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:0 5px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;z-index:20;font-weight:600;max-width:calc(100vw - 32px)}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="top"><a href="/">&larr; www.mret.co.za</a><a href="https://claude.ai/artifact/RG3efsKgsGfmLXg7CF5NLL">Uhuru's Desk</a></div>
-  <div>
-    <div class="bar"></div>
-    <h1>MRET Studio</h1>
-    <p class="lead">One studio, every platform. Go live on YouTube, Facebook, TikTok and Instagram at the same time, with your branding, guests, a recording of every stream and ready-to-post clips.</p>
+<div class="top">
+  <div class="brand"><a href="https://www.mret.co.za/" style="color:inherit;text-decoration:none">MRET Studio</a> <small>multistream · <a href="https://www.mret.co.za/studio/guide/" style="color:inherit">guide</a></small></div>
+  <div class="tabs" role="tablist">
+    <button class="btn sm" role="tab" aria-selected="true" data-tab="studio">Studio</button>
+    <button class="btn sm" role="tab" aria-selected="false" data-tab="clips">Recordings &amp; clips</button>
   </div>
-  <div class="cta">
-    <a class="btn" href="http://localhost:7373/">Open the studio</a>
-    <a class="btn alt" href="#setup">Platform setup</a>
-  </div>
-  <p class="note">The studio runs on Uhuru's Mac. Start it first by double-clicking <b>Start MRET Studio</b> on the Desktop; the button above then opens it.</p>
+  <div class="spacer"></div>
+  <span class="pill" id="livePill">OFFLINE</span>
+  <span class="pill rec hidden" id="recPill">REC</span>
+  <span class="pill mono" id="timer">00:00:00</span>
+  <button class="btn" id="markBtn" disabled title="Mark a moment for a clip (M)">Mark moment</button>
+  <button class="btn primary" id="goBtn">Go live</button>
+</div>
 
-  <div class="grid">
-    <div class="card"><b>Multistream</b><p>One feed, sent to every destination you tick. Each platform reconnects on its own if it drops.</p></div>
-    <div class="card"><b>Landscape and vertical</b><p>16:9 for YouTube and Facebook, 9:16 for TikTok and Instagram, from the same camera at the same time.</p></div>
-    <div class="card"><b>Scenes</b><p>Starting soon with countdown, camera, screen with camera, screen with guests, conversation, be right back.</p></div>
-    <div class="card"><b>Branding</b><p>Your colour, logo, name lower third, banners and a scrolling ticker you type live.</p></div>
-    <div class="card"><b>Guests</b><p>Up to four guests join by link from any browser and wait backstage until you bring them on.</p></div>
-    <div class="card"><b>Record and clip</b><p>Every stream is saved. Mark moments while live, then cut vertical clips for Reels, TikTok and Shorts.</p></div>
+<div class="warn hidden" id="offline" style="margin:14px 16px 0"><b>The studio engine isn't reachable on this computer.</b> MRET Studio streams from Uhuru's Mac: open this page on that Mac in Google Chrome. If Chrome asks to let www.mret.co.za "access other apps and services on this device" or "devices on your local network", click Allow. Otherwise double-click <b>Start MRET Studio</b> on the Desktop. <a href="/studio/guide/" style="color:#ffd68a">Setup guide</a></div>
+<div class="main" id="tab-studio">
+  <div class="col">
+    <div class="panel">
+      <div class="stage" id="stage"><canvas id="program" width="1280" height="720"></canvas><div class="safe hidden" id="safe"><span>Vertical (TikTok / Instagram) shows this area</span></div></div>
+      <div class="scenes" id="scenes"></div>
+      <div class="row note">Shortcuts: <kbd>1</kbd>–<kbd>7</kbd> scenes · <kbd>M</kbd> mark moment · <kbd>L</kbd> lower third · <kbd>B</kbd> banner. Keep this tab open while live; it keeps streaming in the background.</div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><h2>Live status</h2><span class="note" id="feedNote"></span></div>
+      <div class="dests" id="statusList"><div class="note">Destinations show their connection and bitrate here while you are live.</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><h2>Guests</h2><div class="row"><button class="btn sm" id="inviteBtn">Invite guests</button><button class="btn sm hidden" id="closeInvite">Close guest link</button></div></div>
+      <div class="note">Guests join from any browser with a link. They wait backstage until you add them to the stage. Up to 4 guests. Use headphones to avoid echo.</div>
+      <div id="inviteBox" class="hidden"><div class="link" id="inviteLink">Creating a secure link…</div><div class="row" style="margin-top:6px"><button class="btn sm" id="copyLink">Copy link</button><span class="note">A new link is made each time; closing it disconnects guests.</span></div></div>
+      <div class="guests" id="guestList"></div>
+    </div>
   </div>
 
-  <div class="card" id="setup">
-    <h2>Platform setup: where to find each stream key</h2>
-    <div class="tw"><table>
-      <thead><tr><th>Platform</th><th>Where</th><th>Format</th><th>Good to know</th></tr></thead>
-      <tbody>
-        <tr><td>YouTube</td><td>YouTube Studio &gt; Create &gt; Go live &gt; Stream. Copy the stream URL and key.</td><td>Landscape</td><td>First time only: live streaming can take up to 24 hours to switch on.</td></tr>
-        <tr><td>Facebook</td><td>Live video &gt; Streaming software. Copy the server URL and stream key.</td><td>Landscape</td><td>Tick "persistent stream key" to reuse the same key every week.</td></tr>
-        <tr><td>TikTok</td><td>LIVE Studio or LIVE Center &gt; stream key (eligible accounts only).</td><td>Vertical</td><td>Usually a new key for every LIVE. Update it in the studio before going live.</td></tr>
-        <tr><td>Instagram</td><td>On a computer: instagram.com &gt; Create &gt; Live video. Copy the stream URL and key.</td><td>Vertical</td><td>Professional accounts only. The key changes every time.</td></tr>
-      </tbody>
-    </table></div>
-    <p class="note">Menus on each platform change from time to time; the studio's Add destination screen repeats these steps. Stream keys are stored only on the Mac running the studio.</p>
-  </div>
+  <div class="col">
+    <div class="panel">
+      <h2>Sources</h2>
+      <div class="row"><button class="btn" id="camBtn">Start camera &amp; mic</button><button class="btn" id="screenBtn">Share screen</button></div>
+      <div class="row">
+        <label>Camera<select id="camSel"></select></label>
+        <label>Microphone<select id="micSel"></select></label>
+      </div>
+      <div class="row"><button class="btn sm" id="muteBtn">Mute mic</button><div class="meter" title="Microphone level"><i id="micLvl"></i></div></div>
+      <div class="row"><label class="check"><input type="checkbox" id="screenAudio" checked> Include screen/tab audio</label><label class="check"><input type="checkbox" id="mirror"> Mirror my camera in preview tiles</label></div>
+    </div>
 
-  <div class="grid">
-    <div class="card"><h2>Before you go live</h2><ol>
-      <li>Fresh keys pasted for TikTok and Instagram.</li>
-      <li>Headphones on; guests told to use headphones.</li>
-      <li>Name, banner and slate title checked.</li>
-      <li>Start on the Starting soon scene, then switch to Camera.</li>
-      <li>Other uploads and big downloads paused.</li>
-    </ol></div>
-    <div class="card"><h2>While live</h2><ul>
-      <li>Watch Live status: every destination should show LIVE with a steady bitrate.</li>
-      <li>Press M at every tip worth clipping.</li>
-      <li>Keep the studio tab open; it keeps streaming in the background.</li>
-    </ul></div>
-    <div class="card"><h2>After</h2><ol>
-      <li>Recordings &amp; clips: Clip every marked moment as vertical.</li>
-      <li>Post clips over the next week: one a day.</li>
-      <li>Note questions from comments as leads to follow up.</li>
-    </ol></div>
+    <div class="panel">
+      <h2>Branding &amp; overlays</h2>
+      <div class="row"><label style="flex:0 0 auto">Brand colour<input type="color" id="oColor" value="#b40101"></label><label>Logo (PNG, your own)<input type="file" id="oLogoFile" accept="image/png,image/jpeg,image/svg+xml"></label></div>
+      <label class="check"><input type="checkbox" id="oLogo"> Show logo (top right)</label>
+      <div class="row"><label>Name<input type="text" id="oName" value="Uhuru Matlhaji"></label><label>Title<input type="text" id="oTitle" value="MCTT · Keller Williams Edge"></label></div>
+      <label class="check"><input type="checkbox" id="oLower" checked> Show name lower third <kbd>L</kbd></label>
+      <label>Banner<input type="text" id="oBanner" placeholder="e.g. Ask your questions in the comments"></label>
+      <label class="check"><input type="checkbox" id="oBannerOn"> Show banner <kbd>B</kbd></label>
+      <label>Ticker<input type="text" id="oTicker" placeholder="e.g. Book a one-on-one at www.mret.co.za/one-on-one"></label>
+      <label class="check"><input type="checkbox" id="oTickerOn"> Show scrolling ticker</label>
+      <div class="row"><label>Slate title (Starting soon / Be right back)<input type="text" id="oSlate" value="Smart Agent Series"></label><label style="flex:0 0 110px">Countdown (min)<input type="number" id="oCount" min="0" max="60" value="5"></label></div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><h2>Destinations</h2><button class="btn sm" id="addDest">Add destination</button></div>
+      <div class="dests" id="destList"><div class="note">Loading…</div></div>
+      <div class="row">
+        <label>Vertical style<select id="vstyle"><option value="fit">Fit with blurred background</option><option value="crop">Crop to centre</option></select></label>
+        <label>Quality<select id="quality"><option value="720p">720p (recommended)</option><option value="1080p">1080p (needs more upload)</option></select></label>
+      </div>
+      <label class="check"><input type="checkbox" id="recOn" checked> Record this stream on this Mac</label>
+      <div class="note" id="bwNote"></div>
+      <div class="warn hidden" id="ffWarn"></div>
+    </div>
   </div>
 </div>
+
+<div class="main hidden" id="tab-clips">
+  <div class="col">
+    <div class="panel">
+      <div class="ph"><h2>Recording</h2><button class="btn sm" id="revealRec">Show in Finder</button></div>
+      <video class="player" id="player" controls playsinline></video>
+      <div class="marks" id="marks"></div>
+      <div class="row">
+        <label style="flex:0 0 130px">Start (seconds)<input type="number" id="cStart" min="0" value="0"></label>
+        <button class="btn sm" id="cNow" style="align-self:end">Use current time</button>
+        <label style="flex:0 0 120px">Length (s)<input type="number" id="cDur" min="3" max="180" value="30"></label>
+        <label>Format<select id="cFmt"><option value="vertical-fit">Vertical 9:16, blurred fill (Reels, TikTok, Shorts)</option><option value="vertical-crop">Vertical 9:16, crop centre</option><option value="landscape">Landscape 16:9 (YouTube, LinkedIn)</option></select></label>
+      </div>
+      <div class="row"><label>Clip name<input type="text" id="cLabel" placeholder="e.g. Pricing tip"></label><button class="btn primary" id="cMake" style="align-self:end">Make clip</button><button class="btn" id="cAll" style="align-self:end">Clip every marked moment</button></div>
+      <div class="note" id="cNote">Choose a recording. Marked moments start 20 seconds before the mark.</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="panel"><h2>Recordings</h2><div class="recs" id="recList"><div class="note">Loading…</div></div></div>
+    <div class="panel"><div class="ph"><h2>Clips</h2></div><div class="recs" id="clipList"></div></div>
+  </div>
+</div>
+
+<dialog id="destDlg">
+  <form method="dialog" id="destForm">
+    <h3 style="margin:0" id="destTitle">Add destination</h3>
+    <label>Platform<select id="dPlat"><option value="youtube">YouTube</option><option value="facebook">Facebook</option><option value="tiktok">TikTok</option><option value="instagram">Instagram</option><option value="custom">Other (custom RTMP)</option></select></label>
+    <label>Name shown in the studio<input type="text" id="dName" required></label>
+    <label>Server URL<input type="text" id="dUrl" placeholder="rtmp:// or rtmps://" required></label>
+    <label>Stream key<input type="password" id="dKey" autocomplete="off" placeholder="Paste the stream key from the platform"></label>
+    <label>Format<select id="dFmt"><option value="landscape">Landscape 16:9</option><option value="vertical">Vertical 9:16</option></select></label>
+    <div class="note" id="dHelp"></div>
+    <div class="note">The key is saved only on this Mac, in a file only your user account can read. It is never shown again in full and never leaves this computer except to the platform itself.</div>
+    <div class="note err hidden" id="dErr"></div>
+    <div class="drow"><button class="btn sm hidden" value="delete" id="dDel" type="button">Remove</button><span class="spacer"></span><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="ok" id="dSave">Save</button></div>
+  </form>
+</dialog>
+
+<dialog id="goDlg">
+  <form method="dialog">
+    <h3 style="margin:0">Go live now?</h3>
+    <div id="goList"></div>
+    <div class="note">Each platform starts its live broadcast as soon as video arrives. On YouTube make sure the stream is set up in YouTube Studio; on Facebook, TikTok and Instagram press their own "Go live" button once the preview appears there, if they ask for it.</div>
+    <div class="drow"><button class="btn" value="cancel">Cancel</button><button class="btn danger" value="ok">Go live</button></div>
+  </form>
+</dialog>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const el=(t,c,x)=>{const e=document.createElement(t); if(c) e.className=c; if(x!=null) e.textContent=x; return e;};
+const toast=m=>{const t=el('div','toast',m); document.body.append(t); setTimeout(()=>t.remove(),3500);};
+const LOCAL=/^(localhost|127\.0\.0\.1)$/.test(location.hostname), BASE=LOCAL?'':'http://localhost:7373';
+const api=async(p,b)=>{const r=await fetch(BASE+'/api/'+p,b===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json','X-Studio':'1'},body:JSON.stringify(b)}); const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||'Request failed'); return j;};
+const LS={get(k,d){try{const v=localStorage.getItem('studio.'+k); return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem('studio.'+k,JSON.stringify(v));}catch(e){}}};
+
+// ---------------- State ----------------
+const W=1280,H=720, cv=$('program'), g=cv.getContext('2d');
+let cam=null, mic=null, screen=null, camV=el('video'), scrV=el('video');
+[camV,scrV].forEach(v=>{v.muted=true;v.playsInline=true;v.autoplay=true;});
+let scene=LS.get('scene','soon'), logoImg=null, liveOn=false, startedAt=0, recorder=null, ws=null, state=null;
+const guests=new Map(); // id -> {name, pc, stream, video, staged, gain, mm}
+
+// ---------------- Audio mix ----------------
+let ac=null, progDest=null, micSrc=null, micGain=null, scrSrc=null, scrGain=null, analyser=null;
+function audio(){ if(ac) return ac; ac=new AudioContext({sampleRate:48000}); progDest=ac.createMediaStreamDestination();
+  micGain=ac.createGain(); micGain.connect(progDest); scrGain=ac.createGain(); scrGain.connect(progDest);
+  analyser=ac.createAnalyser(); analyser.fftSize=512; micGain.connect(analyser);
+  const sil=ac.createConstantSource(); const z=ac.createGain(); z.gain.value=0; sil.connect(z); z.connect(progDest); sil.start(); // keeps an audio track alive
+  meter(); return ac; }
+function meter(){ const d=new Uint8Array(analyser.fftSize); (function f(){ analyser.getByteTimeDomainData(d); let m=0; for(const x of d) m=Math.max(m,Math.abs(x-128)); $('micLvl').style.width=Math.min(100,m/1.2)+'%'; $('micLvl').style.background=m>110?'var(--live)':m>70?'var(--warn)':'var(--good)'; requestAnimationFrame(f); })(); }
+function rewireGuests(){ // program: staged guests heard; mix-minus: each guest hears host + other staged guests + screen
+  guests.forEach(x=>{ if(!x.src) return; try{x.src.disconnect();}catch(e){} x.src.connect(x.mon); if(x.staged) x.src.connect(progDest); });
+  guests.forEach(x=>{ if(!x.mm) return; guests.forEach(y=>{ if(y!==x&&y.src&&y.staged) y.src.connect(x.mm); }); });
+}
+
+// ---------------- Devices ----------------
+async function listDevices(){ const ds=await navigator.mediaDevices.enumerateDevices();
+  const fill=(sel,kind,cur)=>{ sel.innerHTML=''; ds.filter(d=>d.kind===kind).forEach((d,i)=>{ const o=el('option',null,d.label||kind+' '+(i+1)); o.value=d.deviceId; if(d.deviceId===cur) o.selected=true; sel.append(o); }); };
+  fill($('camSel'),'videoinput',LS.get('cam')); fill($('micSel'),'audioinput',LS.get('mic')); }
+async function startCam(){
+  audio(); if(ac.state!=='running') await ac.resume();
+  const camId=$('camSel').value||LS.get('cam'), micId=$('micSel').value||LS.get('mic');
+  try{
+    if(cam) cam.getTracks().forEach(t=>t.stop());
+    cam=await navigator.mediaDevices.getUserMedia({video:{deviceId:camId?{exact:camId}:undefined,width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30}},audio:{deviceId:micId?{exact:micId}:undefined,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+  }catch(e){ try{ cam=await navigator.mediaDevices.getUserMedia({video:true,audio:true}); }catch(e2){ toast('Camera or microphone blocked: allow them in the address bar.'); return; } }
+  camV.srcObject=new MediaStream(cam.getVideoTracks()); camV.play().catch(()=>{});
+  if(micSrc) try{micSrc.disconnect();}catch(e){}
+  micSrc=ac.createMediaStreamSource(new MediaStream(cam.getAudioTracks())); micSrc.connect(micGain);
+  guests.forEach(x=>{ if(x.mm) micSrc.connect(x.mm); x.pc&&x.pc.getSenders().forEach(s=>{ if(s.track&&s.track.kind==='video') s.replaceTrack(cam.getVideoTracks()[0]); }); });
+  $('camBtn').textContent='Restart camera'; await listDevices();
+  LS.set('cam',cam.getVideoTracks()[0]?.getSettings().deviceId); LS.set('mic',cam.getAudioTracks()[0]?.getSettings().deviceId);
+  if(scene==='soon'||scene==='brb'){} else if(!screen) setScene('cam');
+}
+async function shareScreen(){
+  if(screen){ screen.getTracks().forEach(t=>t.stop()); return endScreen(); }
+  audio();
+  try{ screen=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:30,width:{ideal:1920},height:{ideal:1080}},audio:$('screenAudio').checked,systemAudio:'include',surfaceSwitching:'include'}); }catch(e){ return; }
+  scrV.srcObject=new MediaStream(screen.getVideoTracks()); scrV.play().catch(()=>{});
+  if(screen.getAudioTracks().length){ scrSrc=ac.createMediaStreamSource(new MediaStream(screen.getAudioTracks())); scrSrc.connect(scrGain); guests.forEach(x=>x.mm&&scrSrc.connect(x.mm)); }
+  screen.getVideoTracks()[0].onended=endScreen;
+  $('screenBtn').textContent='Stop sharing'; $('screenBtn').classList.add('on');
+  if(!['pip','side','screen'].includes(scene)) setScene('pip');
+}
+function endScreen(){ if(scrSrc) try{scrSrc.disconnect();}catch(e){} scrSrc=null; screen=null; scrV.srcObject=null; $('screenBtn').textContent='Share screen'; $('screenBtn').classList.remove('on'); if(['pip','side','screen'].includes(scene)) setScene('cam'); }
+$('camBtn').onclick=startCam; $('screenBtn').onclick=shareScreen;
+$('camSel').onchange=()=>{ LS.set('cam',$('camSel').value); if(cam) startCam(); };
+$('micSel').onchange=()=>{ LS.set('mic',$('micSel').value); if(cam) startCam(); };
+$('muteBtn').onclick=()=>{ if(!micGain) return; const m=micGain.gain.value>0; micGain.gain.value=m?0:1; cam&&cam.getAudioTracks().forEach(t=>t.enabled=!m); $('muteBtn').textContent=m?'Unmute mic':'Mute mic'; $('muteBtn').classList.toggle('danger',m); };
+
+// ---------------- Scenes ----------------
+const SCENES=[['soon','Starting soon','Slate + countdown'],['cam','Camera','You and staged guests'],['pip','Screen + me','Screen, camera in corner'],['side','Screen + people','Screen with a camera column'],['screen','Screen only','Slides, demos'],['grid','Conversation','Everyone side by side'],['brb','Be right back','Slate']];
+SCENES.forEach(([id,t,s],i)=>{ const b=el('button','scene'); b.type='button'; b.dataset.s=id; b.append(el('b',null,(i+1)+'. '+t),el('span',null,s)); b.onclick=()=>setScene(id); $('scenes').append(b); });
+let slateStart=Date.now();
+function setScene(s){ if((s==='soon')&&scene!=='soon') slateStart=Date.now(); scene=s; LS.set('scene',s); document.querySelectorAll('.scene').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.s===s))); }
+setScene(scene);
+
+// ---------------- Overlays ----------------
+const O={}; ['oColor','oName','oTitle','oBanner','oTicker','oSlate','oCount'].forEach(k=>{ const e=$(k); e.value=LS.get(k,e.value); e.oninput=()=>{O[k]=e.value; LS.set(k,e.value);}; O[k]=e.value; });
+['oLogo','oLower','oBannerOn','oTickerOn','recOn','mirror','screenAudio'].forEach(k=>{ const e=$(k); e.checked=LS.get(k,e.checked); e.onchange=()=>{O[k]=e.checked; LS.set(k,e.checked);}; O[k]=e.checked; });
+function loadLogo(src){ if(!src) return; const i=new Image(); i.onload=()=>{logoImg=i;}; i.src=src; }
+loadLogo(LS.get('logo',null));
+$('oLogoFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ LS.set('logo',r.result); loadLogo(r.result); $('oLogo').checked=true; O.oLogo=true; LS.set('oLogo',true); }; r.readAsDataURL(f); };
+
+// ---------------- Compositor ----------------
+const ready=v=>v&&v.readyState>=2&&v.videoWidth>0;
+function cover(v,x,y,w,h,mir){ const vr=v.videoWidth/v.videoHeight, r=w/h; let sw,sh,sx,sy; if(vr>r){sh=v.videoHeight;sw=sh*r;sx=(v.videoWidth-sw)/2;sy=0;}else{sw=v.videoWidth;sh=sw/r;sx=0;sy=(v.videoHeight-sh)/2;}
+  g.save(); if(mir){g.translate(x+w,y);g.scale(-1,1);g.drawImage(v,sx,sy,sw,sh,0,0,w,h);}else g.drawImage(v,sx,sy,sw,sh,x,y,w,h); g.restore(); }
+function contain(v,x,y,w,h){ const s=Math.min(w/v.videoWidth,h/v.videoHeight), dw=v.videoWidth*s, dh=v.videoHeight*s; g.drawImage(v,x+(w-dw)/2,y+(h-dh)/2,dw,dh); }
+function rr(x,y,w,h,r){ g.beginPath(); g.roundRect?g.roundRect(x,y,w,h,r):g.rect(x,y,w,h); }
+function people(){ const p=[]; if(cam&&ready(camV)) p.push({v:camV,name:O.oName,host:true}); guests.forEach(x=>{ if(x.staged&&ready(x.video)) p.push({v:x.video,name:x.name}); }); return p; }
+function tile(p,x,y,w,h,label){ g.fillStyle='#111'; g.fillRect(x,y,w,h); cover(p.v,x,y,w,h,false); if(label&&!p.host){ g.font='600 18px -apple-system,sans-serif'; const tw=g.measureText(p.name).width; g.fillStyle='rgba(0,0,0,.6)'; rr(x+10,y+h-38,tw+20,28,6); g.fill(); g.fillStyle='#fff'; g.fillText(p.name,x+20,y+h-18); } }
+function grid(ps,x,y,w,h,gap){ const n=ps.length; if(!n) return; const cols=n<=1?1:n<=4?2:3, rows=Math.ceil(n/cols); const tw=(w-gap*(cols-1))/cols, th=(h-gap*(rows-1))/rows;
+  ps.forEach((p,i)=>{ const r=Math.floor(i/cols), c=i%cols, inRow=Math.min(cols,n-r*cols), off=(cols-inRow)*(tw+gap)/2; tile(p,x+off+c*(tw+gap),y+r*(th+gap),tw,th,true); }); }
+function slate(title,sub){ const c=O.oColor||'#b40101'; const gr=g.createLinearGradient(0,0,W,H); gr.addColorStop(0,'#0d1117'); gr.addColorStop(1,shade(c,-.55)); g.fillStyle=gr; g.fillRect(0,0,W,H);
+  g.textAlign='center'; g.fillStyle=c; g.fillRect(W/2-40,268,80,6); g.fillStyle='#fff'; g.font='700 60px -apple-system,sans-serif'; g.fillText(title,W/2,350,W-160); g.font='400 30px -apple-system,sans-serif'; g.fillStyle='rgba(255,255,255,.8)'; g.fillText(sub,W/2,402,W-160); g.textAlign='left'; }
+function shade(hex,p){ const n=parseInt(hex.slice(1),16); let r=n>>16,gg=n>>8&255,b=n&255; const f=v=>Math.round(Math.max(0,Math.min(255,v+(p<0?v*p:(255-v)*p)))); return `rgb(${f(r)},${f(gg)},${f(b)})`; }
+let tickX=W;
+function draw(){
+  g.fillStyle='#0b0e13'; g.fillRect(0,0,W,H);
+  const ps=people(), scr=screen&&ready(scrV), TH=(O.oTickerOn&&O.oTicker)?36:0, AH=H-TH;
+  if(scene==='soon'){ const left=Math.max(0,(+O.oCount||0)*60-Math.floor((Date.now()-slateStart)/1000)); slate(O.oSlate||'Starting soon', left>0?`Starting in ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`:'Starting now'); }
+  else if(scene==='brb'){ slate('Be right back',O.oSlate||''); }
+  else if((scene==='pip'||scene==='side'||scene==='screen')&&scr){
+    if(scene==='side'){ const cw=ps.length?300:0, gap=ps.length?12:0; contain(scrV,0,0,W-cw-gap,AH); const th=Math.min(169,(AH-12*(ps.length+1))/Math.max(1,ps.length)); ps.forEach((p,i)=>tile(p,W-cw,12+i*(th+12),cw-12,th,true)); }
+    else { contain(scrV,0,0,W,AH); if(scene==='pip'){ ps.slice().reverse().forEach((p,i)=>{ const w=300,h=169,x=W-w-24,y=H-h-24-i*(h+12)-(O.oTickerOn&&O.oTicker?36:0); g.save(); rr(x,y,w,h,10); g.clip(); tile(p,x,y,w,h,true); g.restore(); g.strokeStyle='rgba(255,255,255,.85)'; g.lineWidth=3; rr(x,y,w,h,10); g.stroke(); }); } }
+  }
+  else if(ps.length){ if(ps.length>1) grid(ps,16,16,W-32,AH-32,12); else tile(ps[0],0,0,W,AH,false); }
+  else { slate(O.oSlate||'MRET Studio', cam?'Camera starting…':'Start your camera or share your screen'); }
+
+  const live2=scene!=='soon'&&scene!=='brb';
+  if(O.oLogo&&logoImg){ const mh=70, s=Math.min(160/logoImg.width,mh/logoImg.height); g.drawImage(logoImg,W-24-logoImg.width*s,22,logoImg.width*s,logoImg.height*s); }
+  const tick=O.oTickerOn&&O.oTicker, tickH=tick?36:0;
+  if(live2&&O.oLower&&O.oName&&cam){ const y=H-tickH-118; g.font='700 30px -apple-system,sans-serif'; const w1=g.measureText(O.oName).width; g.font='400 20px -apple-system,sans-serif'; const w2=g.measureText(O.oTitle||'').width; const bw=Math.max(w1,w2)+48;
+    g.fillStyle=O.oColor; g.fillRect(36,y,8,74); g.fillStyle='rgba(10,12,16,.82)'; g.fillRect(44,y,bw,74); g.fillStyle='#fff'; g.font='700 30px -apple-system,sans-serif'; g.fillText(O.oName,64,y+34); g.font='400 20px -apple-system,sans-serif'; g.fillStyle='rgba(255,255,255,.85)'; g.fillText(O.oTitle||'',64,y+62); }
+  if(O.oBannerOn&&O.oBanner){ g.font='600 26px -apple-system,sans-serif'; const tw=Math.min(W-160,g.measureText(O.oBanner).width); const bw=tw+56, x=(W-bw)/2, y=H-tickH-(O.oLower&&live2&&cam?200:84); g.fillStyle='#fff'; rr(x,y,bw,52,8); g.fill(); g.fillStyle=O.oColor; g.fillRect(x,y,8,52); g.fillStyle='#111'; g.fillText(O.oBanner,x+32,y+35,W-160); }
+  if(tick){ g.fillStyle=O.oColor; g.fillRect(0,H-tickH,W,tickH); g.font='600 20px -apple-system,sans-serif'; g.fillStyle='#fff'; const txt=O.oTicker+'     •     '; const tw=g.measureText(txt).width; tickX-=2; if(tickX<-tw) tickX+=tw; for(let x=tickX;x<W;x+=tw) g.fillText(txt,x,H-11); }
+}
+// A worker timer keeps drawing when this tab is in the background (requestAnimationFrame pauses there)
+const tw=new Worker(URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),1000/30)'],{type:'text/javascript'})));
+tw.onmessage=()=>{ try{ draw(); }catch(e){} };
+
+// ---------------- Server connection ----------------
+function connect(){ ws=new WebSocket(LOCAL?`ws://${location.host}/ws/studio`:'ws://localhost:7373/ws/studio'); ws.binaryType='arraybuffer';
+  ws.onmessage=e=>{ const m=JSON.parse(e.data);
+    if(m.t==='status') onStatus(m); else if(m.t==='error'){ toast(m.msg); if(recorder) endLocal(); }
+    else if(m.t==='started') beginRecorder(); else if(m.t==='stopped'){ toast('Stream ended after '+fmt(m.seconds)); loadRecs(); }
+    else if(m.t==='marked') toast('Moment marked at '+fmt(m.s)); else if(m.t==='recordings') loadRecs();
+    else if(m.t==='tunnel') showTunnel(m); else if(m.t==='guest-join') guestJoin(m.id,m.name); else if(m.t==='guest-leave') guestLeave(m.id); else if(m.t==='sig') guestSig(m.from,m.data); };
+  ws.onclose=()=>{ $('feedNote').textContent='Reconnecting to the studio engine…'; $('offline').classList.remove('hidden'); setTimeout(connect,2500); };
+  ws.onopen=()=>{ $('feedNote').textContent=''; $('offline').classList.add('hidden'); load().catch(()=>{}); };
+}
+const fmt=s=>{ s=Math.max(0,Math.round(s)); return [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(x=>String(x).padStart(2,'0')).join(':'); };
+function onStatus(m){
+  liveOn=m.live; $('livePill').textContent=m.live?'LIVE':'OFFLINE'; $('livePill').classList.toggle('live',m.live);
+  $('recPill').classList.toggle('hidden',!(m.live&&m.outs&&m.outs.some(o=>o.kind==='rec')));
+  $('goBtn').textContent=m.live?'End stream':'Go live'; $('goBtn').className='btn '+(m.live?'danger':'primary'); $('markBtn').disabled=!m.live;
+  if(m.live) startedAt=m.startedAt;
+  const L=$('statusList'); L.innerHTML='';
+  if(!m.live){ L.append(el('div','note','Destinations show their connection and bitrate here while you are live.')); return; }
+  m.outs.forEach(o=>{ const d=el('div','dest'); d.append(el('span','st '+o.status,o.status==='live'?'LIVE':o.status.toUpperCase()));
+    const mid=el('div'); mid.append(el('div','nm',o.name),el('div','meta',o.status==='live'?`${o.kbps} kbps · ${fmt(o.liveFor)}${o.restarts?` · reconnected ${o.restarts}x`:''}`:(o.err||'Connecting…'))); d.append(mid,el('span','meta',o.kind==='rec'?'on this Mac':'')); L.append(d); });
+  if(ws&&ws.bufferedAmount>8e6) $('feedNote').textContent='This computer is falling behind. Close other apps or switch to 720p.';
+}
+setInterval(()=>{ $('timer').textContent=liveOn?fmt((Date.now()-startedAt)/1000):'00:00:00'; },500);
+
+// ---------------- Go live ----------------
+function pickMime(){ for(const t of ['video/x-matroska;codecs=avc1,opus','video/webm;codecs=h264,opus','video/webm;codecs=vp8,opus','video/webm']) if(MediaRecorder.isTypeSupported(t)) return t; return ''; }
+$('goBtn').onclick=()=>{
+  if(liveOn){ if(confirm('End the stream on every platform?')) endLocal(); return; }
+  const on=(state?.destinations||[]).filter(d=>d.enabled&&d.hasKey);
+  if(!on.length&&!$('recOn').checked) return toast('Switch on at least one destination, or recording.');
+  if(!cam&&!screen) return toast('Start your camera or share your screen first.');
+  const gl=$('goList'); gl.innerHTML=''; const u=el('ul'); on.forEach(d=>u.append(el('li',null,`${d.name} (${d.format==='vertical'?'vertical 9:16':'landscape 16:9'})`))); if($('recOn').checked) u.append(el('li',null,'Recording on this Mac')); gl.append(u);
+  $('goDlg').returnValue=''; $('goDlg').showModal();
+};
+$('goDlg').onclose=()=>{ if($('goDlg').returnValue!=='ok') return;
+  const on=(state?.destinations||[]).filter(d=>d.enabled&&d.hasKey).map(d=>d.id);
+  audio(); ws.send(JSON.stringify({t:'start',dest:on,record:$('recOn').checked})); };
+function beginRecorder(){
+  const v=cv.captureStream(30).getVideoTracks()[0], a=progDest.stream.getAudioTracks()[0];
+  const mime=pickMime(); recorder=new MediaRecorder(new MediaStream([v,a]),{mimeType:mime,videoBitsPerSecond:8e6,audioBitsPerSecond:192000});
+  recorder.ondataavailable=async e=>{ if(e.data.size&&ws.readyState===1) ws.send(await e.data.arrayBuffer()); };
+  recorder.onstop=()=>{ setTimeout(()=>ws.send(JSON.stringify({t:'stop'})),400); recorder=null; };
+  recorder.start(250);
+  toast('You are live');
+}
+function endLocal(){ if(recorder&&recorder.state!=='inactive') recorder.stop(); else ws.send(JSON.stringify({t:'stop'})); }
+$('markBtn').onclick=()=>{ const l=prompt('Name this moment (optional)','Moment'); if(l!==null) ws.send(JSON.stringify({t:'mark',label:l||'Moment'})); };
+
+// ---------------- Destinations ----------------
+const HELP={youtube:'YouTube Studio > Create > Go live > Stream. Copy "Stream URL" and "Stream key". The first time, YouTube can take up to 24 hours to enable live streaming.',
+ facebook:'Facebook > Live video > Streaming software (Live Producer). Copy the server URL and stream key. Facebook keys can be persistent if you tick "Use a persistent stream key".',
+ tiktok:'TikTok LIVE Studio or LIVE Center > Stream key (only for accounts TikTok has made eligible). Copy "Server URL" and "Stream key". TikTok usually issues a new key each LIVE: update it before you go live.',
+ instagram:'On a computer, instagram.com > Create > Live video, enter a title, then copy the Stream URL and Stream key (professional accounts only). The key changes every time: update it before you go live.',
+ custom:'Any service that accepts RTMP or RTMPS, such as LinkedIn Live or a Restream channel.'};
+let editing=null;
+function openDest(d){ editing=d||null; const p=d?d.platform:'youtube'; $('destTitle').textContent=d?'Edit '+d.name:'Add destination';
+  $('dPlat').value=p; $('dPlat').disabled=!!d; $('dName').value=d?d.name:state.presets[p].name; $('dUrl').value=d?d.url:state.presets[p].url; $('dKey').value=''; $('dKey').placeholder=d&&d.hasKey?`Saved (${d.keyHint}). Paste a new key to replace it.`:'Paste the stream key from the platform'; $('dFmt').value=d?d.format:state.presets[p].format;
+  $('dHelp').textContent=HELP[p]; $('dErr').classList.add('hidden'); $('dDel').classList.toggle('hidden',!d); $('destDlg').showModal(); }
+$('dPlat').onchange=()=>{ const p=$('dPlat').value, pr=state.presets[p]; $('dName').value=pr.name; $('dUrl').value=pr.url; $('dFmt').value=pr.format; $('dHelp').textContent=HELP[p]; };
+$('addDest').onclick=()=>openDest(null);
+$('destForm').onsubmit=async e=>{ if(e.submitter?.value!=='ok') return; e.preventDefault();
+  try{ await api('destination',{id:editing?.id,platform:$('dPlat').value,name:$('dName').value,url:$('dUrl').value,key:$('dKey').value,format:$('dFmt').value,enabled:editing?editing.enabled:true}); $('dKey').value=''; $('destDlg').close(); load(); }
+  catch(err){ $('dErr').textContent=err.message; $('dErr').classList.remove('hidden'); } };
+$('dDel').onclick=async()=>{ if(!editing||!confirm('Remove '+editing.name+'?')) return; await api('destination/delete',{id:editing.id}); $('destDlg').close(); load(); };
+$('vstyle').onchange=()=>api('settings',{vertical:$('vstyle').value}).then(load);
+$('quality').onchange=()=>api('settings',{quality:$('quality').value}).then(load);
+function renderDests(){
+  const L=$('destList'); L.innerHTML='';
+  if(!state.destinations.length) L.append(el('div','note','No destinations yet. Add YouTube, Facebook, TikTok or Instagram with the stream key from each platform.'));
+  state.destinations.forEach(d=>{ const r=el('div','dest'); const cb=el('input'); cb.type='checkbox'; cb.checked=d.enabled; cb.disabled=liveOn; cb.title='Stream to this destination'; cb.onchange=()=>api('destination',{...d,key:'',enabled:cb.checked}).then(load);
+    const mid=el('div'); mid.append(el('div','nm',d.name),el('div','meta',`${d.format==='vertical'?'Vertical 9:16':'Landscape 16:9'} · ${d.hasKey?'key '+d.keyHint:'no key yet'}${d.perSession?' · new key each live':''}`));
+    const b=el('button','btn sm','Edit'); b.type='button'; b.onclick=()=>openDest(d); r.append(cb,mid,b); L.append(r); });
+  const on=state.destinations.filter(d=>d.enabled&&d.hasKey); const hq=state.quality==='1080p';
+  const mbps=on.reduce((s,d)=>s+(d.format==='vertical'?(hq?5.2:3.7):(hq?6.2:4.2)),0);
+  $('bwNote').textContent=on.length?`Upload needed: about ${mbps.toFixed(1)} Mbps for ${on.length} destination${on.length>1?'s':''}. Your connection should have at least ${(mbps*1.5).toFixed(0)} Mbps upload.`:'Tick the destinations to stream to.';
+  $('safe').classList.toggle('hidden',!on.some(d=>d.format==='vertical'));
+  const missingPS=on.filter(d=>d.perSession); if(missingPS.length) $('bwNote').textContent+=` Remember: ${missingPS.map(d=>d.name).join(' and ')} ${missingPS.length>1?'need':'needs'} a fresh key for each live.`;
+  $('vstyle').value=state.vertical; $('quality').value=state.quality;
+  const f=state.ffmpeg; const w=$('ffWarn'); const msgs=[]; if(!f.ok) msgs.push('The video engine (ffmpeg) was not found. Run the installer again.'); else { if(!f.rtmps&&on.some(d=>/^rtmps/i.test(d.url))) msgs.push('This ffmpeg build cannot use rtmps:// (needed by Facebook and Instagram).'); }
+  w.textContent=msgs.join(' '); w.classList.toggle('hidden',!msgs.length);
+}
+async function load(){ state=await api('state'); renderDests(); if(state.tunnel) showTunnel(state.tunnel); }
+
+// ---------------- Guests ----------------
+const ICE={iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']},{urls:'stun:stun.cloudflare.com:3478'}]};
+$('inviteBtn').onclick=async()=>{ showTunnel(await api('tunnel/start',{})); };
+$('closeInvite').onclick=async()=>{ if(confirm('Close the guest link? Guests will be disconnected.')) showTunnel(await api('tunnel/stop',{})); };
+$('copyLink').onclick=()=>{ const t=$('inviteLink').textContent; navigator.clipboard.writeText(t).then(()=>toast('Guest link copied')); };
+function showTunnel(t){ $('inviteBox').classList.toggle('hidden',!t.on); $('closeInvite').classList.toggle('hidden',!t.on); $('inviteBtn').classList.toggle('hidden',!!t.on);
+  $('inviteLink').textContent=t.err||t.link||'Creating a secure link… (takes about 10 seconds)'; }
+function guestJoin(id,name){
+  if(guests.has(id)) return; audio();
+  const x={id,name,staged:false,video:el('video'),pc:new RTCPeerConnection(ICE)}; x.video.autoplay=true; x.video.playsInline=true; x.video.muted=true;
+  x.mon=ac.createGain(); x.mon.connect(ac.destination); // you hear guests on your speakers/headphones
+  x.mm=ac.createMediaStreamDestination(); if(micSrc) micSrc.connect(x.mm); if(scrSrc) scrSrc.connect(x.mm);
+  const vt=cam?cam.getVideoTracks()[0]:cv.captureStream(15).getVideoTracks()[0];
+  x.pc.addTrack(vt,new MediaStream([vt])); x.pc.addTrack(x.mm.stream.getAudioTracks()[0],x.mm.stream);
+  x.pc.onicecandidate=e=>{ if(e.candidate) sig(id,{cand:e.candidate}); };
+  x.pc.ontrack=e=>{ const st=e.streams[0]||new MediaStream([e.track]); x.stream=st; x.video.srcObject=st; x.video.play().catch(()=>{});
+    if(e.track.kind==='audio'){ const a=new Audio(); a.muted=true; a.srcObject=st; a.play().catch(()=>{}); x.src=ac.createMediaStreamSource(st); rewireGuests(); } };
+  x.pc.onconnectionstatechange=()=>{ x.state=x.pc.connectionState; renderGuests(); if(x.pc.connectionState==='failed') toast(name+' could not connect (their network blocks direct video).'); };
+  guests.set(id,x);
+  x.pc.createOffer().then(o=>x.pc.setLocalDescription(o)).then(()=>sig(id,{sdp:x.pc.localDescription}));
+  renderGuests(); toast(name+' is backstage');
+}
+function sig(to,data){ ws.send(JSON.stringify({t:'sig',to,data})); }
+async function guestSig(id,d){ const x=guests.get(id); if(!x) return; try{ if(d.sdp) await x.pc.setRemoteDescription(d.sdp); else if(d.cand) await x.pc.addIceCandidate(d.cand); }catch(e){} }
+function guestLeave(id){ const x=guests.get(id); if(!x) return; try{x.pc.close();}catch(e){} try{x.src&&x.src.disconnect(); x.mon.disconnect();}catch(e){} guests.delete(id); rewireGuests(); renderGuests(); }
+function renderGuests(){ const L=$('guestList'); L.innerHTML='';
+  guests.forEach(x=>{ const c=el('div','guest'); c.append(x.video); const b=el('div','gb'); b.append(el('b',null,x.name+(x.state&&x.state!=='connected'?' ('+x.state+')':'')));
+    const s=el('button','btn sm'+(x.staged?' on':''),x.staged?'On stage':'Add to stage'); s.onclick=()=>{ x.staged=!x.staged; sig(x.id,{stage:x.staged}); rewireGuests(); renderGuests(); if(x.staged&&!['cam','grid','side','pip'].includes(scene)) setScene('grid'); };
+    const k=el('button','btn sm','Remove'); k.onclick=()=>{ ws.send(JSON.stringify({t:'guest-kick',to:x.id})); guestLeave(x.id); };
+    b.append(s,k); c.append(b); L.append(c); }); }
+
+// ---------------- Recordings & clips ----------------
+let recs=[], sel=null;
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{ document.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected',String(x===b))); $('tab-studio').classList.toggle('hidden',b.dataset.tab!=='studio'); $('tab-clips').classList.toggle('hidden',b.dataset.tab!=='clips'); if(b.dataset.tab==='clips') loadRecs(); });
+const mb=n=>(n/1048576).toFixed(0)+' MB';
+async function loadRecs(){ const r=await api('recordings'); recs=r.recordings;
+  const L=$('recList'); L.innerHTML=''; if(!recs.length) L.append(el('div','note','No recordings yet. Recordings are saved to Movies > MRET Studio.'));
+  recs.forEach(x=>{ const i=el('div','recitem'); i.setAttribute('aria-selected',String(sel&&sel.file===x.file)); i.append(el('b',null,x.file.replace('MRET-Live-','').replace('.mp4','')),el('span','note',`${x.seconds?fmt(x.seconds)+' · ':''}${mb(x.size)} · ${x.marks.length} marks`)); i.onclick=()=>pick(x); L.append(i); });
+  const C=$('clipList'); C.innerHTML=''; if(!r.clips.length) C.append(el('div','note','Clips you make appear here, ready to post.'));
+  r.clips.forEach(c=>{ const i=el('div','recitem'); i.append(el('b',null,c.file),el('span','note',mb(c.size))); const p=el('button','btn sm','Play'); p.onclick=e=>{e.stopPropagation(); $('player').src=BASE+'/clips/'+encodeURIComponent(c.file); $('player').play();}; const f=el('button','btn sm','Show in Finder'); f.onclick=e=>{e.stopPropagation(); api('reveal',{file:c.file,clip:true});}; i.append(p,f); C.append(i); });
+  if(!sel&&recs[0]) pick(recs[0]); }
+function pick(x){ sel=x; $('player').src=BASE+'/media/'+encodeURIComponent(x.file); document.querySelectorAll('#recList .recitem').forEach((e,i)=>e.setAttribute('aria-selected',String(recs[i]===x)));
+  const M=$('marks'); M.innerHTML=''; x.marks.forEach(m=>{ const b=el('button','btn sm',`${fmt(m.s)} ${m.label}`); b.onclick=()=>{ $('cStart').value=Math.max(0,m.s-20); $('cLabel').value=m.label; $('player').currentTime=Math.max(0,m.s-20); }; M.append(b); });
+  $('cAll').disabled=!x.marks.length; }
+$('cNow').onclick=()=>{ $('cStart').value=Math.floor($('player').currentTime||0); };
+$('revealRec').onclick=()=>api('reveal',{file:sel?sel.file:''});
+async function clip(start,label){ $('cNote').textContent='Making clip… (about as long as the clip itself)'; try{ const r=await api('clip',{file:sel.file,start,duration:+$('cDur').value,format:$('cFmt').value,label}); $('cNote').textContent='Saved: '+r.file; await loadRecs(); }catch(e){ $('cNote').textContent='Could not make the clip: '+e.message; } }
+$('cMake').onclick=()=>{ if(!sel) return toast('Choose a recording first.'); clip(+$('cStart').value,$('cLabel').value||'clip'); };
+$('cAll').onclick=async()=>{ if(!sel) return; for(const m of sel.marks) await clip(Math.max(0,m.s-20),m.label); };
+
+// ---------------- Keys ----------------
+document.addEventListener('keydown',e=>{ if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)||e.metaKey||e.ctrlKey) return;
+  const n=+e.key; if(n>=1&&n<=SCENES.length) setScene(SCENES[n-1][0]);
+  else if(e.key==='m'&&liveOn) $('markBtn').click();
+  else if(e.key==='l'){ $('oLower').checked=!$('oLower').checked; $('oLower').onchange(); }
+  else if(e.key==='b'){ $('oBannerOn').checked=!$('oBannerOn').checked; $('oBannerOn').onchange(); } });
+window.addEventListener('beforeunload',e=>{ if(liveOn){ e.preventDefault(); e.returnValue=''; } });
+
+navigator.mediaDevices.enumerateDevices().then(listDevices).catch(()=>{});
+load().catch(()=>$('offline').classList.remove('hidden')); connect();
+})();
+</script>
 </body>
 </html>
