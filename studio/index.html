@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MRET Studio | Stream everywhere at once</title>
+<meta name="description" content="MRET Studio: Uhuru Matlhaji's multistream studio for YouTube, Facebook, TikTok and Instagram.">
+<meta name="robots" content="noindex">
+<style>
+:root{--bg:#0e1218;--panel:#161c25;--line:#2a3442;--ink:#e8edf4;--muted:#9aa6b8;--accent:#4f7cff;--red:#b40101}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+a{color:#8fb0ff}
+.wrap{max-width:1000px;margin:0 auto;padding:28px 16px 60px;display:grid;gap:22px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.top a{color:var(--muted);text-decoration:none;font-size:.9rem}
+h1{font-size:clamp(1.8rem,5vw,2.6rem);margin:0;line-height:1.15}
+h2{font-size:1.15rem;margin:0 0 8px}
+.lead{color:var(--muted);font-size:1.08rem;max-width:62ch;margin:6px 0 0}
+.cta{display:flex;gap:10px;flex-wrap:wrap}
+.btn{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font-weight:700;padding:10px 18px;border-radius:9px}
+.btn.alt{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.card b{display:block;margin-bottom:4px}
+.card p{margin:0;color:var(--muted);font-size:.93rem}
+ol,ul{margin:0;padding-left:20px}
+li{margin:4px 0}
+.note{color:var(--muted);font-size:.9rem}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.06em}
+.tw{overflow-x:auto}
+.bar{height:4px;width:64px;background:var(--red);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="/">&larr; www.mret.co.za</a><a href="https://claude.ai/artifact/RG3efsKgsGfmLXg7CF5NLL">Uhuru's Desk</a></div>
+  <div>
+    <div class="bar"></div>
+    <h1>MRET Studio</h1>
+    <p class="lead">One studio, every platform. Go live on YouTube, Facebook, TikTok and Instagram at the same time, with your branding, guests, a recording of every stream and ready-to-post clips.</p>
+  </div>
+  <div class="cta">
+    <a class="btn" href="http://localhost:7373/">Open the studio</a>
+    <a class="btn alt" href="#setup">Platform setup</a>
+  </div>
+  <p class="note">The studio runs on Uhuru's Mac. Start it first by double-clicking <b>Start MRET Studio</b> on the Desktop; the button above then opens it.</p>
+
+  <div class="grid">
+    <div class="card"><b>Multistream</b><p>One feed, sent to every destination you tick. Each platform reconnects on its own if it drops.</p></div>
+    <div class="card"><b>Landscape and vertical</b><p>16:9 for YouTube and Facebook, 9:16 for TikTok and Instagram, from the same camera at the same time.</p></div>
+    <div class="card"><b>Scenes</b><p>Starting soon with countdown, camera, screen with camera, screen with guests, conversation, be right back.</p></div>
+    <div class="card"><b>Branding</b><p>Your colour, logo, name lower third, banners and a scrolling ticker you type live.</p></div>
+    <div class="card"><b>Guests</b><p>Up to four guests join by link from any browser and wait backstage until you bring them on.</p></div>
+    <div class="card"><b>Record and clip</b><p>Every stream is saved. Mark moments while live, then cut vertical clips for Reels, TikTok and Shorts.</p></div>
+  </div>
+
+  <div class="card" id="setup">
+    <h2>Platform setup: where to find each stream key</h2>
+    <div class="tw"><table>
+      <thead><tr><th>Platform</th><th>Where</th><th>Format</th><th>Good to know</th></tr></thead>
+      <tbody>
+        <tr><td>YouTube</td><td>YouTube Studio &gt; Create &gt; Go live &gt; Stream. Copy the stream URL and key.</td><td>Landscape</td><td>First time only: live streaming can take up to 24 hours to switch on.</td></tr>
+        <tr><td>Facebook</td><td>Live video &gt; Streaming software. Copy the server URL and stream key.</td><td>Landscape</td><td>Tick "persistent stream key" to reuse the same key every week.</td></tr>
+        <tr><td>TikTok</td><td>LIVE Studio or LIVE Center &gt; stream key (eligible accounts only).</td><td>Vertical</td><td>Usually a new key for every LIVE. Update it in the studio before going live.</td></tr>
+        <tr><td>Instagram</td><td>On a computer: instagram.com &gt; Create &gt; Live video. Copy the stream URL and key.</td><td>Vertical</td><td>Professional accounts only. The key changes every time.</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">Menus on each platform change from time to time; the studio's Add destination screen repeats these steps. Stream keys are stored only on the Mac running the studio.</p>
+  </div>
+
+  <div class="grid">
+    <div class="card"><h2>Before you go live</h2><ol>
+      <li>Fresh keys pasted for TikTok and Instagram.</li>
+      <li>Headphones on; guests told to use headphones.</li>
+      <li>Name, banner and slate title checked.</li>
+      <li>Start on the Starting soon scene, then switch to Camera.</li>
+      <li>Other uploads and big downloads paused.</li>
+    </ol></div>
+    <div class="card"><h2>While live</h2><ul>
+      <li>Watch Live status: every destination should show LIVE with a steady bitrate.</li>
+      <li>Press M at every tip worth clipping.</li>
+      <li>Keep the studio tab open; it keeps streaming in the background.</li>
+    </ul></div>
+    <div class="card"><h2>After</h2><ol>
+      <li>Recordings &amp; clips: Clip every marked moment as vertical.</li>
+      <li>Post clips over the next week: one a day.</li>
+      <li>Note questions from comments as leads to follow up.</li>
+    </ol></div>
+  </div>
+</div>
+</body>
+</html>
