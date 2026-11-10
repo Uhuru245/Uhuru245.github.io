@@ -94,13 +94,13 @@ kbd{font:11px var(--mono);background:var(--panel2);border:1px solid var(--line);
   <button class="btn primary" id="goBtn">Go live</button>
 </div>
 
-<div class="warn hidden" id="offline" style="margin:14px 16px 0"><b>The studio engine isn't reachable on this computer.</b> MRET Studio streams from Uhuru's Mac: open this page on that Mac in Google Chrome. If Chrome asks to let www.mret.co.za "access other apps and services on this device" or "devices on your local network", click Allow. Otherwise double-click <b>Start MRET Studio</b> on the Desktop. <a href="/studio/guide/" style="color:#ffd68a">Setup guide</a></div>
+<div class="warn hidden" id="offline" style="margin:14px 16px 0"><b>The studio engine isn't reachable on this computer.</b> MRET Studio streams from the Mac it is installed on: open this page on that Mac in Google Chrome. If Chrome asks to let www.mret.co.za "access other apps and services on this device" or "devices on your local network", click Allow. Otherwise double-click <b>Start MRET Studio</b> on the Desktop. <a href="/studio/guide/" style="color:#ffd68a">Setup guide</a></div>
 <div class="main" id="tab-studio">
   <div class="col">
     <div class="panel">
       <div class="stage" id="stage"><canvas id="program" width="1280" height="720"></canvas><div class="safe hidden" id="safe"><span>Vertical (TikTok / Instagram) shows this area</span></div></div>
       <div class="scenes" id="scenes"></div>
-      <div class="row note">Shortcuts: <kbd>1</kbd>–<kbd>7</kbd> scenes · <kbd>M</kbd> mark moment · <kbd>L</kbd> lower third · <kbd>B</kbd> banner. Keep this tab open while live; it keeps streaming in the background.</div>
+      <div class="row note">Shortcuts: <kbd>1</kbd>–<kbd>7</kbd> scenes · <kbd>M</kbd> mark moment · <kbd>L</kbd> lower third · <kbd>B</kbd> banner · <kbd>S</kbd> scripture. Keep this tab open while live; it keeps streaming in the background.</div>
     </div>
 
     <div class="panel">
@@ -129,16 +129,23 @@ kbd{font:11px var(--mono);background:var(--panel2);border:1px solid var(--line);
     </div>
 
     <div class="panel">
-      <h2>Branding &amp; overlays</h2>
+      <div class="ph"><h2>Show</h2><div class="row"><button class="btn sm" id="showNew" type="button">New show</button><button class="btn sm" id="showRen" type="button">Rename</button><button class="btn sm" id="showDel" type="button">Delete</button></div></div>
+      <label>Current show<select id="showSel"></select></label>
+      <div class="note">Each show keeps its own name strip, colours, logo, slates, banner, ticker and destinations. Changes save automatically.</div>
+      <h2 style="margin-top:6px">Branding &amp; overlays</h2>
       <div class="row"><label style="flex:0 0 auto">Brand colour<input type="color" id="oColor" value="#b40101"></label><label>Logo (PNG, your own)<input type="file" id="oLogoFile" accept="image/png,image/jpeg,image/svg+xml"></label></div>
       <label class="check"><input type="checkbox" id="oLogo"> Show logo (top right)</label>
-      <div class="row"><label>Name<input type="text" id="oName" value="Uhuru Matlhaji"></label><label>Title<input type="text" id="oTitle" value="MCTT · Keller Williams Edge"></label></div>
+      <div class="row"><label>Name<input type="text" id="oName" value="Uhuru Matlhaji"></label><label>Title<input type="text" id="oTitle" value=""></label></div>
       <label class="check"><input type="checkbox" id="oLower" checked> Show name lower third <kbd>L</kbd></label>
-      <label>Banner<input type="text" id="oBanner" placeholder="e.g. Ask your questions in the comments"></label>
+      <label>Banner<input type="text" id="oBanner" placeholder="e.g. Share your prayer requests in the comments"></label>
       <label class="check"><input type="checkbox" id="oBannerOn"> Show banner <kbd>B</kbd></label>
-      <label>Ticker<input type="text" id="oTicker" placeholder="e.g. Book a one-on-one at www.mret.co.za/one-on-one"></label>
+      <label>Ticker<input type="text" id="oTicker" placeholder="e.g. Join us every Wednesday at 19:00"></label>
       <label class="check"><input type="checkbox" id="oTickerOn"> Show scrolling ticker</label>
-      <div class="row"><label>Slate title (Starting soon / Be right back)<input type="text" id="oSlate" value="Smart Agent Series"></label><label style="flex:0 0 110px">Countdown (min)<input type="number" id="oCount" min="0" max="60" value="5"></label></div>
+      <label>Scripture reference<input type="text" id="oVerseRef" placeholder="e.g. John 1:1-5 (version)"></label>
+      <label>Scripture text<textarea id="oVerseText" rows="3" placeholder="Type or paste the verse from your Bible"></textarea></label>
+      <label class="check"><input type="checkbox" id="oVerseOn"> Show scripture on screen <kbd>S</kbd></label>
+      <div class="note">Scripture is shown exactly as you type it; the studio never writes or changes verses.</div>
+      <div class="row"><label>Slate title (Starting soon / Be right back)<input type="text" id="oSlate" value="Live with Uhuru"></label><label style="flex:0 0 110px">Countdown (min)<input type="number" id="oCount" min="0" max="60" value="5"></label></div>
     </div>
 
     <div class="panel">
@@ -273,11 +280,34 @@ function setScene(s){ if((s==='soon')&&scene!=='soon') slateStart=Date.now(); sc
 setScene(scene);
 
 // ---------------- Overlays ----------------
-const O={}; ['oColor','oName','oTitle','oBanner','oTicker','oSlate','oCount'].forEach(k=>{ const e=$(k); e.value=LS.get(k,e.value); e.oninput=()=>{O[k]=e.value; LS.set(k,e.value);}; O[k]=e.value; });
-['oLogo','oLower','oBannerOn','oTickerOn','recOn','mirror','screenAudio'].forEach(k=>{ const e=$(k); e.checked=LS.get(k,e.checked); e.onchange=()=>{O[k]=e.checked; LS.set(k,e.checked);}; O[k]=e.checked; });
-function loadLogo(src){ if(!src) return; const i=new Image(); i.onload=()=>{logoImg=i;}; i.src=src; }
-loadLogo(LS.get('logo',null));
-$('oLogoFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ LS.set('logo',r.result); loadLogo(r.result); $('oLogo').checked=true; O.oLogo=true; LS.set('oLogo',true); }; r.readAsDataURL(f); };
+const O={}, FIELDS=['oColor','oName','oTitle','oBanner','oTicker','oSlate','oCount','oVerseRef','oVerseText'], CHECKS=['oLogo','oLower','oBannerOn','oTickerOn','oVerseOn'];
+FIELDS.forEach(k=>{ const e=$(k); e.oninput=()=>{ O[k]=e.value; saveShowSoon(); }; O[k]=e.value; });
+CHECKS.forEach(k=>{ const e=$(k); e.onchange=()=>{ O[k]=e.checked; saveShowSoon(); }; O[k]=e.checked; });
+['recOn','mirror','screenAudio'].forEach(k=>{ const e=$(k); e.checked=LS.get(k,e.checked); e.onchange=()=>{O[k]=e.checked; LS.set(k,e.checked);}; O[k]=e.checked; });
+let logoData=null;
+function loadLogo(src){ logoData=src||null; logoImg=null; if(!src) return; const i=new Image(); i.onload=()=>{logoImg=i;}; i.src=src; }
+$('oLogoFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return; if(f.size>800000) return toast('Please use a logo under 800 KB.'); const r=new FileReader(); r.onload=()=>{ loadLogo(r.result); $('oLogo').checked=true; O.oLogo=true; saveShowSoon(); }; r.readAsDataURL(f); };
+
+// ---------------- Shows (saved on the studio engine, so they work from www.mret.co.za and localhost) ----------------
+let shows=[], curShow=null, showTimer=null;
+const DEFAULT_SHOWS=[
+  {name:'Bible Study',fields:{oColor:'#7a5a2b',oName:'Uhuru Matlhaji',oTitle:'Bible Study',oBanner:'Share your questions and prayer requests in the comments',oTicker:'',oSlate:'Bible Study',oCount:'5',oVerseRef:'',oVerseText:''},checks:{oLogo:false,oLower:true,oBannerOn:false,oTickerOn:false,oVerseOn:false},logo:null,dests:null},
+  {name:'Smart Agent Series',fields:{oColor:'#b40101',oName:'Uhuru Matlhaji',oTitle:'MCTT · Keller Williams Edge',oBanner:'Ask your questions in the comments',oTicker:'Book a one-on-one at www.mret.co.za/one-on-one',oSlate:'Smart Agent Series',oCount:'5',oVerseRef:'',oVerseText:''},checks:{oLogo:false,oLower:true,oBannerOn:false,oTickerOn:false,oVerseOn:false},logo:null,dests:null}];
+function captureShow(sh){ sh.fields={}; FIELDS.forEach(k=>sh.fields[k]=$(k).value); sh.checks={}; CHECKS.forEach(k=>sh.checks[k]=$(k).checked); sh.logo=logoData; if(state) sh.dests=state.destinations.filter(d=>d.enabled).map(d=>d.id); }
+function saveShowSoon(){ clearTimeout(showTimer); showTimer=setTimeout(saveShows,600); }
+async function saveShows(){ const sh=shows.find(x=>x.name===curShow); if(sh) captureShow(sh); try{ await api('shows',{shows,current:curShow}); }catch(e){} }
+function renderShowSel(){ const s=$('showSel'); s.innerHTML=''; shows.forEach(x=>{ const o=el('option',null,x.name); o.value=x.name; if(x.name===curShow) o.selected=true; s.append(o); }); $('showDel').disabled=shows.length<2; }
+async function applyShow(name){ const sh=shows.find(x=>x.name===name)||shows[0]; if(!sh) return; curShow=sh.name;
+  FIELDS.forEach(k=>{ if(sh.fields&&k in sh.fields) $(k).value=sh.fields[k]; O[k]=$(k).value; });
+  CHECKS.forEach(k=>{ if(sh.checks&&k in sh.checks) $(k).checked=!!sh.checks[k]; O[k]=$(k).checked; });
+  loadLogo(sh.logo); $('oLogoFile').value='';
+  if(sh.dests&&state&&!liveOn){ for(const d of state.destinations){ const on=sh.dests.includes(d.id); if(on!==d.enabled) await api('destination',{...d,key:'',enabled:on}); } await load(); }
+  renderShowSel(); }
+async function loadShows(){ try{ const r=await api('shows'); shows=r.shows&&r.shows.length?r.shows:JSON.parse(JSON.stringify(DEFAULT_SHOWS)); curShow=r.current||shows[0].name; }catch(e){ shows=JSON.parse(JSON.stringify(DEFAULT_SHOWS)); curShow=shows[0].name; } await applyShow(curShow); }
+$('showSel').onchange=async()=>{ if(liveOn&&!confirm('Switch show while live? Overlays change on screen immediately.')){ renderShowSel(); return; } await saveShows(); await applyShow($('showSel').value); saveShows(); };
+$('showNew').onclick=async()=>{ const n=(prompt('Name of the new show (it starts as a copy of the current one)','')||'').trim(); if(!n) return; if(shows.some(x=>x.name===n)) return toast('A show with that name already exists.'); await saveShows(); const sh={name:n}; captureShow(sh); sh.fields.oSlate=n; sh.fields.oTitle=n; shows.push(sh); await applyShow(n); saveShows(); };
+$('showRen').onclick=()=>{ const sh=shows.find(x=>x.name===curShow); const n=(prompt('Rename show',sh.name)||'').trim(); if(!n||n===sh.name) return; if(shows.some(x=>x.name===n)) return toast('A show with that name already exists.'); sh.name=n; curShow=n; renderShowSel(); saveShows(); };
+$('showDel').onclick=async()=>{ if(shows.length<2||!confirm('Delete the show "'+curShow+'"? Your destinations and recordings stay.')) return; shows=shows.filter(x=>x.name!==curShow); await applyShow(shows[0].name); saveShows(); };
 
 // ---------------- Compositor ----------------
 const ready=v=>v&&v.readyState>=2&&v.videoWidth>0;
@@ -293,6 +323,14 @@ function slate(title,sub){ const c=O.oColor||'#b40101'; const gr=g.createLinearG
   g.textAlign='center'; g.fillStyle=c; g.fillRect(W/2-40,268,80,6); g.fillStyle='#fff'; g.font='700 60px -apple-system,sans-serif'; g.fillText(title,W/2,350,W-160); g.font='400 30px -apple-system,sans-serif'; g.fillStyle='rgba(255,255,255,.8)'; g.fillText(sub,W/2,402,W-160); g.textAlign='left'; }
 function shade(hex,p){ const n=parseInt(hex.slice(1),16); let r=n>>16,gg=n>>8&255,b=n&255; const f=v=>Math.round(Math.max(0,Math.min(255,v+(p<0?v*p:(255-v)*p)))); return `rgb(${f(r)},${f(gg)},${f(b)})`; }
 let tickX=W;
+function wrap(txt,maxW){ const words=txt.split(/\s+/), lines=[]; let line=''; words.forEach(w=>{ const t=line?line+' '+w:w; if(g.measureText(t).width>maxW&&line){ lines.push(line); line=w; } else line=t; }); if(line) lines.push(line); return lines; }
+function verse(tickH){ // Scripture card: shown exactly as typed
+  const text=O.oVerseText.trim().replace(/\s+/g,' '), ref=(O.oVerseRef||'').trim(), maxW=W-280; let size=34, lines;
+  do{ g.font=`500 ${size}px Georgia,"Times New Roman",serif`; lines=wrap(text,maxW); size-=2; }while(lines.length*size*1.35>300&&size>18);
+  size+=2; const lh=size*1.38, bh=lines.length*lh+(ref?64:36)+20, bw=maxW+80, x=(W-bw)/2, y=Math.max(30,(H-tickH-bh)/2-40);
+  g.fillStyle='rgba(8,10,14,.86)'; rr(x,y,bw,bh,14); g.fill(); g.fillStyle=O.oColor; g.fillRect(x,y+16,6,bh-32);
+  g.fillStyle='#fff'; g.textAlign='center'; g.font=`500 ${size}px Georgia,"Times New Roman",serif`; lines.forEach((l,i)=>g.fillText(l,W/2,y+30+size+i*lh));
+  if(ref){ g.font='600 22px -apple-system,sans-serif'; g.fillStyle='rgba(255,255,255,.75)'; g.fillText(ref,W/2,y+bh-22); } g.textAlign='left'; }
 function draw(){
   g.fillStyle='#0b0e13'; g.fillRect(0,0,W,H);
   const ps=people(), scr=screen&&ready(scrV), TH=(O.oTickerOn&&O.oTicker)?36:0, AH=H-TH;
@@ -311,6 +349,7 @@ function draw(){
   if(live2&&O.oLower&&O.oName&&cam){ const y=H-tickH-118; g.font='700 30px -apple-system,sans-serif'; const w1=g.measureText(O.oName).width; g.font='400 20px -apple-system,sans-serif'; const w2=g.measureText(O.oTitle||'').width; const bw=Math.max(w1,w2)+48;
     g.fillStyle=O.oColor; g.fillRect(36,y,8,74); g.fillStyle='rgba(10,12,16,.82)'; g.fillRect(44,y,bw,74); g.fillStyle='#fff'; g.font='700 30px -apple-system,sans-serif'; g.fillText(O.oName,64,y+34); g.font='400 20px -apple-system,sans-serif'; g.fillStyle='rgba(255,255,255,.85)'; g.fillText(O.oTitle||'',64,y+62); }
   if(O.oBannerOn&&O.oBanner){ g.font='600 26px -apple-system,sans-serif'; const tw=Math.min(W-160,g.measureText(O.oBanner).width); const bw=tw+56, x=(W-bw)/2, y=H-tickH-(O.oLower&&live2&&cam?200:84); g.fillStyle='#fff'; rr(x,y,bw,52,8); g.fill(); g.fillStyle=O.oColor; g.fillRect(x,y,8,52); g.fillStyle='#111'; g.fillText(O.oBanner,x+32,y+35,W-160); }
+  if(O.oVerseOn&&(O.oVerseText||'').trim()){ verse(tickH); }
   if(tick){ g.fillStyle=O.oColor; g.fillRect(0,H-tickH,W,tickH); g.font='600 20px -apple-system,sans-serif'; g.fillStyle='#fff'; const txt=O.oTicker+'     •     '; const tw=g.measureText(txt).width; tickX-=2; if(tickX<-tw) tickX+=tw; for(let x=tickX;x<W;x+=tw) g.fillText(txt,x,H-11); }
 }
 // A worker timer keeps drawing when this tab is in the background (requestAnimationFrame pauses there)
@@ -325,7 +364,7 @@ function connect(){ ws=new WebSocket(LOCAL?`ws://${location.host}/ws/studio`:'ws
     else if(m.t==='marked') toast('Moment marked at '+fmt(m.s)); else if(m.t==='recordings') loadRecs();
     else if(m.t==='tunnel') showTunnel(m); else if(m.t==='guest-join') guestJoin(m.id,m.name); else if(m.t==='guest-leave') guestLeave(m.id); else if(m.t==='sig') guestSig(m.from,m.data); };
   ws.onclose=()=>{ $('feedNote').textContent='Reconnecting to the studio engine…'; $('offline').classList.remove('hidden'); setTimeout(connect,2500); };
-  ws.onopen=()=>{ $('feedNote').textContent=''; $('offline').classList.add('hidden'); load().catch(()=>{}); };
+  ws.onopen=()=>{ $('feedNote').textContent=''; const was=!$('offline').classList.contains('hidden'); $('offline').classList.add('hidden'); load().then(()=>{ if(was||!shows.length) return loadShows(); }).catch(()=>{}); };
 }
 const fmt=s=>{ s=Math.max(0,Math.round(s)); return [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(x=>String(x).padStart(2,'0')).join(':'); };
 function onStatus(m){
@@ -386,7 +425,7 @@ $('quality').onchange=()=>api('settings',{quality:$('quality').value}).then(load
 function renderDests(){
   const L=$('destList'); L.innerHTML='';
   if(!state.destinations.length) L.append(el('div','note','No destinations yet. Add YouTube, Facebook, TikTok or Instagram with the stream key from each platform.'));
-  state.destinations.forEach(d=>{ const r=el('div','dest'); const cb=el('input'); cb.type='checkbox'; cb.checked=d.enabled; cb.disabled=liveOn; cb.title='Stream to this destination'; cb.onchange=()=>api('destination',{...d,key:'',enabled:cb.checked}).then(load);
+  state.destinations.forEach(d=>{ const r=el('div','dest'); const cb=el('input'); cb.type='checkbox'; cb.checked=d.enabled; cb.disabled=liveOn; cb.title='Stream to this destination'; cb.onchange=()=>api('destination',{...d,key:'',enabled:cb.checked}).then(load).then(saveShowSoon);
     const mid=el('div'); mid.append(el('div','nm',d.name),el('div','meta',`${d.format==='vertical'?'Vertical 9:16':'Landscape 16:9'} · ${d.hasKey?'key '+d.keyHint:'no key yet'}${d.perSession?' · new key each live':''}`));
     const b=el('button','btn sm','Edit'); b.type='button'; b.onclick=()=>openDest(d); r.append(cb,mid,b); L.append(r); });
   const on=state.destinations.filter(d=>d.enabled&&d.hasKey); const hq=state.quality==='1080p';
@@ -455,11 +494,12 @@ document.addEventListener('keydown',e=>{ if(/INPUT|TEXTAREA|SELECT/.test(e.targe
   const n=+e.key; if(n>=1&&n<=SCENES.length) setScene(SCENES[n-1][0]);
   else if(e.key==='m'&&liveOn) $('markBtn').click();
   else if(e.key==='l'){ $('oLower').checked=!$('oLower').checked; $('oLower').onchange(); }
-  else if(e.key==='b'){ $('oBannerOn').checked=!$('oBannerOn').checked; $('oBannerOn').onchange(); } });
+  else if(e.key==='b'){ $('oBannerOn').checked=!$('oBannerOn').checked; $('oBannerOn').onchange(); }
+  else if(e.key==='s'){ $('oVerseOn').checked=!$('oVerseOn').checked; $('oVerseOn').onchange(); } });
 window.addEventListener('beforeunload',e=>{ if(liveOn){ e.preventDefault(); e.returnValue=''; } });
 
 navigator.mediaDevices.enumerateDevices().then(listDevices).catch(()=>{});
-load().catch(()=>$('offline').classList.remove('hidden')); connect();
+load().then(loadShows).catch(()=>{ $('offline').classList.remove('hidden'); }); connect();
 })();
 </script>
 </body>
