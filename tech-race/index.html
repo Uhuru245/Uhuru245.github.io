@@ -194,6 +194,7 @@ html.busy::before { content: ''; position: fixed; left: 0; top: 0; height: 3px; 
 .khup { color: var(--ok) !important; font-weight: 600; } .khdown { color: var(--red) !important; font-weight: 600; }
 .khspark { width: 100%; height: 38px; margin-top: 10px; display: block; } .khspark rect { fill: var(--red); opacity: .8; } .khspark rect.part { opacity: .28; }
 .stats.khg .kpi .v { font-size: 26px; } .stats.khg .kpi .s { font-size: 13px; color: var(--ink-3); margin-top: 2px; }
+.khprog { height: 8px; border-radius: 4px; background: #ecebe6; margin-top: 10px; overflow: hidden; } .khprog div { height: 100%; background: var(--red); border-radius: 4px; } .khch .kpi .s { font-size: 13px; color: var(--ink-3); margin-top: 4px; } .khch .kpi .s i { font-style: normal; } @media (max-width: 900px) { .khgrow .grid.g4 { grid-template-columns: minmax(0, 1fr); } }
 .khimp { list-style: none; margin: 0; padding: 0; } .khimp li { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 14px; } .khimp li:first-child { border-top: 0; } .khimp li.me b { color: var(--red); } .khimp i { font-style: normal; margin-left: 6px; }
 .khgrow .table-wrap { overflow-x: auto; } .khgt { width: 100%; border-collapse: collapse; font-size: 14px; } .khgt th, .khgt td { padding: 8px 10px; border-top: 1px solid var(--line); text-align: left; } .khgt th { font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .05em; border-top: 0; } .khgt .num { text-align: right; }
 @media (max-width: 900px) { .stats.khg { grid-template-columns: repeat(2, minmax(0, 1fr)); } .khgrow .grid.g3 { grid-template-columns: minmax(0, 1fr); } } .khchart rect { fill: var(--red); opacity: .85; } .khchart rect:hover { opacity: 1; }
@@ -487,6 +488,96 @@ function khSpark(vals, partialLast) {
   const W = 160, H = 38, max = Math.max(1, ...vals), bw = W / Math.max(1, vals.length);
   return '<svg class="khspark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true">' + vals.map((v, i) => { const h = Math.max(1.5, v / max * (H - 4)); return '<rect x="' + (i * bw + 2).toFixed(1) + '" y="' + (H - h).toFixed(1) + '" width="' + Math.max(2, bw - 4).toFixed(1) + '" height="' + h.toFixed(1) + '" rx="2"' + (partialLast && i === vals.length - 1 ? ' class="part"' : '') + '></rect>'; }).join('') + '</svg>';
 }
+/* ---------- KW Homes Race: advice, challenges and bonus XP ---------- */
+const KH_TIP = {
+  vcard: 'Send your vCard link in every WhatsApp today and put it in your email signature.',
+  listings: 'Post one listing on Facebook and WhatsApp status with the KW Homes link (not a screenshot) so every view counts.',
+  site: 'Send your agent site link to five past clients and ask each to forward it to one friend.',
+  leads: 'Add "enquire on KW Homes" with your listing link to every show-day message and reply to enquiries within 15 minutes.',
+  whatsapp: 'Ask people to tap the WhatsApp button on your KW Homes listing instead of messaging you directly.',
+  visitors: 'Share one new link today in a group you have not posted in before.',
+  pages: 'Link to your agent site rather than a single listing so visitors open more pages.'
+};
+const KH_DAY = ['Sunday: plan the week. Post your best listing with the KW Homes link.', 'Monday: vCard day. Put your vCard link in every message you send.', 'Tuesday: past-client day. Send your agent site to five past clients.', 'Wednesday: listing day. Re-share every active listing with its KW Homes link.', 'Thursday: speed day. Answer every enquiry within 15 minutes.', 'Friday: show-day prep. Put your vCard QR code on boards and flyers.', 'Saturday: show-day. Share the listing link with every visitor.'];
+const khRound5 = n => Math.ceil(n / 5) * 5;
+const khMedian = a => { const s = a.filter(x => x > 0).sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : 0; };
+/** Challenges for a week, set from the week before it so everyone knows the target in advance. */
+function khChallenges(base) {
+  const rows = base ? Object.values(base.per) : [];
+  const vc = Math.max(10, khRound5(khMedian(rows.map(r => r.d.vcard || 0)) * 1.5)), st = Math.max(10, khRound5(khMedian(rows.map(r => r.d.site || 0)) * 1.5));
+  return [
+    { id: 'vcard', name: 'vCard Sprint', xp: 25, rule: 'Reach ' + vc + ' vCard views in the week', test: (x) => (x.d.vcard || 0) >= vc, prog: x => [(x.d.vcard || 0), vc], tip: KH_TIP.vcard },
+    { id: 'beat', name: 'Beat Your Best', xp: 15, rule: 'Get more KW Homes views (site + listing + vCard) than you did the week before, with at least 10', test: (x, p) => x.v >= 10 && x.v > (p ? p.v : 0), prog: (x, p) => [x.v, Math.max(10, (p ? p.v : 0) + 1)], tip: 'Pick your weakest of the three and do its tip today.' },
+    { id: 'site', name: 'Site Builder', xp: 20, rule: 'Reach ' + st + ' agent site views in the week', test: (x) => (x.d.site || 0) >= st, prog: x => [(x.d.site || 0), st], tip: KH_TIP.site },
+    { id: 'lead', name: 'First Lead', xp: 30, rule: 'Get at least one KW Homes lead in the week', test: (x) => (x.d.leads || 0) >= 1, prog: x => [(x.d.leads || 0), 1], tip: KH_TIP.leads }
+  ];
+}
+/** Places an agent can gain with the fewest extra views: for each measure, how many more to pass the next agent up. */
+function khGains(week, meId) {
+  const rows = Object.values(week.per), me = rows.find(r => r.user_id === meId); if (!me) return [];
+  return [['vcard', 'vCard views'], ['listings', 'listing views'], ['site', 'agent site views'], ['leads', 'leads'], ['whatsapp', 'WhatsApp clicks']].map(([m, l]) => {
+    const mine = me.d[m] || 0, above = rows.map(r => r.d[m] || 0).filter(v => v > mine).sort((a, b) => a - b);
+    return above.length ? { m, l, need: above[0] - mine + 1, pass: rows.filter(r => (r.d[m] || 0) === above[0]).map(r => r.name)[0], mine } : { m, l, need: 0, top: true, mine };
+  }).sort((a, b) => (a.top - b.top) || a.need - b.need);
+}
+function khAdvice(W, last, prev, cur) {
+  const out = [];
+  if (!last) return out;
+  const t = last.t, p = prev ? prev.t : null, views = t.site + t.listings + t.vcard;
+  if (p) { const pv = p.site + p.listings + p.vcard, ch = pv ? Math.round((views - pv) / pv * 100) : 0; out.push(ch >= 10 ? ['Momentum is up', 'KW Homes views rose ' + ch + '% last week. Keep the pressure on: announce the leaders on Wednesday and put a bonus on beating your best.'] : ch <= -10 ? ['Momentum dipped', 'KW Homes views fell ' + Math.abs(ch) + '% last week. Run a one-day blitz: pick one challenge below, announce it in the morning, and post the leaders by 4pm.'] : ['Steady week', 'Views were flat (' + (ch > 0 ? '+' : '') + ch + '%). A new challenge with a clear target usually breaks a plateau.']); }
+  const quiet = prev ? Object.keys(prev.per).filter(id => !last.per[id]).length : 0;
+  if (quiet) out.push(['Win back ' + quiet + ' quiet agent' + (quiet === 1 ? '' : 's'), 'They had activity the week before and none last week. A personal message today with one easy action (share your vCard once) is the cheapest growth available.']);
+  if (t.leads <= 1) out.push(['Turn views into leads', views.toLocaleString('en-ZA') + ' views but ' + t.leads + ' lead' + (t.leads === 1 ? '' : 's') + ' last week. Put the First Lead bonus on and remind agents that the enquiry button only works when they share the KW Homes link, not a screenshot.']);
+  if (views && t.vcard / views < 0.2) out.push(['vCards are underused', 'Only ' + Math.round(t.vcard / views * 100) + '% of views were vCards. A vCard Sprint is the quickest lift: every agent can share a vCard today without a new listing.']);
+  if (views && t.site / views < 0.1) out.push(['Agent sites are hardly seen', 'Agent sites were ' + Math.round(t.site / views * 100) + '% of views. Ask each agent to send their site to five past clients this week (Site Builder bonus).']);
+  const sorted = Object.values(last.per).sort((a, b) => b.v - a.v), top3 = sorted.slice(0, 3).reduce((a, x) => a + x.v, 0);
+  if (views && top3 / views > 0.4) out.push(['A three-horse race', 'The top three hold ' + Math.round(top3 / views * 100) + '% of all views (' + sorted.slice(0, 3).map(x => x.name).join(', ') + '). Beat Your Best rewards improvement, so agents lower down have a real chance at bonus points.']);
+  if (cur && !cur.final) out.push(['Today', KH_DAY[new Date().getDay()]]);
+  return out;
+}
+async function khCoach(d, W, last, prev, cur) {
+  const isAdmin = !!d.admin, live = cur && !cur.final ? cur : null;
+  const chLive = khChallenges(last), chLast = khChallenges(prev);
+  let h = '';
+  if (isAdmin) {
+    const adv = khAdvice(W, last, prev, cur);
+    h += '<h2 style="margin:26px 0 6px">Shake things up</h2><p class="small muted" style="margin-top:0">Advice worked out from the race figures. Only you see this.</p><div class="grid g3">' + adv.map(a => '<div class="card"><h3 style="margin-top:0">' + esc(a[0]) + '</h3><p style="margin:0">' + esc(a[1]) + '</p></div>').join('') + '</div>';
+  }
+  h += '<h2 style="margin:26px 0 6px">' + (isAdmin ? 'This week\'s challenges' : 'Challenges: earn bonus XP') + '</h2><p class="small muted" style="margin-top:0">Targets are set from last week\'s figures. Hit one by Sunday and earn bonus XP on the Tech Race leaderboard' + (isAdmin ? ' once you award and approve it' : '') + '. Progress uses the latest MAPP figures (updated Monday, Wednesday and Friday).</p>';
+  if (!isAdmin) h += '<div class="next" style="margin:0 0 12px"><div class="k">Today\'s move</div><div>' + esc(KH_DAY[new Date().getDay()]) + '</div></div>';
+  const meNow = live ? Object.values(live.per).find(x => x.user_id === d.me) : null, mePrev = last ? Object.values(last.per).find(x => x.user_id === d.me) : null;
+  h += '<div class="grid g4 khch">' + chLive.map(c => {
+    let prog = '';
+    if (!isAdmin) { const x = meNow || { v: 0, d: {} }, [a, b] = c.prog(x, mePrev); prog = '<div class="khprog"><div style="width:' + Math.min(100, Math.round(a / b * 100)) + '%"></div></div><div class="s">' + (c.test(x, mePrev) ? '<b class="khup">Done. Bonus on its way.</b>' : a + ' of ' + b) + '</div>'; }
+    else if (live) { const n = Object.values(live.per).filter(x => c.test(x, last.per[x.user_id || 'n:' + x.name])).length; prog = '<div class="s">' + n + ' agent' + (n === 1 ? '' : 's') + ' on target so far</div>'; }
+    return '<div class="kpi"><div class="l">+' + c.xp + ' XP</div><div class="v" style="font-size:20px">' + esc(c.name) + '</div><div class="s">' + esc(c.rule) + '</div>' + prog + '<div class="s" style="margin-top:6px"><i>' + esc(c.tip) + '</i></div></div>';
+  }).join('') + '</div>';
+  if (!isAdmin && live) {
+    const g = khGains(live, d.me);
+    if (g.length) h += '<div class="card" style="margin-top:14px"><h3 style="margin-top:0">Gain places today</h3><p class="small muted" style="margin-top:0">The fewest extra views that move you up, this week so far.</p><ol class="khimp">' + g.slice(0, 4).map(x => '<li><span>' + (x.top ? 'You lead on ' + esc(x.l) + ' (' + x.mine + '). Keep it.' : '<b>' + x.need + ' more ' + esc(x.l) + '</b> passes ' + esc(x.pass)) + '</span><span class="small muted">' + esc(KH_TIP[x.m] || '') + '</span></li>').join('') + '</ol></div>';
+  }
+  if (isAdmin && last) {
+    const done = await api('trAdjustments').then(r => r.items || []).catch(() => []);
+    const given = new Set(done.filter(x => x.status !== 'rejected').map(x => x.reason));
+    const winners = chLast.map(c => ({ c, list: Object.values(last.per).filter(x => x.user_id && x.user_id !== d.me && c.test(x, prev ? prev.per[x.user_id] : null)).map(x => ({ x, reason: 'KW Homes challenge: ' + c.name + ', week of ' + last.from + ' (' + c.rule.replace(/^./, s => s.toLowerCase()) + ')' })) }));
+    S.khWin = winners;
+    h += '<h2 style="margin:26px 0 6px">Award last week\'s bonuses</h2><p class="small muted" style="margin-top:0">Week of ' + fmtD(last.from) + ' to ' + fmtD(last.to) + ', judged on that week\'s final figures against targets set from the week before. Awarding creates a points adjustment you approve under Points; nobody is paid twice.</p>'
+      + '<div class="grid g4">' + winners.map((w, i) => { const open = w.list.filter(y => !given.has(y.reason)); return '<div class="card"><h3 style="margin-top:0">' + esc(w.c.name) + ' <span class="small muted">+' + w.c.xp + ' XP</span></h3>' + (w.list.length ? '<ul class="khimp">' + w.list.map(y => '<li><span>' + esc(y.x.name) + '</span><span class="small ' + (given.has(y.reason) ? 'muted' : 'khup') + '">' + (given.has(y.reason) ? 'awarded' : 'due') + '</span></li>').join('') + '</ul>' + (open.length ? '<button class="btn sm red" data-khaward="' + i + '" style="margin-top:8px">Award ' + open.length + ' (+' + w.c.xp + ' XP each)</button>' : '') : '<p class="small muted" style="margin:0">Nobody reached it.</p>') + '</div>'; }).join('') + '</div>'
+      + '<div class="row" style="gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn" id="khChFocus">Put this week\'s challenges in the Wednesday email</button></div>';
+    S.khChText = ('This week\'s KW Homes challenges, bonus XP on the Tech Race leaderboard (hit them by Sunday):\n' + chLive.map(c => '- ' + c.name + ' (+' + c.xp + ' XP): ' + c.rule + '.').join('\n') + '\nSee your progress on the KW Homes Race, Growth tab.').slice(0, 600);
+  }
+  return h;
+}
+function khCoachAfter() {
+  document.querySelectorAll('[data-khaward]').forEach(b => b.onclick = async () => {
+    const w = S.khWin[+b.dataset.khaward]; if (!w) return; b.disabled = true;
+    const done = await api('trAdjustments').then(r => r.items || []).catch(() => []); const given = new Set(done.filter(x => x.status !== 'rejected').map(x => x.reason));
+    let n = 0; for (const y of w.list) { if (given.has(y.reason)) continue; try { await api('trAdjust', { user: y.x.user_id, points: w.c.xp, reason: y.reason }); n++; } catch (e) { toast(y.x.name + ': ' + e.message); } }
+    toast(n + ' bonus' + (n === 1 ? '' : 'es') + ' created. Approve them under Points.'); S.khg = null; render();
+  });
+  const f = $('khChFocus'); if (f) f.onclick = async () => { f.disabled = true; try { await api('trKhFocus', { focus: S.khChText.slice(0, 600) }); toast('Saved. Wednesday\'s email will carry the challenges.'); } catch (e) { toast(e.message); } f.disabled = false; };
+}
+
 async function khGrowth(d) {
   const keys = (d.weeks || []).slice(0, 8);
   const msKeys = d.admin ? (d.months || []).slice(0, 6) : [];
@@ -517,6 +608,7 @@ async function khGrowth(d) {
   if (!d.admin || meRows.some(r => r.x)) {
     h += '<div class="card" style="margin-top:14px"><h3 style="margin-top:0">' + (d.admin ? 'Your own growth' : 'Your growth') + '</h3>' + (meRows.some(r => r.x) ? '<div class="table-wrap"><table class="khgt"><thead><tr><th>Week of</th><th class="num">Agent site</th><th class="num">Listing views</th><th class="num">vCard views</th><th class="num">Leads</th><th class="num">Total views</th></tr></thead><tbody>' + meRows.slice().reverse().map(r => { const x = r.x ? r.x.d : {}; return '<tr><td>' + fmtD(r.w.from) + (r.w.final ? '' : ' (so far)') + '</td><td class="num">' + (x.site || 0) + '</td><td class="num">' + (x.listings || 0) + '</td><td class="num">' + (x.vcard || 0) + '</td><td class="num">' + (x.leads || 0) + '</td><td class="num"><b>' + khViews(x) + '</b></td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="small muted">No KW Homes activity yet. Share your vCard and listing links to start your growth line.</p>') + '</div>';
   }
+  h += await khCoach(d, W, last, prev, cur);
   const M = S.khg.months.map(m => Object.assign({ key: m.key, from: m.from, to: m.to, final: m.final }, khTotals((m.standings && m.standings.overall) || [])));
   if (d.admin && M.length) {
     const cm = M[M.length - 1], pm = M.length > 1 ? M[M.length - 2] : null;
@@ -565,6 +657,7 @@ VIEWS.homes.after = () => {
   document.querySelectorAll('[data-khrace]').forEach(b => b.onclick = () => { S.kh.race = b.dataset.khrace; render(); });
   const pk = $('khPick'); if (pk) pk.onchange = () => { S.kh[S.kh.scope] = pk.value; render(); };
   const imp = $('khImp'); if (imp) imp.onclick = khImportDlg;
+  khCoachAfter();
   const fs = $('khFocusSave'); if (fs) fs.onclick = async () => { fs.disabled = true; try { await api('trKhFocus', { focus: $('khFocus').value }); toast('Focus saved for Wednesday'); } catch (e) { toast(e.message); } fs.disabled = false; };
   document.querySelectorAll('[data-khsend]').forEach(b => b.onclick = () => {
     const kind = b.dataset.khsend, d = S.khd, per = kind === 'month' ? (d.month && d.month.key) : (d.week && d.week.key);
