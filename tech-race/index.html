@@ -190,7 +190,13 @@ html.busy::before { content: ''; position: fixed; left: 0; top: 0; height: 3px; 
 .khbar b i { font-style: normal; color: var(--ink-3); font-weight: 500; margin-left: 4px; }
 .khbar .track { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: #ecebe6; overflow: hidden; }
 .khbar .track div { height: 100%; background: var(--red); border-radius: 4px; }
-.khchart { width: 100%; height: 180px; display: block; } .khchart rect { fill: var(--red); opacity: .85; } .khchart rect:hover { opacity: 1; }
+.khchart { width: 100%; height: 180px; display: block; }
+.khup { color: var(--ok) !important; font-weight: 600; } .khdown { color: var(--red) !important; font-weight: 600; }
+.khspark { width: 100%; height: 38px; margin-top: 10px; display: block; } .khspark rect { fill: var(--red); opacity: .8; } .khspark rect.part { opacity: .28; }
+.stats.khg .kpi .v { font-size: 26px; } .stats.khg .kpi .s { font-size: 13px; color: var(--ink-3); margin-top: 2px; }
+.khimp { list-style: none; margin: 0; padding: 0; } .khimp li { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 14px; } .khimp li:first-child { border-top: 0; } .khimp li.me b { color: var(--red); } .khimp i { font-style: normal; margin-left: 6px; }
+.khgrow .table-wrap { overflow-x: auto; } .khgt { width: 100%; border-collapse: collapse; font-size: 14px; } .khgt th, .khgt td { padding: 8px 10px; border-top: 1px solid var(--line); text-align: left; } .khgt th { font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .05em; border-top: 0; } .khgt .num { text-align: right; }
+@media (max-width: 900px) { .stats.khg { grid-template-columns: repeat(2, minmax(0, 1fr)); } .khgrow .grid.g3 { grid-template-columns: minmax(0, 1fr); } } .khchart rect { fill: var(--red); opacity: .85; } .khchart rect:hover { opacity: 1; }
 .khlab { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-3); margin-top: 6px; }
 .khbadges { display: flex; flex-wrap: wrap; gap: 8px; }
 .khb { display: inline-flex; flex-direction: column; padding: 8px 12px; border-radius: 10px; background: var(--red-bg); font-size: 12px; color: var(--ink-2); }
@@ -460,14 +466,78 @@ function khChart(days) {
   const lab = days.filter((d, i) => i % Math.ceil(days.length / 6) === 0).map(d => '<span>' + fmtD(d.d) + '</span>').join('');
   return '<svg class="khchart" viewBox="0 0 ' + W + ' ' + Hh + '" preserveAspectRatio="none" role="img" aria-label="Sessions per day">' + bars + '</svg><div class="khlab">' + lab + '</div>';
 }
+/* ---------- KW Homes Race: Growth (week on week, month on month) ---------- */
+const KHG = [['listings', 'Listing views'], ['vcard', 'vCard views'], ['site', 'Agent site views'], ['visitors', 'Visitors'], ['pages', 'Page views'], ['leads', 'Leads'], ['whatsapp', 'WhatsApp clicks']];
+const khViews = x => (x.site || 0) + (x.listings || 0) + (x.vcard || 0);
+function khTotals(rows) {
+  const t = { active: rows.length }; KHG.forEach(([m]) => t[m] = 0);
+  const per = {};
+  rows.forEach(r => { const dt = r.detail || {}; KHG.forEach(([m]) => t[m] += dt[m] || 0); per[r.user_id || 'n:' + r.name] = { name: r.name, user_id: r.user_id, v: khViews(dt), d: dt }; });
+  return { t, per };
+}
+function khPct(a, b) { if (!b) return a ? null : 0; return Math.round((a - b) / b * 100); }
+function khDelta(a, b, unit) {
+  const p = khPct(a, b), diff = a - b;
+  if (b == null) return '<div class="s">No earlier period yet</div>';
+  if (p === null) return '<div class="s khup">New this period (' + a.toLocaleString('en-ZA') + ')</div>';
+  const cls = diff > 0 ? 'khup' : diff < 0 ? 'khdown' : '';
+  return '<div class="s ' + cls + '">' + (diff > 0 ? '&#9650; ' : diff < 0 ? '&#9660; ' : '') + (diff > 0 ? '+' : '') + p + '% ' + (unit || 'vs the week before') + ' (' + b.toLocaleString('en-ZA') + ')</div>';
+}
+function khSpark(vals, partialLast) {
+  const W = 160, H = 38, max = Math.max(1, ...vals), bw = W / Math.max(1, vals.length);
+  return '<svg class="khspark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true">' + vals.map((v, i) => { const h = Math.max(1.5, v / max * (H - 4)); return '<rect x="' + (i * bw + 2).toFixed(1) + '" y="' + (H - h).toFixed(1) + '" width="' + Math.max(2, bw - 4).toFixed(1) + '" height="' + h.toFixed(1) + '" rx="2"' + (partialLast && i === vals.length - 1 ? ' class="part"' : '') + '></rect>'; }).join('') + '</svg>';
+}
+async function khGrowth(d) {
+  const keys = (d.weeks || []).slice(0, 8);
+  const msKeys = d.admin ? (d.months || []).slice(0, 6) : [];
+  const sig = keys.join() + '|' + msKeys.join() + '|' + (d.week && d.week.imported_at);
+  if (!S.khg || S.khg.sig !== sig) {
+    const wk = await Promise.all(keys.map(w => d.week && d.week.key === w ? Promise.resolve(d.week) : api('trKhRace', { week: w }).then(r => r.week)));
+    const mo = await Promise.all(msKeys.map(m => d.month && d.month.key === m ? Promise.resolve(d.month) : api('trKhRace', { month: m }).then(r => r.month)));
+    S.khg = { sig, weeks: wk.filter(Boolean).reverse(), months: mo.filter(x => x && !x.masked).reverse() };
+  }
+  const W = S.khg.weeks.map(w => Object.assign({ key: w.key, from: w.from, to: w.to, final: w.final }, khTotals((w.standings && w.standings.overall) || [])));
+  if (!W.length) return empty('Growth appears once there are two weeks of results.');
+  const full = W.filter(w => w.final), last = full[full.length - 1], prev = full[full.length - 2], cur = W[W.length - 1];
+  const partial = !cur.final;
+  let h = '<p class="small muted">' + (last ? 'Compares the last complete week (' + fmtD(last.from) + ' to ' + fmtD(last.to) + ') with the week before.' : 'No complete week yet.') + (partial ? ' The current week (' + fmtD(cur.from) + ' to ' + fmtD(cur.to) + ') is shown lighter in the charts and is not compared until it is complete.' : '') + ' Totals are the KW Edge agents on the race board (KW Homes Analytics, from MAPP).</p>';
+  if (last) {
+    h += '<div class="stats khg">' + [['active', 'Agents with activity']].concat(KHG).map(([m, l]) => '<div class="kpi"><div class="l">' + esc(l) + '</div><div class="v num">' + last.t[m].toLocaleString('en-ZA') + '</div>' + khDelta(last.t[m], prev ? prev.t[m] : null) + khSpark(W.map(w => w.t[m]), partial) + '</div>').join('') + '</div>';
+  }
+  if (last && prev) {
+    const ids = Object.keys(last.per), rise = ids.map(id => ({ id, name: last.per[id].name, a: last.per[id].v, b: prev.per[id] ? prev.per[id].v : 0, isNew: !prev.per[id] })).filter(x => x.a > x.b);
+    const top = rise.filter(x => !x.isNew).sort((x, y) => (y.a - y.b) - (x.a - x.b) || x.name.localeCompare(y.name)).slice(0, 8);
+    const fresh = rise.filter(x => x.isNew).sort((x, y) => y.a - x.a).slice(0, 10);
+    const dropped = Object.keys(prev.per).filter(id => !last.per[id]).map(id => prev.per[id].name).sort();
+    h += '<div class="grid g3" style="margin-top:4px"><div class="card"><h3 style="margin-top:0">Most improved</h3><p class="small muted" style="margin-top:0">Biggest rise in KW Homes views (agent site, listing and vCard views), week on week.</p>' + (top.length ? '<ol class="khimp">' + top.map(x => '<li' + (x.id === d.me ? ' class="me"' : '') + '><b>' + esc(x.name) + '</b><span class="num">' + x.b + ' &#8594; ' + x.a + ' <i class="khup">+' + (x.a - x.b) + '</i></span></li>').join('') + '</ol>' : '<p class="small muted">Nobody improved on the week before.</p>') + '</div>'
+      + '<div class="card"><h3 style="margin-top:0">New on the board</h3><p class="small muted" style="margin-top:0">Activity last week, none the week before.</p>' + (fresh.length ? '<ol class="khimp">' + fresh.map(x => '<li' + (x.id === d.me ? ' class="me"' : '') + '><b>' + esc(x.name) + '</b><span class="num">' + x.a + ' views</span></li>').join('') + '</ol>' : '<p class="small muted">No new names this week.</p>') + '</div>'
+      + '<div class="card"><h3 style="margin-top:0">Went quiet</h3><p class="small muted" style="margin-top:0">Activity the week before, none last week. A good list for a check-in.</p>' + (dropped.length ? '<p style="margin:0">' + dropped.map(esc).join(', ') + '</p>' : '<p class="small muted">Everyone stayed active.</p>') + '</div></div>';
+  }
+  const meRows = W.map(w => ({ w, x: Object.values(w.per).find(p => p.user_id === d.me) }));
+  if (!d.admin || meRows.some(r => r.x)) {
+    h += '<div class="card" style="margin-top:14px"><h3 style="margin-top:0">' + (d.admin ? 'Your own growth' : 'Your growth') + '</h3>' + (meRows.some(r => r.x) ? '<div class="table-wrap"><table class="khgt"><thead><tr><th>Week of</th><th class="num">Agent site</th><th class="num">Listing views</th><th class="num">vCard views</th><th class="num">Leads</th><th class="num">Total views</th></tr></thead><tbody>' + meRows.slice().reverse().map(r => { const x = r.x ? r.x.d : {}; return '<tr><td>' + fmtD(r.w.from) + (r.w.final ? '' : ' (so far)') + '</td><td class="num">' + (x.site || 0) + '</td><td class="num">' + (x.listings || 0) + '</td><td class="num">' + (x.vcard || 0) + '</td><td class="num">' + (x.leads || 0) + '</td><td class="num"><b>' + khViews(x) + '</b></td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="small muted">No KW Homes activity yet. Share your vCard and listing links to start your growth line.</p>') + '</div>';
+  }
+  const M = S.khg.months.map(m => Object.assign({ key: m.key, from: m.from, to: m.to, final: m.final }, khTotals((m.standings && m.standings.overall) || [])));
+  if (d.admin && M.length) {
+    const cm = M[M.length - 1], pm = M.length > 1 ? M[M.length - 2] : null;
+    const dayN = s => Number(s.slice(8, 10)), dim = s => new Date(Number(s.slice(0, 4)), Number(s.slice(5, 7)), 0).getDate();
+    const pace = !cm.final ? dim(cm.from) / Math.max(1, dayN(cm.to)) : 1;
+    h += '<h2 style="margin:24px 0 6px">Month on month</h2><p class="small muted" style="margin-top:0">' + monthLabel(cm.key) + (cm.final ? '' : ' to ' + fmtD(cm.to) + ', with the full-month pace (so far divided by days elapsed, times days in the month)') + (pm ? ', compared with ' + monthLabel(pm.key) : '') + '. Only you see this section.</p>'
+      + '<div class="stats khg">' + [['active', 'Agents with activity']].concat(KHG).map(([m, l]) => { const so = cm.t[m], proj = m === 'active' ? so : Math.round(so * pace); return '<div class="kpi"><div class="l">' + esc(l) + '</div><div class="v num">' + so.toLocaleString('en-ZA') + '</div>' + (!cm.final && m !== 'active' ? '<div class="s">On pace for ' + proj.toLocaleString('en-ZA') + '</div>' : '') + (pm ? khDelta(proj, pm.t[m], cm.final ? 'vs ' + monthLabel(pm.key) : 'pace vs ' + monthLabel(pm.key)) : '') + '</div>'; }).join('') + '</div>';
+  }
+  return h;
+}
+function monthLabel(k) { const M = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']; return M[Number(k.slice(5, 7)) - 1] + ' ' + k.slice(0, 4); }
+
 VIEWS.homes = async () => {
   const k = S.kh, d = await api('trKhRace', { week: k.week, month: k.month }); S.khd = d;
   if (!d.week && !d.month) return '<div class="ph"><div><h1>KW Homes Race</h1><p>Who gets the most out of KW Homes: vCard views, listing views, agent site views and leads.</p></div>' + (d.admin ? '<button class="btn red" id="khImp">Import from MAPP</button>' : '') + '</div>' + empty('The first race results arrive after the next MAPP import.');
-  const scopeSeg = '<div class="seg" role="group" aria-label="Race period">' + [['week', 'This week'], ['month', 'This month']].map(([v, l]) => '<button data-khscope="' + v + '" aria-pressed="' + (k.scope === v) + '">' + l + '</button>').join('') + '</div>';
+  const scopeSeg = '<div class="seg" role="group" aria-label="Race period">' + [['week', 'This week'], ['month', 'This month'], ['growth', 'Growth']].map(([v, l]) => '<button data-khscope="' + v + '" aria-pressed="' + (k.scope === v) + '">' + l + '</button>').join('') + '</div>';
   const P = k.scope === 'month' ? d.month : d.week, list = k.scope === 'month' ? d.months : d.weeks;
-  const pick = list && list.length > 1 ? '<label class="small muted" style="display:flex;gap:8px;align-items:center">' + (k.scope === 'month' ? 'Month' : 'Week of') + '<select id="khPick" style="width:auto;min-height:36px">' + list.map(x => '<option value="' + x + '"' + (P && P.key === x ? ' selected' : '') + '>' + (k.scope === 'month' ? x : fmtD(x)) + '</option>').join('') + '</select></label>' : '';
+  const pick = k.scope !== 'growth' && list && list.length > 1 ? '<label class="small muted" style="display:flex;gap:8px;align-items:center">' + (k.scope === 'month' ? 'Month' : 'Week of') + '<select id="khPick" style="width:auto;min-height:36px">' + list.map(x => '<option value="' + x + '"' + (P && P.key === x ? ' selected' : '') + '>' + (k.scope === 'month' ? x : fmtD(x)) + '</option>').join('') + '</select></label>' : '';
   let board = '';
-  if (!P) board = empty(k.scope === 'month' ? 'No month results yet. They arrive at month end.' : 'No week results yet.');
+  if (k.scope === 'growth') board = '<div class="khgrow">' + await khGrowth(d) + '</div>';
+  else if (!P) board = empty(k.scope === 'month' ? 'No month results yet. They arrive at month end.' : 'No week results yet.');
   else if (P.masked) {
     board = '<div class="card"><h2 style="margin-top:0">' + (P.final ? 'Top five contenders' : 'In the running') + '</h2><p class="small muted" style="margin-top:0">' + (P.final ? 'One of these five is the number one for the month. The winner is announced and congratulated personally.' : 'The five agents currently in the running for number one, in alphabetical order.') + '</p><ol class="lb">' + P.standings.contenders.map(c => '<li' + (c.user_id === d.me ? ' class="me"' : '') + '><span class="rk">*</span><span class="av">' + esc(initials(c.name)) + '</span><div><b>' + esc(c.name) + '</b></div><span></span></li>').join('') + '</ol></div>';
   } else {
