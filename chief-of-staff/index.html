@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Chief of Staff | MRET</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root { --bg:#f6f6f4; --card:#fff; --ink:#1d1f22; --ink2:#4b4f56; --ink3:#80858d; --line:#e4e4e0; --red:#b3121d; --redbg:#fbeaea; --ok:#1d6b45; --okbg:#e5f2ea; --warn:#8a5a00; --warnbg:#fbf0d9; --char:#1f2125; --r:10px; }
+@media (prefers-color-scheme: dark) { :root { --bg:#141517; --card:#1d1f22; --ink:#eceae6; --ink2:#c4c2bd; --ink3:#8d8f94; --line:#2e3035; --redbg:#3a1416; --okbg:#13301f; --warnbg:#33270c; --char:#0d0e10; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-font-smoothing:antialiased; }
+header { background:var(--char); color:#fff; padding:14px 20px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+header b { font:700 20px/1 'Barlow Condensed', sans-serif; letter-spacing:.04em; text-transform:uppercase; } header b span { color:#e23a45; }
+header .who { margin-left:auto; font-size:13px; color:#bdbdb8; }
+main { max-width:1180px; margin:0 auto; padding:22px 16px 60px; }
+h1 { font:700 30px/1.1 'Barlow Condensed', sans-serif; text-transform:uppercase; margin:0 0 4px; letter-spacing:.01em; }
+h2 { font-size:17px; margin:26px 0 10px; } h3 { font-size:15px; margin:0 0 8px; }
+.muted { color:var(--ink3); } .small { font-size:13px; }
+.tabs { display:flex; gap:4px; background:#ecebe6; border-radius:10px; padding:3px; margin:16px 0 6px; flex-wrap:wrap; width:fit-content; max-width:100%; }
+@media (prefers-color-scheme: dark) { .tabs { background:#26282c; } }
+.tabs button { border:0; background:none; padding:9px 14px; border-radius:8px; font:600 14px Inter, sans-serif; color:var(--ink2); cursor:pointer; }
+.tabs button[aria-selected=true] { background:var(--card); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.08); }
+.chips { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 0; }
+.chip { font-size:12px; padding:4px 10px; border-radius:20px; background:var(--card); border:1px solid var(--line); color:var(--ink2); }
+.chip.ok { background:var(--okbg); color:var(--ok); border-color:transparent; } .chip.bad { background:var(--redbg); color:var(--red); border-color:transparent; } .chip.warn { background:var(--warnbg); color:var(--warn); border-color:transparent; }
+.chip a { color:inherit; font-weight:600; }
+.grid { display:grid; gap:12px; } .g2 { grid-template-columns:repeat(2,minmax(0,1fr)); } .g3 { grid-template-columns:repeat(3,minmax(0,1fr)); } .g4 { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.card { background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:16px; }
+.kpi .l { font-size:12px; color:var(--ink3); text-transform:uppercase; letter-spacing:.06em; font-weight:600; }
+.kpi .v { font:700 30px/1.15 'Barlow Condensed', sans-serif; margin-top:2px; font-variant-numeric:tabular-nums; }
+.kpi .s { font-size:13px; color:var(--ink3); }
+.up { color:var(--ok); font-weight:600; } .down { color:var(--red); font-weight:600; }
+.summary { border:2px solid var(--red); border-radius:14px; background:var(--card); padding:18px 20px; font-size:16px; }
+ol.pri { margin:0; padding:0; list-style:none; counter-reset:p; } ol.pri li { counter-increment:p; display:grid; grid-template-columns:34px 1fr; gap:10px; padding:12px 0; border-top:1px solid var(--line); } ol.pri li:first-child { border-top:0; }
+ol.pri li::before { content:counter(p); width:28px; height:28px; border-radius:50%; background:var(--red); color:#fff; font:700 15px/28px 'Barlow Condensed', sans-serif; text-align:center; }
+ul.list { margin:0; padding:0; list-style:none; } ul.list li { padding:8px 0; border-top:1px solid var(--line); display:flex; justify-content:space-between; gap:10px; font-size:14px; } ul.list li:first-child { border-top:0; }
+table { width:100%; border-collapse:collapse; font-size:14px; } th, td { padding:8px 10px; border-top:1px solid var(--line); text-align:left; } th { font-size:12px; color:var(--ink3); text-transform:uppercase; letter-spacing:.05em; border-top:0; } td.n, th.n { text-align:right; font-variant-numeric:tabular-nums; }
+.wrap { overflow-x:auto; }
+.btn { border:1px solid var(--line); background:var(--card); color:var(--ink); padding:9px 14px; border-radius:8px; font:600 14px Inter, sans-serif; cursor:pointer; }
+.btn.red { background:var(--red); color:#fff; border-color:var(--red); }
+.row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+label.f { display:block; font-size:13px; color:var(--ink2); } label.f input { display:block; width:100%; margin-top:4px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:500 15px Inter, sans-serif; }
+pre.rep { white-space:pre-wrap; font:14px/1.6 Inter, sans-serif; background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:16px; margin:0; }
+.toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--char); color:#fff; padding:10px 16px; border-radius:8px; font-size:14px; display:none; z-index:9; }
+.empty { padding:18px; border:1px dashed var(--line); border-radius:var(--r); color:var(--ink3); text-align:center; }
+@media (max-width:900px) { .g3, .g4 { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:600px) { .g2, .g3, .g4 { grid-template-columns:minmax(0,1fr); } h1 { font-size:26px; } }
+</style>
+</head>
+<body>
+<header><b>MRET <span>Chief of Staff</span></b><span class="who" id="who"></span></header>
+<main>
+  <h1 id="hello">Chief of Staff</h1>
+  <div class="muted" id="today"></div>
+  <div class="chips" id="status"></div>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div id="view"><p class="muted">Loading your figures...</p></div>
+</main>
+<div class="toast" id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+/* MRET Chief of Staff: one page that pulls Agent Intelligence (Supabase, your existing sign-in) and the Tech Race (your existing sign-in)
+   and turns them into a CEO briefing, weekly review, MCTT report and target tracker. Nothing is sent or changed from this page. */
+const SB_URL = 'https://fhkafjamubmxchmzlkbj.supabase.co', SB_KEY = 'sb_publishable_TC9uOwsCDXiwnKte9YVDCw_0XYFt1IL';
+const TR_API = 'https://script.google.com/macros/s/AKfycbwAl-VwvhZy4Xypi4VYfplZOOi4Sbu5tJXkmmvEsj9gqsvMwqLLPx-L1zVolXlVzyuXyg/exec';
+const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'mret-agent-intelligence' } });
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const R = n => 'R ' + Math.round(Number(n) || 0).toLocaleString('en-ZA');
+const N = n => Math.round(Number(n) || 0).toLocaleString('en-ZA');
+const TZ = 'Africa/Johannesburg', today = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
+const addDays = (d, n) => { const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+const fmtD = d => d ? new Intl.DateTimeFormat('en-ZA', { day: 'numeric', month: 'short' }).format(new Date(d.slice(0, 10) + 'T12:00:00Z')) : '';
+const daysSince = ts => ts ? Math.floor((Date.now() - new Date(ts).getTime()) / 864e5) : null;
+const toast = m => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = 'none', 2600); };
+const store = { get: (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+// Planning assumptions (editable on the Targets tab; these are not verified results).
+const DEF = { incomeTarget: 100000, baseline: 21000, netPerDeal: 22000, dealTarget: 4, stretch: 5 };
+const T = Object.assign({}, DEF, store.get('cos.targets', {}));
+const S = { tab: store.get('cos.tab', 'brief') };
+
+async function trApi(a, x) {
+  let tok = null; try { tok = localStorage.getItem('tr.token'); } catch (e) {}
+  if (!tok) return null;
+  try { const r = await fetch(TR_API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ a, token: tok }, x || {})) }); const j = await r.json(); return j && j.ok !== false ? j : null; } catch (e) { return null; }
+}
+async function all(q) { const out = []; for (let f = 0; ; f += 1000) { const r = await q().range(f, f + 999); if (r.error) throw r.error; out.push(...(r.data || [])); if (!r.data || r.data.length < 1000) break; } return out; }
+
+async function load() {
+  const D = { ai: false, tr: false };
+  const { data: s } = await sb.auth.getSession();
+  if (s && s.session) {
+    try {
+      const uid = s.session.user.id; D.email = s.session.user.email;
+      const mem = await sb.from('organisation_memberships').select('organisation_id, role, organisations(name, slug, kind)').eq('user_id', uid);
+      const org = (mem.data || []).find(m => m.organisations && m.organisations.slug === 'mret') || (mem.data || [])[0];
+      if (org) {
+        const o = org.organisation_id; D.ai = true; D.role = org.role;
+        const since = addDays(today, -400);
+        const [assoc, snaps, lsts, hist, recs, commits, fresh, acts] = await Promise.all([
+          all(() => sb.from('associates').select('id, full_name, user_id, on_pc_program, cap_amount, cap_reset_date, is_demo, status').eq('organisation_id', o).eq('status', 'active').order('id')),
+          all(() => sb.from('cap_snapshots').select('associate_id, as_of, cap_date, cap_amount, cap_achieved').eq('organisation_id', o).gte('as_of', addDays(today, -70)).order('as_of').order('id')),
+          all(() => sb.from('associate_listings').select('id, associate_id, ref, suburb, list_date, list_price, status').eq('organisation_id', o).order('id')),
+          all(() => sb.from('associate_listing_history').select('ref, event, old_price, new_price, old_status, new_status, observed_at, associate_listing_id').eq('organisation_id', o).gte('observed_at', addDays(today, -8)).neq('event', 'baseline').order('id')),
+          all(() => sb.from('recommendations').select('id, associate_id, rule_code, status, due_date, outcome').eq('organisation_id', o).order('id')),
+          all(() => sb.from('commitments').select('id, associate_id, text, due_date, status').eq('organisation_id', o).eq('status', 'open').order('id')),
+          sb.from('data_freshness').select('code, name, last_loaded_at, last_rows').eq('organisation_id', o).then(r => r.data || []),
+          all(() => sb.from('activity_logs').select('associate_id, day, contacts, lead_gen_hours, listing_appointments').eq('organisation_id', o).gte('day', addDays(today, -30)).order('id'))
+        ]);
+        Object.assign(D, { o, assoc: assoc.filter(a => !a.is_demo), snaps, lsts, hist, recs, commits, fresh, acts });
+        D.me = D.assoc.find(a => a.user_id === uid) || D.assoc.find(a => /uhuru/i.test(a.full_name));
+      }
+    } catch (e) { D.aiError = e.message || String(e); D.ai = false; }
+  }
+  const me = await trApi('trMe');
+  if (me) {
+    D.tr = true; D.trMe = me;
+    const kh = await trApi('trKhRace', {});
+    if (kh) {
+      D.kh = kh;
+      const keys = (kh.weeks || []).slice(0, 3);
+      const wk = await Promise.all(keys.map(w => kh.week && kh.week.key === w ? kh.week : trApi('trKhRace', { week: w }).then(r => r && r.week)));
+      D.khWeeks = wk.filter(Boolean);
+    }
+  }
+  return D;
+}
+
+/* ---------- derived figures ---------- */
+function khTotals(w) { const rows = (w && w.standings && w.standings.overall) || []; const t = { active: rows.length, site: 0, listings: 0, vcard: 0, leads: 0 }, per = {}; rows.forEach(r => { const d = r.detail || {}; t.site += d.site || 0; t.listings += d.listings || 0; t.vcard += d.vcard || 0; t.leads += d.leads || 0; per[r.user_id || r.name] = { name: r.name, v: (d.site || 0) + (d.listings || 0) + (d.vcard || 0) }; }); t.views = t.site + t.listings + t.vcard; return { t, per }; }
+function derive(D) {
+  const X = {};
+  if (D.ai) {
+    const byA = {}; D.snaps.forEach(s => (byA[s.associate_id] = byA[s.associate_id] || []).push(s));
+    const latest = id => { const a = byA[id] || []; return a[a.length - 1]; };
+    const at = (id, d) => { const a = (byA[id] || []).filter(s => s.as_of <= d); return a[a.length - 1]; };
+    X.capped = D.assoc.filter(a => { const s = latest(a.id); return s && s.cap_amount > 0 && s.cap_achieved >= s.cap_amount; });
+    X.cappedThisWeek = D.assoc.filter(a => { const s = latest(a.id), p = at(a.id, addDays(today, -7)); return s && p && s.cap_amount > 0 && s.cap_achieved >= s.cap_amount && p.cap_achieved < p.cap_amount; });
+    X.cdWeek = D.assoc.reduce((t, a) => { const s = latest(a.id), p = at(a.id, addDays(today, -7)); return t + (s && p ? Math.max(0, s.cap_achieved - p.cap_achieved) : 0); }, 0);
+    X.cdMonth = D.assoc.reduce((t, a) => { const s = latest(a.id), p = at(a.id, addDays(today.slice(0, 8) + '01', -1)); return t + (s && p ? Math.max(0, s.cap_achieved - p.cap_achieved) : 0); }, 0);
+    X.closeToCap = D.assoc.map(a => ({ a, s: latest(a.id) })).filter(x => x.s && x.s.cap_amount > 0 && x.s.cap_achieved < x.s.cap_amount && x.s.cap_amount - x.s.cap_achieved <= 20000).sort((x, y) => (x.s.cap_amount - x.s.cap_achieved) - (y.s.cap_amount - y.s.cap_achieved));
+    const lstById = {}; D.lsts.forEach(l => lstById[l.id] = l);
+    X.newWeek = D.hist.filter(h => h.event === 'first_seen' && h.observed_at.slice(0, 10) > addDays(today, -7));
+    X.cutsWeek = D.hist.filter(h => h.event === 'price_change' && Number(h.new_price) < Number(h.old_price) && h.observed_at.slice(0, 10) > addDays(today, -7));
+    X.statusWeek = D.hist.filter(h => h.event === 'status_change' && h.observed_at.slice(0, 10) > addDays(today, -7));
+    X.underOffer = D.lsts.filter(l => l.status === 'under_offer');
+    X.active = D.lsts.filter(l => l.status === 'active');
+    X.openRecs = D.recs.filter(r => r.status === 'open'); X.accRecs = D.recs.filter(r => r.status === 'accepted');
+    X.dueRecs = D.recs.filter(r => (r.status === 'accepted' || r.status === 'done') && !r.outcome && r.due_date <= today);
+    X.overdue = D.commits.filter(c => c.due_date && c.due_date < today);
+    const mapp = D.fresh.find(f => /listings/.test(f.code)); X.mappAge = mapp ? daysSince(mapp.last_loaded_at) : null; X.mappAt = mapp && mapp.last_loaded_at;
+    if (D.me) {
+      const m = D.me, s = latest(m.id), p = at(m.id, addDays(today.slice(0, 8) + '01', -1));
+      X.my = { s, listings: D.lsts.filter(l => l.associate_id === m.id && l.status === 'active'), offer: D.lsts.filter(l => l.associate_id === m.id && l.status === 'under_offer'), stale: D.lsts.filter(l => l.associate_id === m.id && l.status === 'active' && l.list_date < addDays(today, -90)), new30: D.lsts.filter(l => l.associate_id === m.id && l.list_date > addDays(today, -30)).length, acts: D.acts.filter(a => a.associate_id === m.id) };
+      const pc = !!m.on_pc_program, cdRate = (pc ? 0.9 : 1) * 0.92 * 0.3; X.my.cdRate = cdRate;
+      X.my.cdMonth = s && p ? Math.max(0, s.cap_achieved - p.cap_achieved) : null;
+      X.my.gciMonth = X.my.cdMonth != null ? X.my.cdMonth / cdRate : null;
+      X.my.netMonth = X.my.gciMonth != null ? X.my.gciMonth * (pc ? 0.9 : 1) * 0.92 * 0.7 * 0.8 : null;
+      X.my.capLeft = s && s.cap_amount ? Math.max(0, s.cap_amount - s.cap_achieved) : null;
+    }
+  }
+  if (D.khWeeks && D.khWeeks.length) {
+    const full = D.khWeeks.filter(w => w.final).sort((a, b) => a.key < b.key ? -1 : 1), cur = D.khWeeks.slice().sort((a, b) => a.key < b.key ? -1 : 1).pop();
+    X.khLast = full[full.length - 1]; X.khPrev = full[full.length - 2]; X.khCur = cur && !cur.final ? cur : null;
+    if (X.khLast) { X.kL = khTotals(X.khLast); X.kP = X.khPrev ? khTotals(X.khPrev) : null; X.quiet = X.kP ? Object.keys(X.kP.per).filter(k => !X.kL.per[k]).map(k => X.kP.per[k].name) : []; X.improved = X.kP ? Object.keys(X.kL.per).map(k => ({ name: X.kL.per[k].name, d: X.kL.per[k].v - (X.kP.per[k] ? X.kP.per[k].v : 0) })).filter(x => x.d > 0).sort((a, b) => b.d - a.d).slice(0, 5) : []; X.top = Object.values(X.kL.per).sort((a, b) => b.v - a.v).slice(0, 3); }
+    X.khImported = D.kh && D.kh.week && D.kh.week.imported_at; X.khAge = daysSince(X.khImported);
+  }
+  return X;
+}
+const pct = (a, b) => b ? Math.round((a - b) / b * 100) : null;
+const delta = (a, b) => { const p = pct(a, b); return p == null ? '' : '<span class="' + (p >= 0 ? 'up' : 'down') + '">' + (p >= 0 ? '+' : '') + p + '%</span> vs ' + N(b); };
+
+/* ---------- priorities and advice (rules, worked out from the figures above) ---------- */
+function priorities(D, X) {
+  const P = [];
+  const dayOfMonth = Number(today.slice(8)), dim = new Date(Number(today.slice(0, 4)), Number(today.slice(5, 7)), 0).getDate();
+  if (X.my) {
+    const dealsEq = X.my.netMonth != null ? X.my.netMonth / T.netPerDeal : null, expected = T.dealTarget * dayOfMonth / dim;
+    if (dealsEq != null && dealsEq < expected) P.push([90, 'Close the gap on this month\'s income target', 'Your cap progress this month suggests about ' + R(X.my.netMonth) + ' take-home, roughly ' + dealsEq.toFixed(1) + ' of ' + T.dealTarget + ' deals with ' + (dim - dayOfMonth) + ' days left. Today: two listing appointments booked from past clients and the sphere.', 'Real estate']);
+    if (X.my.offer.length) P.push([85, 'Push ' + X.my.offer.length + ' under-offer listing' + (X.my.offer.length === 1 ? '' : 's') + ' to registration', X.my.offer.map(l => l.ref + (l.suburb ? ' (' + l.suburb + ')' : '')).join(', ') + '. Check bond approval, conveyancer and suspensive conditions today.', 'Real estate']);
+    if (X.my.stale.length) P.push([60, 'Price review for ' + X.my.stale.length + ' listing' + (X.my.stale.length === 1 ? '' : 's') + ' older than about 90 days', 'Book seller conversations with fresh comparables before the next price drop is forced on you.', 'Real estate']);
+    if (X.my.new30 === 0) P.push([70, 'No new listings in about 30 days', 'Your pipeline needs fresh stock. Block two hours for listing lead generation before noon.', 'Real estate']);
+  }
+  if (X.quiet && X.quiet.length) P.push([65, 'Win back ' + X.quiet.length + ' quiet agent' + (X.quiet.length === 1 ? '' : 's') + ' on KW Homes', X.quiet.slice(0, 6).join(', ') + (X.quiet.length > 6 ? ' and others' : '') + '. One personal message each, with one easy action.', 'MCTT']);
+  if (X.kL && X.kL.t.leads <= 1) P.push([55, 'Turn KW Homes views into leads', N(X.kL.t.views) + ' views but ' + X.kL.t.leads + ' lead' + (X.kL.t.leads === 1 ? '' : 's') + ' last week. Run the First Lead bonus and coach agents to share the KW Homes link, not screenshots.', 'MCTT']);
+  if (X.overdue && X.overdue.length) P.push([75, X.overdue.length + ' coaching commitment' + (X.overdue.length === 1 ? ' is' : 's are') + ' overdue', 'Follow up in today\'s check-ins; mark done or missed in the Coaching Centre.', 'Coaching']);
+  if (X.openRecs && X.openRecs.length) P.push([50, 'Decide ' + X.openRecs.length + ' open coaching recommendation' + (X.openRecs.length === 1 ? '' : 's'), 'Accept or dismiss in the Coaching Centre so agents get clear next steps.', 'Coaching']);
+  if (X.dueRecs && X.dueRecs.length) P.push([45, 'Measure ' + X.dueRecs.length + ' recommendation outcome' + (X.dueRecs.length === 1 ? '' : 's'), 'They are past their due date. Press Measure outcomes in the Coaching Centre.', 'Coaching']);
+  if (X.closeToCap && X.closeToCap.length) P.push([58, X.closeToCap.length + ' associate' + (X.closeToCap.length === 1 ? ' is' : 's are') + ' within R20 000 of cap', X.closeToCap.slice(0, 4).map(x => x.a.full_name + ' (' + R(x.s.cap_amount - x.s.cap_achieved) + ' left)').join(', ') + '. A congratulations plan ready for when they cap builds retention.', 'Leadership']);
+  if (X.khAge != null && X.khAge > 3) P.push([80, 'KW Homes Race data is ' + X.khAge + ' days old', 'The scheduled update is not running. Edit the four KW Homes Race scheduled tasks on your MacBook with the files in mret-pub3 > kwhomes > scheduled-task-prompts.', 'Systems']);
+  if (X.mappAge != null && X.mappAge > 1) P.push([78, 'MAPP listing sync is ' + X.mappAge + ' days old', 'Open MAPP in Chrome on your MacBook so the daily 07:23 sync can run, or check the scheduled task result.', 'Systems']);
+  return P.sort((a, b) => b[0] - a[0]);
+}
+
+/* ---------- views ---------- */
+function statusChips(D, X) {
+  const c = [];
+  c.push(D.ai ? '<span class="chip ok">Agent Intelligence connected</span>' : '<span class="chip bad">Agent Intelligence: <a href="/agent-intelligence/">sign in</a></span>');
+  c.push(D.tr ? '<span class="chip ok">Tech Race connected</span>' : '<span class="chip bad">Tech Race: <a href="/tech-race/">sign in</a></span>');
+  if (X.mappAt) c.push('<span class="chip ' + (X.mappAge > 1 ? 'warn' : '') + '">MAPP listings ' + (X.mappAge === 0 ? 'synced today' : 'synced ' + X.mappAge + ' day' + (X.mappAge === 1 ? '' : 's') + ' ago') + '</span>');
+  if (X.khImported) c.push('<span class="chip ' + (X.khAge > 3 ? 'warn' : '') + '">KW Homes Race updated ' + fmtD(X.khImported) + '</span>');
+  c.push('<span class="chip">Email and calendar: use Claude (not connected to this page)</span>');
+  return c.join('');
+}
+function vBrief(D, X) {
+  const P = priorities(D, X), top = P.slice(0, 3), rest = P.slice(3);
+  const sum = [];
+  if (X.my && X.my.s) sum.push('Your cap is ' + R(X.my.s.cap_achieved) + ' of ' + R(X.my.s.cap_amount) + (X.my.capLeft ? ' (' + R(X.my.capLeft) + ' to go)' : ' (capped)') + ', with ' + X.my.listings.length + ' active and ' + X.my.offer.length + ' under-offer listings.');
+  if (X.cdWeek != null && D.ai) sum.push('The market centre paid ' + R(X.cdWeek) + ' company dollar in the last 7 days' + (X.cappedThisWeek.length ? ' and ' + X.cappedThisWeek.length + ' associate' + (X.cappedThisWeek.length === 1 ? '' : 's') + ' capped' : '') + '.');
+  if (X.kL) sum.push('KW Homes views were ' + N(X.kL.t.views) + ' last week' + (X.kP ? ' (' + (pct(X.kL.t.views, X.kP.t.views) >= 0 ? 'up ' : 'down ') + Math.abs(pct(X.kL.t.views, X.kP.t.views)) + '%)' : '') + '.');
+  if (!sum.length) sum.push('Sign in to Agent Intelligence and the Tech Race on this browser to load your figures.');
+  const rec = top.length ? 'Focus on number 1 before 11:00. ' + (P.some(p => p[3] === 'Systems') ? 'Fix the data feed today: every report on this page depends on it. ' : '') + (P.filter(p => p[3] === 'MCTT').length ? 'Delegate the quiet-agent messages if you have admin help; keep the coaching decisions yourself.' : '') : 'No urgent gaps in the figures. Spend the morning on lead generation.';
+  const opp = X.my ? [].concat(X.my.offer.map(l => ['Under offer: ' + l.ref + (l.suburb ? ', ' + l.suburb : ''), l.list_price ? R(l.list_price) : '']), X.closeToCap.slice(0, 3).map(x => ['Near cap: ' + x.a.full_name, R(x.s.cap_amount - x.s.cap_achieved) + ' left'])) : [];
+  return '<div class="summary">' + esc(sum.join(' ')) + '</div>'
+    + '<h2>Top three priorities</h2><div class="card">' + (top.length ? '<ol class="pri">' + top.map(p => '<li><div><b>' + esc(p[1]) + '</b> <span class="small muted">' + esc(p[3]) + '</span><div class="small">' + esc(p[2]) + '</div></div></li>').join('') + '</ol>' : '<div class="empty">No gaps found in the figures today.</div>') + '</div>'
+    + '<div class="grid g2" style="margin-top:12px"><div class="card"><h3>Revenue opportunities</h3>' + (opp.length ? '<ul class="list">' + opp.map(o => '<li><span>' + esc(o[0]) + '</span><span class="muted">' + esc(o[1]) + '</span></li>').join('') + '</ul>' : '<div class="empty">None flagged.</div>') + '</div>'
+    + '<div class="card"><h3>Also on the list</h3>' + (rest.length ? '<ul class="list">' + rest.map(p => '<li><span>' + esc(p[1]) + '</span><span class="muted small">' + esc(p[3]) + '</span></li>').join('') + '</ul>' : '<div class="empty">Nothing else outstanding.</div>') + '</div></div>'
+    + '<h2>CEO recommendation</h2><div class="card">' + esc(rec) + '</div>'
+    + '<div class="row" style="margin-top:14px"><button class="btn red" data-copy="brief">Copy briefing for Claude</button><span class="small muted">Paste into Claude with your inbox and calendar connected for the full briefing.</span></div>';
+}
+function vWeek(D, X) {
+  let h = '<h2>Market centre this week</h2><div class="grid g4">';
+  if (D.ai) h += [['New listings (7 days)', N(X.newWeek.length), 'First seen by the daily MAPP sync'], ['Price reductions', N(X.cutsWeek.length), 'Listings reduced in 7 days'], ['Company dollar (7 days)', R(X.cdWeek), 'From cap progress in MAPP'], ['Capped this week', N(X.cappedThisWeek.length), X.cappedThisWeek.map(a => a.full_name).join(', ') || 'None']].map(k => '<div class="card kpi"><div class="l">' + k[0] + '</div><div class="v">' + k[1] + '</div><div class="s">' + esc(k[2]) + '</div></div>').join('');
+  h += '</div>';
+  if (X.kL) h += '<h2>KW Homes, week of ' + fmtD(X.khLast.from) + '</h2><div class="grid g4">' + [['Views', X.kL.t.views, X.kP && X.kP.t.views], ['Listing views', X.kL.t.listings, X.kP && X.kP.t.listings], ['vCard views', X.kL.t.vcard, X.kP && X.kP.t.vcard], ['Agents active', X.kL.t.active, X.kP && X.kP.t.active]].map(k => '<div class="card kpi"><div class="l">' + k[0] + '</div><div class="v">' + N(k[1]) + '</div><div class="s">' + (k[2] != null ? delta(k[1], k[2]) + ' the week before' : '') + '</div></div>').join('') + '</div>'
+    + '<div class="grid g3" style="margin-top:12px"><div class="card"><h3>Leading</h3><ul class="list">' + X.top.map(x => '<li><span>' + esc(x.name) + '</span><span class="muted">' + N(x.v) + ' views</span></li>').join('') + '</ul></div><div class="card"><h3>Most improved</h3>' + (X.improved.length ? '<ul class="list">' + X.improved.map(x => '<li><span>' + esc(x.name) + '</span><span class="up">+' + N(x.d) + '</span></li>').join('') + '</ul>' : '<div class="empty">None.</div>') + '</div><div class="card"><h3>Went quiet</h3>' + (X.quiet.length ? esc(X.quiet.join(', ')) : '<div class="empty">Nobody.</div>') + '</div></div>';
+  if (D.ai) h += '<h2>Coaching</h2><div class="grid g4">' + [['Open recommendations', X.openRecs.length], ['Accepted, in progress', X.accRecs.length], ['Outcomes to measure', X.dueRecs.length], ['Overdue commitments', X.overdue.length]].map(k => '<div class="card kpi"><div class="l">' + k[0] + '</div><div class="v">' + N(k[1]) + '</div></div>').join('') + '</div>';
+  h += '<div class="row" style="margin-top:14px"><button class="btn red" data-copy="week">Copy weekly review</button><a class="btn" href="/tech-race/#homes">KW Homes Race</a><a class="btn" href="/agent-intelligence/#/coaching">Coaching Centre</a></div>';
+  return h;
+}
+function mcttText(D, X) {
+  const L = ['MCTT report: KW Edge, week ending ' + fmtD(X.khLast ? X.khLast.to : today), ''];
+  if (X.kL) {
+    L.push('KW Homes adoption');
+    L.push('- ' + X.kL.t.active + ' agents with KW Homes activity' + (X.kP ? ' (' + X.kP.t.active + ' the week before)' : ''));
+    L.push('- ' + N(X.kL.t.views) + ' views: ' + N(X.kL.t.listings) + ' listing, ' + N(X.kL.t.vcard) + ' vCard, ' + N(X.kL.t.site) + ' agent site' + (X.kP ? ' (' + (pct(X.kL.t.views, X.kP.t.views) >= 0 ? '+' : '') + pct(X.kL.t.views, X.kP.t.views) + '% week on week)' : ''));
+    L.push('- Leads from KW Homes: ' + X.kL.t.leads);
+    if (X.top.length) L.push('- Leading: ' + X.top.map(x => x.name).join(', '));
+    if (X.improved.length) L.push('- Most improved: ' + X.improved.slice(0, 3).map(x => x.name + ' (+' + x.d + ')').join(', '));
+    if (X.quiet.length) L.push('- Follow-up needed (went quiet): ' + X.quiet.join(', '));
+    L.push('');
+  }
+  if (D.ai) {
+    L.push('Performance and coaching');
+    L.push('- Company dollar paid in the last 7 days: ' + R(X.cdWeek) + '; this month so far: ' + R(X.cdMonth));
+    L.push('- Capped associates: ' + X.capped.length + (X.cappedThisWeek.length ? ' (new this week: ' + X.cappedThisWeek.map(a => a.full_name).join(', ') + ')' : ''));
+    if (X.closeToCap.length) L.push('- Within R20 000 of cap: ' + X.closeToCap.map(x => x.a.full_name).join(', '));
+    L.push('- New listings in 7 days: ' + X.newWeek.length + '; price reductions: ' + X.cutsWeek.length);
+    L.push('- Coaching recommendations: ' + X.openRecs.length + ' open, ' + X.accRecs.length + ' accepted; overdue commitments: ' + X.overdue.length);
+    L.push('');
+  }
+  L.push('Next week');
+  L.push('- Run this week\'s KW Homes challenges (vCard Sprint, Beat Your Best, Site Builder, First Lead) and award last week\'s bonuses.');
+  if (X.quiet && X.quiet.length) L.push('- Personal check-ins with the ' + X.quiet.length + ' quiet agents.');
+  L.push('', 'Source: MAPP (KW Homes Analytics, Cappers Report and listings) via MRET Agent Intelligence and the KW Edge Tech Race. Figures before 13 Nov 2026 list dates are estimates.');
+  return L.join('\n');
+}
+function vMctt(D, X) { return '<h2>Report for leadership</h2><p class="small muted">Ready to paste into an email or WhatsApp to Charmaine. Agent names appear only where they are already shown to the office on the race board.</p><pre class="rep" id="mctt">' + esc(mcttText(D, X)) + '</pre><div class="row" style="margin-top:12px"><button class="btn red" data-copy="mctt">Copy report</button></div>'; }
+function vTargets(D, X) {
+  const dayOfMonth = Number(today.slice(8)), dim = new Date(Number(today.slice(0, 4)), Number(today.slice(5, 7)), 0).getDate();
+  const need = Math.max(0, T.incomeTarget - T.baseline), dealsNeeded = Math.ceil(need / T.netPerDeal);
+  const net = X.my ? X.my.netMonth : null, onPace = net != null ? net / dayOfMonth * dim : null;
+  return '<h2>Monthly income target</h2><p class="small muted">Planning assumptions, not verified results. Change them below; they are saved on this device.</p>'
+    + '<div class="grid g4">' + [['Target', R(T.incomeTarget), 'Baseline ' + R(T.baseline) + ' from other income'], ['From real estate', R(need), dealsNeeded + ' deals at ' + R(T.netPerDeal) + ' net'], ['Estimated take-home this month', net != null ? R(net) : 'No data', net != null ? 'From your cap progress in MAPP (company dollar / ' + (X.my.cdRate * 100).toFixed(1) + '%), after royalty, split and PAYE' : 'Needs two cap snapshots this month'], ['On pace for', onPace != null ? R(onPace) : 'No data', onPace != null ? Math.round(onPace / need * 100) + '% of the real estate target' : '']].map(k => '<div class="card kpi"><div class="l">' + k[0] + '</div><div class="v">' + k[1] + '</div><div class="s">' + esc(k[2]) + '</div></div>').join('') + '</div>'
+    + (X.my && X.my.s ? '<div class="grid g3" style="margin-top:12px"><div class="card kpi"><div class="l">Cap paid</div><div class="v">' + R(X.my.s.cap_achieved) + '</div><div class="s">of ' + R(X.my.s.cap_amount) + ', cap date ' + fmtD(X.my.s.cap_date) + '</div></div><div class="card kpi"><div class="l">Active listings</div><div class="v">' + X.my.listings.length + '</div><div class="s">' + X.my.offer.length + ' under offer, ' + X.my.stale.length + ' older than about 90 days</div></div><div class="card kpi"><div class="l">New listings (about 30 days)</div><div class="v">' + X.my.new30 + '</div><div class="s">Target ' + T.dealTarget + ' deals, stretch ' + T.stretch + '</div></div></div>' : '')
+    + '<h2>Assumptions</h2><div class="card"><div class="grid g4">' + [['incomeTarget', 'Monthly income target (R)'], ['baseline', 'Baseline income (R)'], ['netPerDeal', 'Net per deal (R)'], ['dealTarget', 'Deals per month']].map(f => '<label class="f">' + f[1] + '<input type="number" min="0" data-t="' + f[0] + '" value="' + T[f[0]] + '"></label>').join('') + '</div><div class="row" style="margin-top:12px"><button class="btn red" id="saveT">Save</button><button class="btn" id="resetT">Reset to defaults</button></div></div>'
+    + '<p class="small muted" style="margin-top:12px">Estimates use the KW Edge cost of sale: PC fee 10% if on the PC programme, royalty 8%, company split 30% until cap, PAYE 20%. Not tax or financial advice.</p>';
+}
+function briefText(D, X) {
+  const P = priorities(D, X);
+  return ['Run my CEO briefing for ' + today + ' (Africa/Johannesburg). Use my inbox and calendar too. Here is what my MRET Chief of Staff page shows:', '', ...$('view').querySelector('.summary') ? [$('view').querySelector('.summary').textContent, ''] : [], 'Priorities from my figures:', ...P.map((p, i) => (i + 1) + '. ' + p[1] + ': ' + p[2]), '', 'Add: today\'s schedule around my calendar, unanswered emails that matter, risks, and what to delegate or automate.'].join('\n');
+}
+const TABS = [['brief', 'CEO briefing'], ['week', 'Weekly review'], ['mctt', 'MCTT report'], ['targets', 'Targets']];
+let D0, X0;
+function render() {
+  $('tabs').innerHTML = TABS.map(t => '<button role="tab" aria-selected="' + (S.tab === t[0]) + '" data-tab="' + t[0] + '">' + t[1] + '</button>').join('');
+  $('view').innerHTML = S.tab === 'week' ? vWeek(D0, X0) : S.tab === 'mctt' ? vMctt(D0, X0) : S.tab === 'targets' ? vTargets(D0, X0) : vBrief(D0, X0);
+  document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { S.tab = b.dataset.tab; store.set('cos.tab', S.tab); render(); });
+  document.querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => { const k = b.dataset.copy, txt = k === 'mctt' ? mcttText(D0, X0) : k === 'week' ? $('view').innerText : briefText(D0, X0); try { await navigator.clipboard.writeText(txt); toast('Copied'); } catch (e) { toast('Copy failed: select the text and copy it'); } });
+  const sv = $('saveT'); if (sv) sv.onclick = () => { document.querySelectorAll('[data-t]').forEach(i => { const v = Number(i.value); if (v >= 0) T[i.dataset.t] = v; }); store.set('cos.targets', T); toast('Saved on this device'); render(); };
+  const rs = $('resetT'); if (rs) rs.onclick = () => { Object.assign(T, DEF); store.set('cos.targets', {}); render(); };
+}
+(async () => {
+  $('today').textContent = new Intl.DateTimeFormat('en-ZA', { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
+  const h = Number(new Intl.DateTimeFormat('en-ZA', { timeZone: TZ, hour: 'numeric', hour12: false }).format(new Date()));
+  $('hello').textContent = (h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening') + ', Uhuru';
+  try { D0 = await load(); } catch (e) { D0 = { ai: false, tr: false, aiError: e.message }; }
+  X0 = derive(D0);
+  $('who').textContent = D0.email || '';
+  $('status').innerHTML = statusChips(D0, X0) + (D0.aiError ? '<span class="chip bad">' + esc(D0.aiError) + '</span>' : '');
+  render();
+})();
+</script>
+</body>
+</html>
