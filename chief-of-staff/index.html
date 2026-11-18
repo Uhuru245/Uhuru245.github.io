@@ -136,7 +136,12 @@ function derive(D) {
   if (D.ai) {
     const byA = {}; D.snaps.forEach(s => (byA[s.associate_id] = byA[s.associate_id] || []).push(s));
     const latest = id => { const a = byA[id] || []; return a[a.length - 1]; };
-    const at = (id, d) => { const a = (byA[id] || []).filter(s => s.as_of <= d); return a[a.length - 1]; };
+    const at0 = (id, d) => { const a = (byA[id] || []).filter(s => s.as_of <= d); return a[a.length - 1]; };
+    // Before enough history exists, compare with the earliest snapshot (the sync started on 13 Nov 2026) and say so.
+    const at = (id, d) => at0(id, d) || (byA[id] || [])[0];
+    const firstAll = D.snaps.length ? D.snaps.map(s => s.as_of).sort()[0] : null;
+    X.weekFrom = firstAll && firstAll > addDays(today, -7) ? firstAll : addDays(today, -7);
+    X.monthFrom = firstAll && firstAll > addDays(today.slice(0, 8) + '01', -1) ? firstAll : today.slice(0, 8) + '01';
     X.capped = D.assoc.filter(a => { const s = latest(a.id); return s && s.cap_amount > 0 && s.cap_achieved >= s.cap_amount; });
     X.cappedThisWeek = D.assoc.filter(a => { const s = latest(a.id), p = at(a.id, addDays(today, -7)); return s && p && s.cap_amount > 0 && s.cap_achieved >= s.cap_amount && p.cap_achieved < p.cap_amount; });
     X.cdWeek = D.assoc.reduce((t, a) => { const s = latest(a.id), p = at(a.id, addDays(today, -7)); return t + (s && p ? Math.max(0, s.cap_achieved - p.cap_achieved) : 0); }, 0);
@@ -209,7 +214,7 @@ function vBrief(D, X) {
   const P = priorities(D, X), top = P.slice(0, 3), rest = P.slice(3);
   const sum = [];
   if (X.my && X.my.s) sum.push('Your cap is ' + R(X.my.s.cap_achieved) + ' of ' + R(X.my.s.cap_amount) + (X.my.capLeft ? ' (' + R(X.my.capLeft) + ' to go)' : ' (capped)') + ', with ' + X.my.listings.length + ' active and ' + X.my.offer.length + ' under-offer listings.');
-  if (X.cdWeek != null && D.ai) sum.push('The market centre paid ' + R(X.cdWeek) + ' company dollar in the last 7 days' + (X.cappedThisWeek.length ? ' and ' + X.cappedThisWeek.length + ' associate' + (X.cappedThisWeek.length === 1 ? '' : 's') + ' capped' : '') + '.');
+  if (X.cdWeek != null && D.ai) sum.push('The market centre paid ' + R(X.cdWeek) + ' company dollar since ' + fmtD(X.weekFrom) + (X.cappedThisWeek.length ? ' and ' + X.cappedThisWeek.length + ' associate' + (X.cappedThisWeek.length === 1 ? '' : 's') + ' capped' : '') + '.');
   if (X.kL) sum.push('KW Homes views were ' + N(X.kL.t.views) + ' last week' + (X.kP ? ' (' + (pct(X.kL.t.views, X.kP.t.views) >= 0 ? 'up ' : 'down ') + Math.abs(pct(X.kL.t.views, X.kP.t.views)) + '%)' : '') + '.');
   if (!sum.length) sum.push('Sign in to Agent Intelligence and the Tech Race on this browser to load your figures.');
   const rec = top.length ? 'Focus on number 1 before 11:00. ' + (P.some(p => p[3] === 'Systems') ? 'Fix the data feed today: every report on this page depends on it. ' : '') + (P.filter(p => p[3] === 'MCTT').length ? 'Delegate the quiet-agent messages if you have admin help; keep the coaching decisions yourself.' : '') : 'No urgent gaps in the figures. Spend the morning on lead generation.';
@@ -223,7 +228,7 @@ function vBrief(D, X) {
 }
 function vWeek(D, X) {
   let h = '<h2>Market centre this week</h2><div class="grid g4">';
-  if (D.ai) h += [['New listings (7 days)', N(X.newWeek.length), 'First seen by the daily MAPP sync'], ['Price reductions', N(X.cutsWeek.length), 'Listings reduced in 7 days'], ['Company dollar (7 days)', R(X.cdWeek), 'From cap progress in MAPP'], ['Capped this week', N(X.cappedThisWeek.length), X.cappedThisWeek.map(a => a.full_name).join(', ') || 'None']].map(k => '<div class="card kpi"><div class="l">' + k[0] + '</div><div class="v">' + k[1] + '</div><div class="s">' + esc(k[2]) + '</div></div>').join('');
+  if (D.ai) h += [['New listings (7 days)', N(X.newWeek.length), 'First seen by the daily MAPP sync'], ['Price reductions', N(X.cutsWeek.length), 'Listings reduced in 7 days'], ['Company dollar', R(X.cdWeek), 'Since ' + fmtD(X.weekFrom) + ', from cap progress in MAPP'], ['Capped this week', N(X.cappedThisWeek.length), X.cappedThisWeek.map(a => a.full_name).join(', ') || 'None']].map(k => '<div class="card kpi"><div class="l">' + k[0] + '</div><div class="v">' + k[1] + '</div><div class="s">' + esc(k[2]) + '</div></div>').join('');
   h += '</div>';
   if (X.kL) h += '<h2>KW Homes, week of ' + fmtD(X.khLast.from) + '</h2><div class="grid g4">' + [['Views', X.kL.t.views, X.kP && X.kP.t.views], ['Listing views', X.kL.t.listings, X.kP && X.kP.t.listings], ['vCard views', X.kL.t.vcard, X.kP && X.kP.t.vcard], ['Agents active', X.kL.t.active, X.kP && X.kP.t.active]].map(k => '<div class="card kpi"><div class="l">' + k[0] + '</div><div class="v">' + N(k[1]) + '</div><div class="s">' + (k[2] != null ? delta(k[1], k[2]) + ' the week before' : '') + '</div></div>').join('') + '</div>'
     + '<div class="grid g3" style="margin-top:12px"><div class="card"><h3>Leading</h3><ul class="list">' + X.top.map(x => '<li><span>' + esc(x.name) + '</span><span class="muted">' + N(x.v) + ' views</span></li>').join('') + '</ul></div><div class="card"><h3>Most improved</h3>' + (X.improved.length ? '<ul class="list">' + X.improved.map(x => '<li><span>' + esc(x.name) + '</span><span class="up">+' + N(x.d) + '</span></li>').join('') + '</ul>' : '<div class="empty">None.</div>') + '</div><div class="card"><h3>Went quiet</h3>' + (X.quiet.length ? esc(X.quiet.join(', ')) : '<div class="empty">Nobody.</div>') + '</div></div>';
@@ -245,7 +250,7 @@ function mcttText(D, X) {
   }
   if (D.ai) {
     L.push('Performance and coaching');
-    L.push('- Company dollar paid in the last 7 days: ' + R(X.cdWeek) + '; this month so far: ' + R(X.cdMonth));
+    L.push('- Company dollar paid since ' + fmtD(X.weekFrom) + ': ' + R(X.cdWeek) + '; since ' + fmtD(X.monthFrom) + ': ' + R(X.cdMonth));
     L.push('- Capped associates: ' + X.capped.length + (X.cappedThisWeek.length ? ' (new this week: ' + X.cappedThisWeek.map(a => a.full_name).join(', ') + ')' : ''));
     if (X.closeToCap.length) L.push('- Within R20 000 of cap: ' + X.closeToCap.map(x => x.a.full_name).join(', '));
     L.push('- New listings in 7 days: ' + X.newWeek.length + '; price reductions: ' + X.cutsWeek.length);
@@ -262,9 +267,9 @@ function vMctt(D, X) { return '<h2>Report for leadership</h2><p class="small mut
 function vTargets(D, X) {
   const dayOfMonth = Number(today.slice(8)), dim = new Date(Number(today.slice(0, 4)), Number(today.slice(5, 7)), 0).getDate();
   const need = Math.max(0, T.incomeTarget - T.baseline), dealsNeeded = Math.ceil(need / T.netPerDeal);
-  const net = X.my ? X.my.netMonth : null, onPace = net != null ? net / dayOfMonth * dim : null;
+  const net = X.my ? X.my.netMonth : null, daysIn = X.monthFrom ? Math.max(1, Math.round((new Date(today) - new Date(X.monthFrom)) / 864e5) + 1) : dayOfMonth, onPace = net != null ? net / daysIn * dim : null;
   return '<h2>Monthly income target</h2><p class="small muted">Planning assumptions, not verified results. Change them below; they are saved on this device.</p>'
-    + '<div class="grid g4">' + [['Target', R(T.incomeTarget), 'Baseline ' + R(T.baseline) + ' from other income'], ['From real estate', R(need), dealsNeeded + ' deals at ' + R(T.netPerDeal) + ' net'], ['Estimated take-home this month', net != null ? R(net) : 'No data', net != null ? 'From your cap progress in MAPP (company dollar / ' + (X.my.cdRate * 100).toFixed(1) + '%), after royalty, split and PAYE' : 'Needs two cap snapshots this month'], ['On pace for', onPace != null ? R(onPace) : 'No data', onPace != null ? Math.round(onPace / need * 100) + '% of the real estate target' : '']].map(k => '<div class="card kpi"><div class="l">' + k[0] + '</div><div class="v">' + k[1] + '</div><div class="s">' + esc(k[2]) + '</div></div>').join('') + '</div>'
+    + '<div class="grid g4">' + [['Target', R(T.incomeTarget), 'Baseline ' + R(T.baseline) + ' from other income'], ['From real estate', R(need), dealsNeeded + ' deals at ' + R(T.netPerDeal) + ' net'], ['Estimated take-home this month', net != null ? R(net) : 'No data', net != null ? 'Since ' + fmtD(X.monthFrom) + ', from your cap progress in MAPP (company dollar / ' + (X.my.cdRate * 100).toFixed(1) + '%), after royalty, split and PAYE' : 'Needs two cap snapshots this month'], ['On pace for', onPace != null ? R(onPace) : 'No data', onPace != null ? Math.round(onPace / need * 100) + '% of the real estate target' : '']].map(k => '<div class="card kpi"><div class="l">' + k[0] + '</div><div class="v">' + k[1] + '</div><div class="s">' + esc(k[2]) + '</div></div>').join('') + '</div>'
     + (X.my && X.my.s ? '<div class="grid g3" style="margin-top:12px"><div class="card kpi"><div class="l">Cap paid</div><div class="v">' + R(X.my.s.cap_achieved) + '</div><div class="s">of ' + R(X.my.s.cap_amount) + ', cap date ' + fmtD(X.my.s.cap_date) + '</div></div><div class="card kpi"><div class="l">Active listings</div><div class="v">' + X.my.listings.length + '</div><div class="s">' + X.my.offer.length + ' under offer, ' + X.my.stale.length + ' older than about 90 days</div></div><div class="card kpi"><div class="l">New listings (about 30 days)</div><div class="v">' + X.my.new30 + '</div><div class="s">Target ' + T.dealTarget + ' deals, stretch ' + T.stretch + '</div></div></div>' : '')
     + '<h2>Assumptions</h2><div class="card"><div class="grid g4">' + [['incomeTarget', 'Monthly income target (R)'], ['baseline', 'Baseline income (R)'], ['netPerDeal', 'Net per deal (R)'], ['dealTarget', 'Deals per month']].map(f => '<label class="f">' + f[1] + '<input type="number" min="0" data-t="' + f[0] + '" value="' + T[f[0]] + '"></label>').join('') + '</div><div class="row" style="margin-top:12px"><button class="btn red" id="saveT">Save</button><button class="btn" id="resetT">Reset to defaults</button></div></div>'
     + '<p class="small muted" style="margin-top:12px">Estimates use the KW Edge cost of sale: PC fee 10% if on the PC programme, royalty 8%, company split 30% until cap, PAYE 20%. Not tax or financial advice.</p>';
