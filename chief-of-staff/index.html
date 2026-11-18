@@ -70,7 +70,8 @@ label.f .inp, label.f select, label.f textarea { display:block; margin-top:4px; 
 </main>
 <div class="toast" id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="sales.js?v=1"></script>
+<script src="sales.js?v=2"></script>
+<script src="comms.js?v=1"></script>
 <script>
 /* MRET Chief of Staff: one page that pulls Agent Intelligence (Supabase, your existing sign-in) and the Tech Race (your existing sign-in)
    and turns them into a CEO briefing, weekly review, MCTT report and target tracker. Nothing is sent or changed from this page. */
@@ -215,6 +216,10 @@ function priorities(D, X) {
     if (so.newLeads) P.push([95, 'Contact ' + so.newLeads + ' new lead' + (so.newLeads === 1 ? '' : 's'), 'Uncontacted leads go cold within hours. Call them before anything else today (Sales OS > Leads).', 'Sales OS']);
     if (so.overdueLeads) P.push([82, so.overdueLeads + ' lead follow-up' + (so.overdueLeads === 1 ? ' is' : 's are') + ' overdue', 'Work through them in Sales OS > Leads and set a new next action for each.', 'Sales OS']);
     if (so.bondsDue.length) P.push([92, so.bondsDue.length + ' bond approval' + (so.bondsDue.length === 1 ? '' : 's') + ' due within 7 days', 'Call the originator and the buyer today so the deal does not lapse (Sales OS > OTPs and deals).', 'Sales OS']);
+    const cm = so.comms;
+    if (cm && cm.urgent) P.push([93, cm.urgent + ' urgent client message' + (cm.urgent === 1 ? '' : 's') + ' to send', 'First responses, bond reminders and congratulations are written and waiting in Sales OS > Messages. One click opens each in WhatsApp or Gmail.', 'Sales OS']);
+    else if (cm && cm.due) P.push([70, cm.due + ' client message' + (cm.due === 1 ? '' : 's') + ' due', 'Sales OS > Messages has them ready to send' + (cm.sellerDue ? ', including ' + cm.sellerDue + ' weekly seller update' + (cm.sellerDue === 1 ? '' : 's') : '') + '.', 'Sales OS']);
+    if (cm && cm.overdue) P.push([86, cm.overdue + ' deal or listing item' + (cm.overdue === 1 ? ' is' : 's are') + ' behind schedule', cm.behind.slice(0, 3).join(', ') + '. See Sales OS > Deal tracker, What is left behind.', 'Sales OS']);
     if (so.expiring.length) P.push([72, so.expiring.length + ' mandate' + (so.expiring.length === 1 ? '' : 's') + ' expiring within 30 days', so.expiring.slice(0, 3).map(l => l.address).join(', ') + '. Book the extension conversation with a seller feedback report.', 'Sales OS']);
   }
   return P.sort((a, b) => b[0] - a[0]);
