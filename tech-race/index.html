@@ -523,7 +523,7 @@ async function khGrowth(d) {
     const dayN = s => Number(s.slice(8, 10)), dim = s => new Date(Number(s.slice(0, 4)), Number(s.slice(5, 7)), 0).getDate();
     const pace = !cm.final ? dim(cm.from) / Math.max(1, dayN(cm.to)) : 1;
     h += '<h2 style="margin:24px 0 6px">Month on month</h2><p class="small muted" style="margin-top:0">' + monthLabel(cm.key) + (cm.final ? '' : ' to ' + fmtD(cm.to) + ', with the full-month pace (so far divided by days elapsed, times days in the month)') + (pm ? ', compared with ' + monthLabel(pm.key) : '') + '. Only you see this section.</p>'
-      + '<div class="stats khg">' + [['active', 'Agents with activity']].concat(KHG).map(([m, l]) => { const so = cm.t[m], proj = m === 'active' ? so : Math.round(so * pace); return '<div class="kpi"><div class="l">' + esc(l) + '</div><div class="v num">' + so.toLocaleString('en-ZA') + '</div>' + (!cm.final && m !== 'active' ? '<div class="s">On pace for ' + proj.toLocaleString('en-ZA') + '</div>' : '') + (pm ? khDelta(proj, pm.t[m], cm.final ? 'vs ' + monthLabel(pm.key) : 'pace vs ' + monthLabel(pm.key)) : '') + '</div>'; }).join('') + '</div>';
+      + '<div class="stats khg">' + [['active', 'Agents with activity']].concat(KHG).map(([m, l]) => { const so = cm.t[m], proj = m === 'active' ? so : Math.round(so * pace); return '<div class="kpi"><div class="l">' + esc(l) + '</div><div class="v num">' + so.toLocaleString('en-ZA') + '</div>' + (!cm.final && m !== 'active' ? '<div class="s">On pace for ' + proj.toLocaleString('en-ZA') + '</div>' : '') + (pm ? khDelta(proj, pm.t[m], cm.final ? 'vs ' + monthLabel(pm.key) : (m === 'active' ? 'so far vs all of ' : 'pace vs ') + monthLabel(pm.key)) : '') + '</div>'; }).join('') + '</div>';
   }
   return h;
 }
