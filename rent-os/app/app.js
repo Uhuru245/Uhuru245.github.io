@@ -37,13 +37,14 @@
     const { data: { session } } = await sb.auth.getSession();
     S.session = session; S.user = session && session.user;
     if (!S.user) return;
-    const [prof, ag, adm, aal, fac, rp] = await Promise.all([
+    const [prof, ag, adm, aal, fac, rp, mi] = await Promise.all([
       sb.from('user_profiles').select('*').eq('id', S.user.id).maybeSingle(),
       sb.rpc('my_agencies'),
       sb.from('platform_admins').select('role').eq('user_id', S.user.id).maybeSingle(),
       sb.auth.mfa.getAuthenticatorAssuranceLevel(),
       sb.auth.mfa.listFactors(),
-      sb.from('role_permissions').select('role_key, permission_key')]);
+      sb.from('role_permissions').select('role_key, permission_key'), sb.rpc('my_invitations')]);
+    S.invites = (mi && mi.data) || [];
     S.profile = prof.data; S.agencies = ag.data || []; S.admin = adm.data ? adm.data.role : null;
     S.aal = aal.data || {}; S.factors = (fac.data && fac.data.totp) || [];
     (rp.data || []).forEach(x => (PERMS[x.role_key] = PERMS[x.role_key] || []).push(x.permission_key));
@@ -150,7 +151,13 @@
   function nextStep() { const o = (S.agency && S.agency.onboarding) || {}; if (!S.agency) return 'agency'; for (const k of ['plan', 'branding', 'team', 'property', 'done']) if (!o[k]) return k; return null; }
   function stepper(cur) { const o = (S.agency && S.agency.onboarding) || {}; const done = k => k === 'account' || k === 'verify' || (k === 'agency' && S.agency) || o[k]; return '<div class="stepper" aria-label="Setup progress">' + STEPS.map(([k, l]) => '<span class="' + (k === cur ? 'cur' : done(k) ? 'done' : '') + '">' + l + '</span>').join('') + '</div>'; }
   const obShell = (cur, title, body) => { $('root').innerHTML = '<div class="wrap" style="max-width:880px;padding-top:28px;padding-bottom:48px"><div class="row" style="margin-bottom:14px"><a class="logo" href="/rent-os/"><span class="mark">RO</span><span>MRET <b>RENT OS</b></span></a><span class="sp" style="flex:1"></span>' + (S.agency && S.agency.onboarding && S.agency.onboarding.plan ? '<a class="btn sm" href="#/dashboard">Skip to dashboard</a>' : '') + '<button class="btn sm" id="outB">Sign out</button></div>' + stepper(cur) + '<div class="card"><h2>' + title + '</h2>' + body + '</div></div>'; $('outB').onclick = async () => { await sb.auth.signOut(); location.hash = '#/login'; location.reload(); }; };
+  function vPendingInvites(fromOnboarding) {
+    obShell('agency', 'You have been invited', '<p class="ink2">Your email address has an invitation waiting. Accept it to join that agency\'s workspace.</p>' + S.invites.map(i => '<div class="card row" style="margin-top:10px"><div style="flex:1"><b>' + esc(i.agency_name) + '</b><div class="small muted">' + esc(i.role_label) + ', expires ' + fmtD(i.expires_at) + '</div></div><button class="btn primary" data-acc="' + i.invitation_id + '">Accept and join</button></div>').join('') + '<p class="err" id="e"></p>' + (fromOnboarding ? '<p style="margin-top:18px"><button class="btn ghost" id="own">No, I want to register my own agency</button></p>' : ''));
+    document.querySelectorAll('[data-acc]').forEach(b => b.onclick = ev => busy(ev.target, async () => { const r = await sb.rpc('accept_invitation_by_id', { inv: b.dataset.acc }); if (r.error) return ($('e').textContent = friendly(r.error)); SS.set('rentos.invite', null); LS.set('rentos.agency', r.data); toast('Welcome to the team'); await loadAll(); go('#/dashboard'); }));
+    if ($('own')) $('own').onclick = () => { S.skipInvites = true; render(); };
+  }
   async function vOnboarding() {
+    if (!S.agency && S.invites && S.invites.length && !S.skipInvites) return vPendingInvites(true);
     const step = nextStep();
     if (!step) return go('#/dashboard');
     if (S.agency && S.agency.role !== 'agency_owner' && S.agency.role !== 'agency_admin') return go('#/dashboard');
@@ -282,6 +289,7 @@
     const ob = nextStep();
     const subTxt = !s ? 'No plan yet' : s.status === 'trialing' ? 'Free trial, ' + Math.max(0, daysTo(s.trial_ends_at)) + ' days left' : s.status === 'active' ? 'Active, renews ' + fmtD(s.current_period_end) : s.status === 'past_due' ? 'Payment overdue' : s.status === 'suspended' ? 'Suspended' : s.status;
     shell('dashboard', 'Dashboard', (ob && ob !== 'done' && can('agency.manage') ? '<div class="notice info" style="margin-bottom:16px">Setup is not finished. <a href="#/onboarding">Continue where you left off</a></div>' : '')
+      + ((S.invites || []).length ? '<div class="notice info" style="margin-bottom:16px">You have ' + S.invites.length + ' invitation' + (S.invites.length === 1 ? '' : 's') + ' to join another agency (' + S.invites.map(i => esc(i.agency_name)).join(', ') + '). <a href="#/invites">View</a></div>' : '')
       + '<div class="grid g4">' + kpi('Properties', N(o.properties), N(o.occupied) + ' occupied, ' + N(o.vacant) + ' vacant') + kpi('Occupancy', o.properties ? Math.round(o.occupied / o.properties * 100) + '%' : '–', 'Occupied out of active properties') + kpi('Monthly rent roll', R0(o.rent_roll_cents), 'Captured rent on occupied properties') + kpi('Team', N(o.users) + (s && s.max_users ? ' of ' + s.max_users : ''), N(o.pending_invites) + ' invitation' + (o.pending_invites === 1 ? '' : 's') + ' pending') + '</div>'
       + '<div class="grid g2" style="margin-top:16px"><div class="card"><h3>Your plan</h3><p><span class="chip ' + (o.access === 'full' ? 'ok' : o.access === 'read_only' ? 'bad' : 'info') + '">' + esc(subTxt) + '</span> ' + (s ? '<b>' + esc(s.plan) + '</b> ' + R(s.price_cents) + ' per ' + (s.cycle === 'annual' ? 'year' : 'month') : '') + '</p>' + (s && s.max_properties ? '<div class="small muted">Properties ' + N(o.properties) + ' of ' + s.max_properties + '</div><div class="bar-meter" style="margin:6px 0 12px"><div style="width:' + Math.min(100, Math.round(o.properties / s.max_properties * 100)) + '%"></div></div>' : '') + (can('billing.manage') ? '<a class="btn sm" href="#/subscription">Manage subscription</a>' : '') + '</div>'
       + '<div class="card"><h3>What opens next</h3><p class="ink2 small">Collections, arrears, landlord balances and maintenance figures appear here as each module is switched on for your agency: leases and invoicing first, then payments and statements.</p><a class="btn sm" href="#/properties">Go to properties</a></div></div>'
@@ -442,6 +450,7 @@
     if (SS.get('rentos.invite') && p0 !== 'invite') return vInvite(SS.get('rentos.invite'));
     if (['login', 'register', 'verify', 'forgot', ''].includes(p0)) return go(S.agency ? (nextStep() && can('agency.manage') && !(S.agency.onboarding || {}).plan ? '#/onboarding' : '#/dashboard') : S.admin ? '#/admin' : '#/onboarding');
     if (p0 === 'admin') return vAdmin(q);
+    if (p0 === 'invites') return (S.invites || []).length ? vPendingInvites(false) : go('#/dashboard');
     if (p0 === 'account') return vAccount();
     if (!S.agency || p0 === 'onboarding') { if (!S.agency && p0 !== 'onboarding') return go('#/onboarding'); return vOnboarding(); }
     try {
