@@ -1,0 +1,133 @@
+{
+ "name": "Uhuru Matlhaji",
+ "updated": "2026-11-23T08:45:56Z",
+ "note": "Organiser figures from MAPP KWHomes Analytics exports, shown only to the MCTT.",
+ "periods": [
+  {
+   "from": "2026-10-01",
+   "to": "2026-10-31",
+   "data": {
+    "site": 2,
+    "visitors": 3,
+    "pages": 13,
+    "listings": 2,
+    "vcard": 4,
+    "leads": 1,
+    "whatsapp": 0,
+    "finance": 0
+   }
+  },
+  {
+   "from": "2026-11-01",
+   "to": "2026-11-06",
+   "data": {
+    "site": 2,
+    "visitors": 3,
+    "pages": 13,
+    "listings": 2,
+    "vcard": 4,
+    "leads": 1,
+    "whatsapp": 0,
+    "finance": 0
+   }
+  },
+  {
+   "from": "2026-11-01",
+   "to": "2026-11-18",
+   "data": {
+    "site": 22,
+    "visitors": 71,
+    "pages": 114,
+    "listings": 67,
+    "vcard": 15,
+    "leads": 1,
+    "whatsapp": 0,
+    "finance": 0
+   }
+  },
+  {
+   "from": "2026-11-01",
+   "to": "2026-11-23",
+   "data": {
+    "site": 41,
+    "visitors": 154,
+    "pages": 366,
+    "listings": 233,
+    "vcard": 42,
+    "leads": 2,
+    "whatsapp": 0,
+    "finance": 2
+   }
+  },
+  {
+   "from": "2026-11-02",
+   "to": "2026-11-06",
+   "data": {
+    "site": 2,
+    "visitors": 3,
+    "pages": 13,
+    "listings": 2,
+    "vcard": 4,
+    "leads": 1,
+    "whatsapp": 0,
+    "finance": 0
+   }
+  },
+  {
+   "from": "2026-11-09",
+   "to": "2026-11-13",
+   "data": {
+    "site": 14,
+    "visitors": 20,
+    "pages": 43,
+    "listings": 21,
+    "vcard": 5,
+    "leads": 0,
+    "whatsapp": 0,
+    "finance": 0
+   }
+  },
+  {
+   "from": "2026-11-09",
+   "to": "2026-11-15",
+   "data": {
+    "site": 14,
+    "visitors": 20,
+    "pages": 44,
+    "listings": 22,
+    "vcard": 5,
+    "leads": 0,
+    "whatsapp": 0,
+    "finance": 0
+   }
+  },
+  {
+   "from": "2026-11-16",
+   "to": "2026-11-18",
+   "data": {
+    "site": 5,
+    "visitors": 50,
+    "pages": 50,
+    "listings": 38,
+    "vcard": 5,
+    "leads": 0,
+    "whatsapp": 0,
+    "finance": 0
+   }
+  },
+  {
+   "from": "2026-11-16",
+   "to": "2026-11-22",
+   "data": {
+    "site": 23,
+    "visitors": 136,
+    "pages": 302,
+    "listings": 205,
+    "vcard": 32,
+    "leads": 1,
+    "whatsapp": 0,
+    "finance": 2
+   }
+  }
+ ]
+}

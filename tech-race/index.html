@@ -622,6 +622,47 @@ window.khAiAwardNow = async function () {
   const full = wk.filter(w => w.final); const last = full[0], prev = full[1];
   const res = await khAiAward(last, prev, d.me, await khAiPlans(true)); S.khg = null; return res;
 };
+
+/* ---------- KW Homes Race: the organiser's own results (not ranked; from /tech-race/organiser.json) ---------- */
+const KHME_M = [['site', 'Agent site views'], ['visitors', 'Visitors'], ['pages', 'Page views'], ['listings', 'Listing views'], ['vcard', 'vCard views'], ['leads', 'Leads'], ['whatsapp', 'WhatsApp clicks'], ['finance', 'KW Finance clicks']];
+async function khMeData() {
+  if (S.khme && Date.now() - S.khme.at < 300000) return S.khme.d;
+  let d = null; try { const r = await fetch('/tech-race/organiser.json?ts=' + Date.now(), { cache: 'no-store' }); if (r.ok) d = await r.json(); } catch (e) { d = null; }
+  S.khme = { at: Date.now(), d }; return d;
+}
+/** Where the organiser would place among the ranked agents (same scoring as the board), without changing anyone's position. */
+function khMeWouldBe(P, mine) {
+  const rows = (P.standings.overall || []).map(x => ({ id: x.user_id || x.name, d: x.detail || {} })).concat([{ id: '__me', d: mine }]).filter(r => KHME_M.some(([m]) => (r.d[m] || 0) > 0));
+  const out = {};
+  if (rows.some(r => r.id === '__me')) {
+    const tot = {}; rows.forEach(r => tot[r.id] = 0);
+    KHME_M.forEach(([m]) => rows.forEach(r => { tot[r.id] += 1 + rows.filter(o => (o.d[m] || 0) > (r.d[m] || 0)).length; }));
+    out.overall = 1 + rows.filter(r => r.id !== '__me' && tot[r.id] < tot.__me).length; out.overallOf = rows.length;
+  }
+  ['vcard', 'listings', 'site'].forEach(m => { const v = mine[m] || 0; if (v > 0) { const list = P.standings[m] || []; out[m] = 1 + list.filter(x => x.score > v).length; out[m + 'Of'] = list.length + 1; } });
+  return out;
+}
+async function khMeCard(d, P) {
+  if (!d.admin || !P || P.masked) return '';
+  const me = await khMeData(); if (!me || !Array.isArray(me.periods)) return '';
+  const hit = me.periods.filter(p => p.from === P.from && p.to === P.to)[0] || me.periods.filter(p => p.from === P.from).sort((a, b) => a.to < b.to ? 1 : -1)[0];
+  if (!hit) return '<div class="card khme" style="margin:0 0 14px"><h3 style="margin-top:0">Your own results</h3><p class="small muted" style="margin:0">Your figures for ' + fmtD(P.from) + ' to ' + fmtD(P.to) + ' are not in yet. They update after each MAPP import.</p></div>';
+  const x = hit.data || {}, w = khMeWouldBe(P, x), pos = (n, of) => n ? '#' + n + ' of ' + of : 'n/a';
+  return '<div class="card khme" style="margin:0 0 14px"><h3 style="margin-top:0">Your own results <span class="small muted">· not ranked, only you see this</span></h3><p class="small muted" style="margin-top:0">' + fmtD(hit.from) + ' to ' + fmtD(hit.to) + '. As the organiser you are left out of the race, so agents\' positions and prizes are not affected.</p>'
+    + '<div class="stats">' + KHME_M.map(([m, l]) => '<div class="kpi"><div class="l">' + l + '</div><div class="v num">' + (x[m] || 0).toLocaleString('en-ZA') + '</div></div>').join('') + '</div>'
+    + '<p style="margin:10px 0 0"><b>Where you would place:</b> Overall ' + pos(w.overall, w.overallOf) + ' · vCards ' + pos(w.vcard, w.vcardOf) + ' · Listing views ' + pos(w.listings, w.listingsOf) + ' · Agent site ' + pos(w.site, w.siteOf) + '</p></div>';
+}
+async function khMeGrowth(d) {
+  if (!d.admin) return '';
+  const me = await khMeData(); if (!me || !Array.isArray(me.periods)) return '';
+  const weeks = me.periods.filter(p => { const f = new Date(p.from + 'T00:00:00Z'), t = new Date(p.to + 'T00:00:00Z'); return f.getUTCDay() === 1 && (t - f) / 864e5 <= 6; });
+  const byFrom = {}; weeks.forEach(p => { if (!byFrom[p.from] || p.to > byFrom[p.from].to) byFrom[p.from] = p; });
+  const list = Object.values(byFrom).sort((a, b) => a.from < b.from ? 1 : -1).slice(0, 8); if (!list.length) return '';
+  const v = x => (x.site || 0) + (x.listings || 0) + (x.vcard || 0), full = t => new Date(t + 'T00:00:00Z').getUTCDay() === 0;
+  return '<div class="card" style="margin-top:14px"><h3 style="margin-top:0">Your own growth <span class="small muted">· not ranked, only you see this</span></h3><div class="table-wrap"><table class="khgt"><thead><tr><th>Week of</th><th class="num">Agent site</th><th class="num">Listing views</th><th class="num">vCard views</th><th class="num">Leads</th><th class="num">Total views</th></tr></thead><tbody>'
+    + list.map(p => { const x = p.data || {}; return '<tr><td>' + fmtD(p.from) + (full(p.to) ? '' : ' (so far)') + '</td><td class="num">' + (x.site || 0) + '</td><td class="num">' + (x.listings || 0) + '</td><td class="num">' + (x.vcard || 0) + '</td><td class="num">' + (x.leads || 0) + '</td><td class="num"><b>' + v(x) + '</b></td></tr>'; }).join('') + '</tbody></table></div></div>';
+}
+
 /** Short AI Coach card for the agent home page and the race boards; opens the Growth tab. */
 async function khAiTeaser() {
   const plans = await khAiPlans(); if (!plans.length) return '';
@@ -673,6 +714,7 @@ async function khGrowth(d) {
   const partial = !cur.final;
   let h = '<p class="small muted">' + (last ? 'Compares the last complete week (' + fmtD(last.from) + ' to ' + fmtD(last.to) + ') with the week before.' : 'No complete week yet.') + (partial ? ' The current week (' + fmtD(cur.from) + ' to ' + fmtD(cur.to) + ') is shown lighter in the charts and is not compared until it is complete.' : '') + ' Totals are the KW Edge agents on the race board (KW Homes Analytics, from MAPP).</p>';
   h = (await khAiSection(d, W, last, prev, cur)) + h;
+  h += await khMeGrowth(d);
   if (last) {
     h += '<div class="stats khg">' + [['active', 'Agents with activity']].concat(KHG).map(([m, l]) => '<div class="kpi"><div class="l">' + esc(l) + '</div><div class="v num">' + last.t[m].toLocaleString('en-ZA') + '</div>' + khDelta(last.t[m], prev ? prev.t[m] : null) + khSpark(W.map(w => w.t[m]), partial) + '</div>').join('') + '</div>';
   }
@@ -731,7 +773,7 @@ VIEWS.homes = async () => {
   const admin = d.admin ? '<div class="card no-print" style="margin-top:18px"><h2 style="margin-top:0">Run the race</h2><div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn red" id="khImp">Import from MAPP</button>' + [['monday', 'Send Monday winners'], ['wednesday', 'Send Wednesday focus'], ['friday', 'Send Friday progress'], ['month', 'Send month-end top five']].map(([v, l]) => '<button class="btn" data-khsend="' + v + '">' + l + '</button>').join('') + '</div>'
     + '<label class="f" style="margin-top:14px">Wednesday focus: what agents should look out for this week<span class="hint">Leave empty to use a ready-made tip.</span><textarea id="khFocus" rows="2" maxlength="600">' + esc(d.focus || '') + '</textarea></label><button class="btn sm" id="khFocusSave">Save focus</button>'
     + '<p class="small muted" style="margin-bottom:0">Emails go to every agent on the roster. Month end: agents get the top five in alphabetical order; the number one goes only to you.' + (d.sends.length ? ' Last sent: ' + d.sends.slice(0, 4).map(s => s.kind + ' ' + s.period + ' (' + s.count + ')').join(', ') + '.' : '') + '</p></div>' : '';
-  return '<div class="ph"><div><h1>KW Homes Race</h1><p>vCard views, listing views, agent site views and leads from KW Homes. New results every Monday, Wednesday and Friday.</p></div><div class="row" style="gap:10px;flex-wrap:wrap">' + scopeSeg + pick + '</div></div>' + (k.scope !== 'growth' ? await khAiTeaser() : '') + board + badges + traffic + admin;
+  return '<div class="ph"><div><h1>KW Homes Race</h1><p>vCard views, listing views, agent site views and leads from KW Homes. New results every Monday, Wednesday and Friday.</p></div><div class="row" style="gap:10px;flex-wrap:wrap">' + scopeSeg + pick + '</div></div>' + (k.scope !== 'growth' ? await khAiTeaser() : '') + (k.scope !== 'growth' ? await khMeCard(d, P) : '') + board + badges + traffic + admin;
 };
 VIEWS.homes.after = () => {
   document.querySelectorAll('[data-khscope]').forEach(b => b.onclick = () => { S.kh.scope = b.dataset.khscope; render(); });
