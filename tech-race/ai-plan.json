@@ -1,0 +1,23 @@
+{
+  "updated": "2026-11-23T08:30:00Z",
+  "source": "AI weekly plan for the KW Edge Tech Race. Written every Monday from the KWHomes Analytics Weekly Digest and the KW Homes Race figures.",
+  "plans": [
+    {
+      "week_from": "2026-11-23",
+      "week_to": "2026-11-29",
+      "made_at": "2026-11-23T08:30:00Z",
+      "headline": "Mobile visits more than doubled last week. Social shares and leads are the gaps to close this week.",
+      "advice": [
+        { "title": "Phones are where buyers are", "text": "KW Edge mobile visits jumped from 184 to 490 last week. Buyers look on their phones, so send the KW Homes link in WhatsApp, not a screenshot, and every view counts for you." },
+        { "title": "Social has gone flat", "text": "Facebook and Instagram have sent about 35 to 42 visits a week for five weeks. Post one listing this week with its KW Homes link in the post, and put it on your WhatsApp status too." },
+        { "title": "Turn views into enquiries", "text": "The office had thousands of listing views last week but only three leads. End every listing message with: tap the WhatsApp button on the listing to book a viewing." },
+        { "title": "Today's move", "text": "Pick your best active listing, share its KW Homes link in two WhatsApp groups and on your status, and ask one past client to forward it." }
+      ],
+      "challenges": [
+        { "id": "ai-whatsapp-2", "name": "WhatsApp Tap", "metric": "whatsapp", "target": 2, "xp": 20, "rule": "Get 2 or more WhatsApp clicks on your KW Homes listings this week", "tip": "In every listing message, ask people to tap the WhatsApp button on the KW Homes page instead of messaging you directly." },
+        { "id": "ai-vcard-30", "name": "vCard Stretch", "metric": "vcard", "target": 30, "xp": 30, "rule": "Reach 30 vCard views this week", "tip": "Add your vCard link to your WhatsApp status, your email signature and every new contact you save today." },
+        { "id": "ai-leads-2", "name": "Double Lead", "metric": "leads", "target": 2, "xp": 40, "rule": "Get 2 or more KW Homes leads this week", "tip": "Share listings with the KW Homes link so the enquiry form is one tap away, and reply to every enquiry within 15 minutes." }
+      ]
+    }
+  ]
+}

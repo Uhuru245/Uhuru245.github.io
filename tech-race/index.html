@@ -578,6 +578,77 @@ function khCoachAfter() {
   const f = $('khChFocus'); if (f) f.onclick = async () => { f.disabled = true; try { await api('trKhFocus', { focus: S.khChText.slice(0, 600) }); toast('Saved. Wednesday\'s email will carry the challenges.'); } catch (e) { toast(e.message); } f.disabled = false; };
 }
 
+
+/* ---------- KW Homes Race: AI Coach (weekly AI plan from www.mret.co.za/tech-race/ai-plan.json; bonus XP awarded automatically) ---------- */
+const KHAI_M = { vcard: 'vCard views', listings: 'listing views', site: 'agent site views', leads: 'leads', whatsapp: 'WhatsApp clicks', visitors: 'visitors', pages: 'page views', views: 'KW Homes views (site + listing + vCard)', beat: 'KW Homes views, beating your previous week' };
+async function khAiPlans(force) {
+  if (S.khai && !force && Date.now() - S.khai.at < 300000) return S.khai.plans;
+  let plans = [];
+  try { const r = await fetch('/tech-race/ai-plan.json?ts=' + Date.now(), { cache: 'no-store' }); if (r.ok) { const j = await r.json(); plans = Array.isArray(j.plans) ? j.plans : []; } } catch (e) { plans = []; }
+  plans = plans.filter(p => p && /^\d{4}-\d{2}-\d{2}$/.test(p.week_from || '') && Array.isArray(p.challenges)).map(p => Object.assign({}, p, { challenges: p.challenges.filter(c => c && KHAI_M[c.metric] && +c.xp > 0 && +c.xp <= 50).slice(0, 3) }));
+  S.khai = { at: Date.now(), plans }; return plans;
+}
+const khAiPlanFor = (plans, from) => plans.find(p => p.week_from === from) || null;
+function khAiVal(c, x) { const dt = (x && x.d) || {}; return c.metric === 'views' || c.metric === 'beat' ? (x ? x.v : 0) : (dt[c.metric] || 0); }
+function khAiTarget(c, p) { const t = Math.max(1, Math.round(+c.target || 1)); return c.metric === 'beat' ? Math.max(t, (p ? p.v : 0) + 1) : t; }
+function khAiTest(c, x, p) { return !!x && khAiVal(c, x) >= khAiTarget(c, p); }
+function khAiReason(c, from, who) { return 'AI challenge: ' + String(c.name).slice(0, 60) + ', week of ' + from + ' (' + khAiTarget(c, null) + '+ ' + (KHAI_M[c.metric] || c.metric) + ') - ' + String(who || '').slice(0, 80); }
+function khAiWinners(plan, last, prev, meId) {
+  return plan.challenges.map(c => ({ c, list: Object.values(last.per).filter(x => x.user_id && x.user_id !== meId && khAiTest(c, x, prev ? prev.per[x.user_id] : null)).map(x => ({ x, reason: khAiReason(c, last.from, x.name) })) }));
+}
+/** Awards (and approves) bonus XP for the AI challenges of the last complete week. Safe to run again: nobody is paid twice. */
+async function khAiAward(last, prev, meId, plans) {
+  const plan = last ? khAiPlanFor(plans || await khAiPlans(), last.from) : null;
+  if (!plan) return { ok: true, week: last ? last.from : null, awarded: 0, note: 'No AI plan for that week.' };
+  const done = await api('trAdjustments').then(r => r.items || []).catch(() => null);
+  if (!done) return { ok: false, awarded: 0, note: 'Could not read existing adjustments.' };
+  const given = new Set(done.filter(x => x.status !== 'rejected').map(x => x.reason));
+  const out = { ok: true, week: last.from, awarded: 0, xp: 0, winners: [], errors: [] };
+  for (const w of khAiWinners(plan, last, prev, meId)) {
+    for (const y of w.list) {
+      if (given.has(y.reason)) continue;
+      try { const r = await api('trAdjust', { user: y.x.user_id, points: +w.c.xp, reason: y.reason }); await api('trAdjustDecide', { id: r.id, approve: true }); given.add(y.reason); out.awarded++; out.xp += +w.c.xp; out.winners.push(y.x.name + ': ' + w.c.name + ' +' + w.c.xp); }
+      catch (e) { out.errors.push(y.x.name + ': ' + e.message); }
+    }
+  }
+  return out;
+}
+/** For the Monday scheduled run: loads the race, finds the last complete week and the one before, and awards AI bonuses. */
+window.khAiAwardNow = async function () {
+  const d = await api('trKhRace', {}); const keys = (d.weeks || []).slice(0, 6); const wk = [];
+  for (const k of keys) { const r = d.week && d.week.key === k ? d.week : (await api('trKhRace', { week: k })).week; if (r) wk.push(Object.assign({ key: r.key, from: r.from, to: r.to, final: r.final }, khTotals((r.standings && r.standings.overall) || []))); }
+  const full = wk.filter(w => w.final); const last = full[0], prev = full[1];
+  const res = await khAiAward(last, prev, d.me, await khAiPlans(true)); S.khg = null; return res;
+};
+async function khAiSection(d, W, last, prev, cur) {
+  const plans = await khAiPlans(), live = cur && !cur.final ? cur : null, liveKey = live ? live.from : null;
+  const plan = (liveKey && khAiPlanFor(plans, liveKey)) || plans.slice().sort((a, b) => a.week_from < b.week_from ? 1 : -1)[0] || null;
+  if (!plan) return '';
+  const isAdmin = !!d.admin, isLive = live && plan.week_from === live.from;
+  let h = '<h2 style="margin:26px 0 6px">AI Coach: week of ' + fmtD(plan.week_from) + '</h2><p class="small muted" style="margin-top:0">Written by AI every Monday from the KW Edge KWHomes Analytics digest and last week\'s race figures.' + (plan.headline ? ' ' + esc(plan.headline) : '') + '</p>';
+  const adv = (plan.advice || []).slice(0, 4);
+  if (adv.length) h += '<div class="grid g' + Math.min(4, Math.max(2, adv.length)) + '">' + adv.map(a => '<div class="card"><h3 style="margin-top:0">' + esc(a.title || '') + '</h3><p style="margin:0">' + esc(a.text || '') + '</p></div>').join('') + '</div>';
+  if (plan.challenges.length) {
+    const meNow = isLive ? Object.values(live.per).find(x => x.user_id === d.me) : null, mePrev = last ? Object.values(last.per).find(x => x.user_id === d.me) : null;
+    h += '<h3 style="margin:18px 0 6px">AI challenges this week: bonus XP, added automatically</h3><div class="grid g' + Math.max(2, plan.challenges.length) + ' khch">' + plan.challenges.map(c => {
+      let prog = '';
+      if (!isAdmin && isLive) { const x = meNow || { v: 0, d: {} }, a = khAiVal(c, x), b = khAiTarget(c, mePrev); prog = '<div class="khprog"><div style="width:' + Math.min(100, Math.round(a / b * 100)) + '%"></div></div><div class="s">' + (a >= b ? '<b class="khup">Done. Your bonus is added after Sunday.</b>' : a + ' of ' + b) + '</div>'; }
+      else if (isAdmin && isLive) { const n = Object.values(live.per).filter(x => khAiTest(c, x, last ? last.per[x.user_id || 'n:' + x.name] : null)).length; prog = '<div class="s">' + n + ' agent' + (n === 1 ? '' : 's') + ' on target so far</div>'; }
+      return '<div class="kpi"><div class="l">+' + (+c.xp) + ' XP · AI</div><div class="v" style="font-size:20px">' + esc(c.name) + '</div><div class="s">' + esc(c.rule || ('Reach ' + c.target + ' ' + KHAI_M[c.metric] + ' this week')) + '</div>' + prog + (c.tip ? '<div class="s" style="margin-top:6px"><i>' + esc(c.tip) + '</i></div>' : '') + '</div>';
+    }).join('') + '</div>';
+  }
+  if (isAdmin && last) {
+    const lp = khAiPlanFor(plans, last.from);
+    if (lp) {
+      const res = await khAiAward(last, prev, d.me, plans);
+      const ws = khAiWinners(lp, last, prev, d.me);
+      h += '<div class="card" style="margin-top:14px"><h3 style="margin-top:0">AI bonuses for the week of ' + fmtD(last.from) + '</h3><p class="small muted" style="margin-top:0">Awarded and approved automatically on that week\'s final figures' + (res.awarded ? ' (' + res.awarded + ' just added)' : '') + '.' + (res.errors && res.errors.length ? ' Not added: ' + esc(res.errors.join('; ')) : '') + '</p><ul class="khimp">' + ws.map(w => '<li><span><b>' + esc(w.c.name) + '</b> +' + w.c.xp + ' XP</span><span class="small">' + (w.list.length ? esc(w.list.map(y => y.x.name).join(', ')) : 'nobody reached it') + '</span></li>').join('') + '</ul></div>';
+      if (res.awarded) S.khg = null;
+    }
+  }
+  return h;
+}
+
 async function khGrowth(d) {
   const keys = (d.weeks || []).slice(0, 8);
   const msKeys = d.admin ? (d.months || []).slice(0, 6) : [];
@@ -608,6 +679,7 @@ async function khGrowth(d) {
   if (!d.admin || meRows.some(r => r.x)) {
     h += '<div class="card" style="margin-top:14px"><h3 style="margin-top:0">' + (d.admin ? 'Your own growth' : 'Your growth') + '</h3>' + (meRows.some(r => r.x) ? '<div class="table-wrap"><table class="khgt"><thead><tr><th>Week of</th><th class="num">Agent site</th><th class="num">Listing views</th><th class="num">vCard views</th><th class="num">Leads</th><th class="num">Total views</th></tr></thead><tbody>' + meRows.slice().reverse().map(r => { const x = r.x ? r.x.d : {}; return '<tr><td>' + fmtD(r.w.from) + (r.w.final ? '' : ' (so far)') + '</td><td class="num">' + (x.site || 0) + '</td><td class="num">' + (x.listings || 0) + '</td><td class="num">' + (x.vcard || 0) + '</td><td class="num">' + (x.leads || 0) + '</td><td class="num"><b>' + khViews(x) + '</b></td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="small muted">No KW Homes activity yet. Share your vCard and listing links to start your growth line.</p>') + '</div>';
   }
+  h += await khAiSection(d, W, last, prev, cur);
   h += await khCoach(d, W, last, prev, cur);
   const M = S.khg.months.map(m => Object.assign({ key: m.key, from: m.from, to: m.to, final: m.final }, khTotals((m.standings && m.standings.overall) || [])));
   if (d.admin && M.length) {
