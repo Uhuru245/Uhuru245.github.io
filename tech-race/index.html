@@ -378,10 +378,12 @@ VIEWS.home = async () => {
   if (!isAgent()) return VIEWS.centre();
   await refresh(); const d = S.data, st = d.stats, next = d.next ? asgFor(d.next) : null;
   const first = d.me.name.split(' ')[0];
+  const aiT = await khAiTeaser().catch(() => '');
   const nextTxt = next ? (d.nextLesson ? 'Next: lesson "' + esc(d.nextLesson.title) + '"' : next.status === 'needs_improvement' ? 'Your MCTT asked for changes. Update your evidence.' : !next.check_passed && next.challenge.questions.length ? 'Next: take the knowledge check' : 'Next: submit your evidence') : '';
   return '<div class="hero">' + ring(st.onboardingPct, 'onboarding') + '<div><div class="small" style="color:#c9c9c4;text-transform:uppercase;letter-spacing:.12em;font-weight:700">Welcome back</div><h1>' + esc(first) + '</h1><div class="lvl"><b>' + esc(st.level.name) + '</b> ' + (st.level.next ? st.level.toNext + ' XP to ' + esc(st.level.next) : 'Top level reached') + '</div></div></div>'
     + '<div class="stats"><div class="kpi"><div class="l">Total XP</div><div class="v num">' + st.xp + '</div></div><div class="kpi"><div class="l">Race position</div><div class="v num">' + (st.rank ? (st.rankTied ? '=' : '') + st.rank : 'n/a') + '</div><div class="s">this week</div></div><div class="kpi"><div class="l">Streak</div><div class="v num">' + st.streak + '</div><div class="s">week' + (st.streak === 1 ? '' : 's') + ' in a row</div></div><div class="kpi"><div class="l">This week</div><div class="v num">' + st.weekDone + '/' + st.weekTotal + '</div><div class="s">tasks done</div></div></div>'
     + (next ? '<div class="next"><div class="k">' + (next.status === 'needs_improvement' ? 'Pit stop' : 'Up next') + '</div><h2>' + esc(next.challenge.title) + '</h2><p class="small muted" style="margin:0 0 10px">' + nextTxt + ' · due ' + fmtD(next.due_date) + '</p><button class="btn red big" id="cont">Continue my tech journey</button></div>' : '<div class="next"><div class="k">All caught up</div><h2>Nothing waiting for you right now</h2><p class="small muted" style="margin:0">' + (st.pendingReviews ? 'Your MCTT is reviewing ' + st.pendingReviews + ' submission' + (st.pendingReviews === 1 ? '' : 's') + '.' : 'Your next challenge opens soon.') + '</p></div>')
+    + aiT
     + '<div class="grid g2"><div class="card"><h2>Your race</h2>' + pathHtml(d.assignments) + '</div><div><div class="card"><h2>Latest badge</h2>' + (d.badges[0] ? badgeHtml(d.badges[0]) : '<p class="small muted" style="margin:0">Earn your first badge by getting Week 1 verified.</p>') + '</div><div class="card"><h2>Waiting for your MCTT</h2><p style="margin:0">' + (st.pendingReviews ? '<b>' + st.pendingReviews + '</b> submission' + (st.pendingReviews === 1 ? '' : 's') + ' in review' : 'Nothing waiting for review') + '</p></div>'
     + '<div class="card"><h2>Need help?</h2><div class="row" style="flex-wrap:wrap"><a class="btn sm" href="' + esc(d.settings.checkin_url) + '" target="_blank" rel="noopener">Book a Tuesday Tech Check-In</a>' + supportBtn(true) + '</div></div></div></div>';
 };
@@ -620,6 +622,13 @@ window.khAiAwardNow = async function () {
   const full = wk.filter(w => w.final); const last = full[0], prev = full[1];
   const res = await khAiAward(last, prev, d.me, await khAiPlans(true)); S.khg = null; return res;
 };
+/** Short AI Coach card for the agent home page and the race boards; opens the Growth tab. */
+async function khAiTeaser() {
+  const plans = await khAiPlans(); if (!plans.length) return '';
+  const p = plans.slice().sort((a, b) => a.week_from < b.week_from ? 1 : -1)[0], xp = p.challenges.reduce((a, c) => a + (+c.xp || 0), 0);
+  return '<div class="next khai-teaser" style="margin:0 0 14px"><div class="k">AI Coach · week of ' + fmtD(p.week_from) + '</div><h2 style="margin:4px 0 6px">' + p.challenges.length + ' AI challenges this week, up to +' + xp + ' bonus XP</h2><p class="small muted" style="margin:0 0 10px">' + esc(p.headline || '') + ' ' + esc(p.challenges.map(c => c.name + ' (+' + c.xp + ')').join(' · ')) + '</p><button class="btn red" data-khaigo="1">Open AI Coach</button></div>';
+}
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-khaigo]'); if (!b) return; S.kh.scope = 'growth'; go('homes'); });
 async function khAiSection(d, W, last, prev, cur) {
   const plans = await khAiPlans(), live = cur && !cur.final ? cur : null, liveKey = live ? live.from : null;
   const plan = (liveKey && khAiPlanFor(plans, liveKey)) || plans.slice().sort((a, b) => a.week_from < b.week_from ? 1 : -1)[0] || null;
@@ -663,6 +672,7 @@ async function khGrowth(d) {
   const full = W.filter(w => w.final), last = full[full.length - 1], prev = full[full.length - 2], cur = W[W.length - 1];
   const partial = !cur.final;
   let h = '<p class="small muted">' + (last ? 'Compares the last complete week (' + fmtD(last.from) + ' to ' + fmtD(last.to) + ') with the week before.' : 'No complete week yet.') + (partial ? ' The current week (' + fmtD(cur.from) + ' to ' + fmtD(cur.to) + ') is shown lighter in the charts and is not compared until it is complete.' : '') + ' Totals are the KW Edge agents on the race board (KW Homes Analytics, from MAPP).</p>';
+  h = (await khAiSection(d, W, last, prev, cur)) + h;
   if (last) {
     h += '<div class="stats khg">' + [['active', 'Agents with activity']].concat(KHG).map(([m, l]) => '<div class="kpi"><div class="l">' + esc(l) + '</div><div class="v num">' + last.t[m].toLocaleString('en-ZA') + '</div>' + khDelta(last.t[m], prev ? prev.t[m] : null) + khSpark(W.map(w => w.t[m]), partial) + '</div>').join('') + '</div>';
   }
@@ -679,7 +689,6 @@ async function khGrowth(d) {
   if (!d.admin || meRows.some(r => r.x)) {
     h += '<div class="card" style="margin-top:14px"><h3 style="margin-top:0">' + (d.admin ? 'Your own growth' : 'Your growth') + '</h3>' + (meRows.some(r => r.x) ? '<div class="table-wrap"><table class="khgt"><thead><tr><th>Week of</th><th class="num">Agent site</th><th class="num">Listing views</th><th class="num">vCard views</th><th class="num">Leads</th><th class="num">Total views</th></tr></thead><tbody>' + meRows.slice().reverse().map(r => { const x = r.x ? r.x.d : {}; return '<tr><td>' + fmtD(r.w.from) + (r.w.final ? '' : ' (so far)') + '</td><td class="num">' + (x.site || 0) + '</td><td class="num">' + (x.listings || 0) + '</td><td class="num">' + (x.vcard || 0) + '</td><td class="num">' + (x.leads || 0) + '</td><td class="num"><b>' + khViews(x) + '</b></td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="small muted">No KW Homes activity yet. Share your vCard and listing links to start your growth line.</p>') + '</div>';
   }
-  h += await khAiSection(d, W, last, prev, cur);
   h += await khCoach(d, W, last, prev, cur);
   const M = S.khg.months.map(m => Object.assign({ key: m.key, from: m.from, to: m.to, final: m.final }, khTotals((m.standings && m.standings.overall) || [])));
   if (d.admin && M.length) {
@@ -722,7 +731,7 @@ VIEWS.homes = async () => {
   const admin = d.admin ? '<div class="card no-print" style="margin-top:18px"><h2 style="margin-top:0">Run the race</h2><div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn red" id="khImp">Import from MAPP</button>' + [['monday', 'Send Monday winners'], ['wednesday', 'Send Wednesday focus'], ['friday', 'Send Friday progress'], ['month', 'Send month-end top five']].map(([v, l]) => '<button class="btn" data-khsend="' + v + '">' + l + '</button>').join('') + '</div>'
     + '<label class="f" style="margin-top:14px">Wednesday focus: what agents should look out for this week<span class="hint">Leave empty to use a ready-made tip.</span><textarea id="khFocus" rows="2" maxlength="600">' + esc(d.focus || '') + '</textarea></label><button class="btn sm" id="khFocusSave">Save focus</button>'
     + '<p class="small muted" style="margin-bottom:0">Emails go to every agent on the roster. Month end: agents get the top five in alphabetical order; the number one goes only to you.' + (d.sends.length ? ' Last sent: ' + d.sends.slice(0, 4).map(s => s.kind + ' ' + s.period + ' (' + s.count + ')').join(', ') + '.' : '') + '</p></div>' : '';
-  return '<div class="ph"><div><h1>KW Homes Race</h1><p>vCard views, listing views, agent site views and leads from KW Homes. New results every Monday, Wednesday and Friday.</p></div><div class="row" style="gap:10px;flex-wrap:wrap">' + scopeSeg + pick + '</div></div>' + board + badges + traffic + admin;
+  return '<div class="ph"><div><h1>KW Homes Race</h1><p>vCard views, listing views, agent site views and leads from KW Homes. New results every Monday, Wednesday and Friday.</p></div><div class="row" style="gap:10px;flex-wrap:wrap">' + scopeSeg + pick + '</div></div>' + (k.scope !== 'growth' ? await khAiTeaser() : '') + board + badges + traffic + admin;
 };
 VIEWS.homes.after = () => {
   document.querySelectorAll('[data-khscope]').forEach(b => b.onclick = () => { S.kh.scope = b.dataset.khscope; render(); });
