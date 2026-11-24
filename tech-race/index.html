@@ -383,6 +383,38 @@ const THEME_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" s
 function toggleTheme() { const nx = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'; if (nx === 'light') document.documentElement.dataset.theme = 'light'; else delete document.documentElement.dataset.theme; store.set('tr.theme', nx === 'light' ? 'light' : null); }
 const svg = k => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON[k] + '</svg>';
 
+/* ---------- "Start your engine": a race car passing by, made in the browser (no audio file). Plays only after a click; off if the device asks for reduced motion or the driver mutes it. ---------- */
+function f1Build(ctx, out, t0) {
+  const D = 2.6, tp = t0 + 1.05;                       // total length, moment the car passes
+  const master = ctx.createGain(); master.gain.value = 0.0001;
+  const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 3;
+  const shaper = ctx.createWaveShaper(); const curve = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; curve[i] = Math.tanh(2.6 * x); } shaper.curve = curve;
+  shaper.connect(lp); lp.connect(master); if (pan) { master.connect(pan); pan.connect(out); } else master.connect(out);
+  // engine: three harmonics that rise as the car approaches, then drop as it passes (the Doppler effect)
+  const f = (o, mul) => { o.frequency.setValueAtTime(410 * mul, t0); o.frequency.linearRampToValueAtTime(560 * mul, tp - 0.08); o.frequency.exponentialRampToValueAtTime(345 * mul, tp + 0.22); o.frequency.linearRampToValueAtTime(318 * mul, t0 + D); };
+  [['sawtooth', 1, 0.55], ['sawtooth', 2.003, 0.3], ['square', 0.5, 0.22], ['sawtooth', 3.01, 0.12]].forEach(([type, mul, g]) => { const o = ctx.createOscillator(), gg = ctx.createGain(); o.type = type; f(o, mul); gg.gain.value = g; o.connect(gg); gg.connect(shaper); o.start(t0); o.stop(t0 + D + 0.05); });
+  // a fast rasp on top so it sounds like a racing engine, not a hum
+  const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 38; lg.gain.value = 0.18; lfo.connect(lg); lg.connect(master.gain); lfo.start(t0); lfo.stop(t0 + D + 0.05);
+  // wind and tyre noise
+  const n = ctx.createBufferSource(), buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * D), ctx.sampleRate), ch = buf.getChannelData(0); for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1; n.buffer = buf;
+  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(1400, t0); bp.frequency.linearRampToValueAtTime(2600, tp); bp.frequency.exponentialRampToValueAtTime(900, t0 + D); bp.Q.value = 0.8;
+  const ng = ctx.createGain(); ng.gain.value = 0.35; n.connect(bp); bp.connect(ng); ng.connect(master); n.start(t0); n.stop(t0 + D);
+  // brightness, loudness and left-to-right movement around the pass
+  lp.frequency.setValueAtTime(1500, t0); lp.frequency.exponentialRampToValueAtTime(5200, tp); lp.frequency.exponentialRampToValueAtTime(1100, t0 + D);
+  master.gain.setValueAtTime(0.0001, t0); master.gain.exponentialRampToValueAtTime(0.06, t0 + 0.45); master.gain.exponentialRampToValueAtTime(0.42, tp); master.gain.exponentialRampToValueAtTime(0.09, tp + 0.45); master.gain.exponentialRampToValueAtTime(0.0001, t0 + D);
+  if (pan) { pan.pan.setValueAtTime(-0.95, t0); pan.pan.linearRampToValueAtTime(0, tp); pan.pan.linearRampToValueAtTime(0.95, tp + 0.7); }
+  return D;
+}
+function f1Pass() {
+  try {
+    if (store.get('tr.sound') === 'off' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    const ctx = f1Pass.ctx || (f1Pass.ctx = new AC()); if (ctx.state === 'suspended') ctx.resume();
+    const comp = ctx.createDynamicsCompressor(); comp.connect(ctx.destination);
+    f1Build(ctx, comp, ctx.currentTime + 0.03);
+  } catch (e) {}
+}
 /* ---------- sign-in, invitation, verification, reset ---------- */
 function authShell(inner) {
   $('app').innerHTML = '<div class="auth"><div class="auth-side"><div><a class="brand" href="#" style="font-size:22px">' + BRAND(false) + '</a><div class="big-title">KW Edge<i>Tech Race</i></div><div class="champ">The Digital Championship</div></div><div><div class="tagline">Built for performance.</div><p class="small" style="color:#9aa0a8;max-width:40ch;margin:12px 0 0">Technology onboarding and development for Keller Williams Edge agents, run by your Market Centre Technology Trainer. Your Tech. Your Growth. Your Race.</p></div></div><div class="auth-main"><div class="auth-box">' + inner + '</div></div></div>';
@@ -392,15 +424,17 @@ function showAuth(mode, msg, kind) {
   const tabs = '<div class="tabs" role="tablist"><button role="tab" data-mode="signin" aria-selected="' + (mode === 'signin') + '">Sign in</button><button role="tab" data-mode="request" aria-selected="' + (mode === 'request') + '">Request access</button></div>';
   const m = msg ? '<div class="alert ' + (kind || 'info') + '" role="status">' + esc(msg) + '</div>' : '';
   let body = '';
-  if (mode === 'signin') body = '<form class="form" id="fAuth"><label class="f">Email<input type="email" id="aEmail" autocomplete="email" required></label><label class="f">Password<input type="password" id="aPw" autocomplete="current-password" required></label><button class="btn red big">Start your engine</button><button type="button" class="btn link" id="aForgot">Forgot your password?</button></form>';
+  if (mode === 'signin') body = '<form class="form" id="fAuth"><label class="f">Email<input type="email" id="aEmail" autocomplete="email" required></label><label class="f">Password<input type="password" id="aPw" autocomplete="current-password" required></label><button class="btn red big">Start your engine</button><label class="check small" style="justify-content:center;color:var(--ink-3)"><input type="checkbox" id="aSnd"' + (store.get('tr.sound') === 'off' ? '' : ' checked') + '> Engine sound</label><button type="button" class="btn link" id="aForgot">Forgot your password?</button></form>';
   if (mode === 'request') body = '<p class="small muted" style="margin-top:0">Agents are normally invited by the MCTT. If you have not been invited, request access here. The MCTT approves every request.</p><form class="form" id="fAuth"><label class="f">Full name<input type="text" id="aName" autocomplete="name" required maxlength="80"></label><label class="f">Email<input type="email" id="aEmail" autocomplete="email" required></label><label class="f">Mobile number<input type="tel" id="aMobile" autocomplete="tel"></label><label class="f">Date you joined Keller Williams <span class="hint">optional</span><input type="date" id="aJoin"></label><label class="f">Choose a password<span class="hint">At least 10 characters, with letters and numbers.</span><input type="password" id="aPw" autocomplete="new-password" required></label><button class="btn red big">Request access</button></form>';
   if (mode === 'forgot') body = '<form class="form" id="fAuth"><label class="f">Email<input type="email" id="aEmail" autocomplete="email" required></label><button class="btn red big">Email me a reset link</button><button type="button" class="btn link" data-mode="signin">Back to sign in</button></form>';
   authShell('<h1>' + (mode === 'forgot' ? 'Reset password' : mode === 'request' ? 'Join the race' : 'Welcome back') + '</h1>' + (mode === 'forgot' ? '' : tabs) + m + body + '<p class="small muted" style="margin-top:22px">Your details are used only to run your technology training at KW Edge. <a href="#privacy" id="aPriv">Privacy notice</a></p>');
   document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => showAuth(b.dataset.mode));
   const fg = $('aForgot'); if (fg) fg.onclick = () => showAuth('forgot');
+  const snd = $('aSnd'); if (snd) snd.onchange = () => store.set('tr.sound', snd.checked ? null : 'off');
   $('aPriv').onclick = e => { e.preventDefault(); privacyDlg(); };
   $('fAuth').onsubmit = async e => {
     e.preventDefault(); const b = e.submitter; b.disabled = true;
+    if (mode === 'signin') f1Pass();
     try {
       if (mode === 'signin') { const j = await api('trLogin', { email: $('aEmail').value, password: $('aPw').value }); signedIn(j.token); return; }
       if (mode === 'request') { const j = await api('trRegister', { name: $('aName').value, email: $('aEmail').value, mobile: $('aMobile').value, kw_join_date: $('aJoin').value, password: $('aPw').value }); showAuth('signin', j.message + ' Then wait for the MCTT to approve you.', 'ok'); return; }
