@@ -406,27 +406,37 @@ function f1Build(ctx, out, t0) {
   if (pan) { pan.pan.setValueAtTime(-0.95, t0); pan.pan.linearRampToValueAtTime(0, tp); pan.pan.linearRampToValueAtTime(0.95, tp + 0.7); }
   return D;
 }
+const F1_SILENT = 'data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
+/* Phones: iPhones mute web sound when the ring/silent switch is on unless the page asks for media playback, so ask for it and play a silent clip on the first touch. */
+function f1Unlock() {
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+  try { if (!f1Unlock.a) { const a = new Audio(F1_SILENT); a.setAttribute('playsinline', ''); a.preload = 'auto'; f1Unlock.a = a; } const pr = f1Unlock.a.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
+}
 function f1Pass() {
   try {
-    if (f1Pass.done || store.get('tr.sound') === 'off' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    f1Pass.done = true;
+    if (f1Pass.done || store.get('tr.sound') === 'off') return;
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-    const ctx = f1Pass.ctx || (f1Pass.ctx = new AC()); if (ctx.state === 'suspended') ctx.resume();
-    const comp = ctx.createDynamicsCompressor(); comp.connect(ctx.destination);
-    f1Build(ctx, comp, ctx.currentTime + 0.03);
+    const ctx = f1Pass.ctx || (f1Pass.ctx = new AC());
+    f1Unlock();
+    const start = () => { if (f1Pass.done || ctx.state !== 'running') return; f1Pass.done = true; if (f1Arm.off) f1Arm.off();
+      const comp = ctx.createDynamicsCompressor(); comp.connect(ctx.destination); f1Build(ctx, comp, ctx.currentTime + 0.05); };
+    if (ctx.state === 'running') start(); else { const r = ctx.resume(); if (r && r.then) r.then(start).catch(() => {}); setTimeout(start, 120); }
   } catch (e) {}
 }
-/* Once every time the page loads: straight away if the browser allows sound, otherwise on the first tap, click or key press. */
+/* Once every time the page loads: straight away if the browser allows sound, otherwise on the first tap, click or key press
+   (pointerup, touchend and click are the events phones accept for starting sound). */
 function f1Arm() {
   if (f1Pass.done || f1Arm.on || store.get('tr.sound') === 'off') return; f1Arm.on = true;
-  const go = () => { ['pointerdown', 'keydown', 'touchstart'].forEach(ev => removeEventListener(ev, go, true)); f1Pass(); };
+  const EV = ['pointerup', 'touchend', 'click', 'keydown'], go = () => f1Pass();
+  f1Arm.off = () => EV.forEach(ev => removeEventListener(ev, go, true));
+  EV.forEach(ev => addEventListener(ev, go, true));
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
   try {
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     const ctx = f1Pass.ctx || (f1Pass.ctx = new AC());
     if (ctx.state === 'running') return f1Pass();
-    ctx.resume().then(() => { if (ctx.state === 'running' && !f1Pass.done) go(); }).catch(() => {});
+    const r = ctx.resume(); if (r && r.then) r.then(() => { if (ctx.state === 'running') f1Pass(); }).catch(() => {});
   } catch (e) {}
-  ['pointerdown', 'keydown', 'touchstart'].forEach(ev => addEventListener(ev, go, true));
 }
 /* ---------- sign-in, invitation, verification, reset ---------- */
 function authShell(inner) {
