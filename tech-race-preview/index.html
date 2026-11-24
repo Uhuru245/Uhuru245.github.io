@@ -408,12 +408,25 @@ function f1Build(ctx, out, t0) {
 }
 function f1Pass() {
   try {
-    if (store.get('tr.sound') === 'off' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (f1Pass.done || store.get('tr.sound') === 'off' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    f1Pass.done = true;
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     const ctx = f1Pass.ctx || (f1Pass.ctx = new AC()); if (ctx.state === 'suspended') ctx.resume();
     const comp = ctx.createDynamicsCompressor(); comp.connect(ctx.destination);
     f1Build(ctx, comp, ctx.currentTime + 0.03);
   } catch (e) {}
+}
+/* Once every time the page loads: straight away if the browser allows sound, otherwise on the first tap, click or key press. */
+function f1Arm() {
+  if (f1Pass.done || f1Arm.on || store.get('tr.sound') === 'off') return; f1Arm.on = true;
+  const go = () => { ['pointerdown', 'keydown', 'touchstart'].forEach(ev => removeEventListener(ev, go, true)); f1Pass(); };
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    const ctx = f1Pass.ctx || (f1Pass.ctx = new AC());
+    if (ctx.state === 'running') return f1Pass();
+    ctx.resume().then(() => { if (ctx.state === 'running' && !f1Pass.done) go(); }).catch(() => {});
+  } catch (e) {}
+  ['pointerdown', 'keydown', 'touchstart'].forEach(ev => addEventListener(ev, go, true));
 }
 /* ---------- sign-in, invitation, verification, reset ---------- */
 function authShell(inner) {
@@ -521,6 +534,7 @@ new MutationObserver(() => addEyes()).observe(document.documentElement, { childL
 async function boot() {
   if (await handleHash()) return;
   if (!S.token) return showAuth('signin');
+  f1Arm();
   if (!$('main')) $('app').innerHTML = '<div class="loading" role="status" style="justify-content:center;min-height:60vh"><span class="spin" aria-hidden="true"></span>Starting your engine...</div>';
   try { await refresh(); } catch (e) { if (e.code !== 'signin') showAuth('signin', e.message, 'bad'); return; }
   shell();
