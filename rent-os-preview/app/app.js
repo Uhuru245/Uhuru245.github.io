@@ -30,7 +30,22 @@
   const formData = f => { const o = {}; new FormData(f).forEach((v, k) => { v = String(v).trim(); o[k] = v === '' ? null : v; }); return o; };
   const busy = async (btn, fn) => { if (btn) btn.disabled = true; try { return await fn(); } finally { if (btn) btn.disabled = false; } };
   const THEME_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
-  const toggleTheme = () => { const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); const nx = cur === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = nx; LS.set('rentos.theme', nx); try { localStorage.setItem('rentos.theme', nx); } catch (e) {} };
+  const toggleTheme = () => { const cur = document.documentElement.dataset.theme || 'dark'; const nx = cur === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = nx; try { localStorage.setItem('rentos.theme', nx); } catch (e) {} applyBrand(); };
+  // White-label accent: the agency colour drives --brand-accent; it is lightened on the dark theme until it reads clearly (WCAG AA against the surface).
+  const DEFAULT_BRAND = '#1f6f5c';
+  const hex2rgb = h => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return null; const n = parseInt(m[1], 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
+  const relLum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+  const contrast = (a, b) => { const x = relLum(a), y = relLum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const mix = (c, t, k) => c.map((v, i) => Math.round(v + (t[i] - v) * k));
+  const rgbHex = c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
+  function applyBrand() {
+    const st = document.documentElement.style, raw = S.brand && S.brand.primary_color;
+    let c = raw && raw.toLowerCase() !== DEFAULT_BRAND ? hex2rgb(raw) : null;
+    if (!c) { ['--brand-accent', '--brand-ink'].forEach(k => st.removeProperty(k)); return; }
+    const dark = (document.documentElement.dataset.theme || 'dark') === 'dark', surf = dark ? [35, 58, 68] : [255, 255, 255], tgt = dark ? [255, 255, 255] : [0, 0, 0];
+    for (let i = 0; i < 12 && contrast(c, surf) < 4.5; i++) c = mix(c, tgt, 0.12);
+    st.setProperty('--brand-accent', rgbHex(c)); st.setProperty('--brand-ink', contrast(c, [255, 255, 255]) >= 4.5 ? '#ffffff' : '#04200f');
+  }
 
   /* ---------------- data loading ---------------- */
   async function loadAll() {
@@ -120,11 +135,10 @@
 
   /* ---------------- shell ---------------- */
   const NAV = [
-    ['dashboard', 'Dashboard', null], ['properties', 'Properties', 'properties.read'],
-    ['landlords', 'Landlords', 'properties.read'], ['tenants', 'Tenants', 'properties.read'], ['leases', 'Leases', 'properties.read'],
-    ['g', 'Money'], ['invoices', 'Invoices', 'finance.read'], ['payments', 'Payments', 'finance.read'], ['arrears', 'Arrears', 'finance.read'], ['statements', 'Landlord statements', 'finance.read'],
-    ['g', 'Agency'], ['team', 'Team', null], ['branding', 'Branding', 'branding.manage'], ['subscription', 'Subscription', 'billing.manage'], ['settings', 'Agency settings', 'agency.manage'], ['audit', 'Audit log', 'audit.read'],
-    ['g', 'You'], ['account', 'Account and security', null]];
+    ['dashboard', 'Dashboard', null], ['properties', 'Properties', 'properties.read'], ['landlords', 'Landlords', 'properties.read'],
+    ['tenants', 'Tenants', 'properties.read'], ['leases', 'Leases', 'properties.read'],
+    ['g', 'Money'], ['invoices', 'Invoicing', 'finance.read'], ['payments', 'Payments', 'finance.read'], ['arrears', 'Arrears', 'finance.read'], ['statements', 'Statements', 'finance.read']];
+  const SETTINGS_TABS = [['settings', 'Agency details', 'agency.manage'], ['branding', 'Branding', 'branding.manage'], ['team', 'Users and roles', null], ['subscription', 'Subscription', 'billing.manage']];
   const IC = (d) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
   const ICONS = {
     dashboard: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
@@ -143,28 +157,120 @@
     audit: '<path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
     account: '<rect x="4" y="10.5" width="16" height="10.5" rx="2.5"/><path d="M8 10.5V7a4 4 0 018 0v3.5"/><circle cx="12" cy="15.5" r="1.3"/>',
     admin: '<path d="M2 20h20"/><path d="M4 20l-1-11 5 4 4-7 4 7 5-4-1 11"/>',
-    portal: '<path d="M3 10.5L12 3l9 7.5V21H3z"/><path d="M9.5 21v-6h5v6"/>'
+    portal: '<path d="M3 10.5L12 3l9 7.5V21H3z"/><path d="M9.5 21v-6h5v6"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+    bell: '<path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 003.4 0"/>',
+    chev: '<path d="M15 18l-6-6 6-6"/>',
+    news: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/>',
+    help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 .5c0 1.7-2.5 2-2.5 3.5"/><path d="M12 17h.01"/>',
+    more: '<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+    moon: '<path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/>',
+    alert: '<path d="M12 3l9.5 17h-19z"/><path d="M12 10v4M12 17h.01"/>',
+    cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    cash: '<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+    home2: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>'
   };
   const MENU_SVG = IC('<path d="M4 7h16M4 12h16M4 17h10"/>');
   const OUT_SVG = IC('<path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/>');
-  const navLink = (k, label, active) => '<a href="#/' + k + '"' + (active === k ? ' aria-current="page"' : '') + '>' + IC(ICONS[k] || ICONS.dashboard) + '<span>' + label + '</span></a>';
+  const navLink = (k, label, active, extra) => '<a href="#/' + k + '"' + (active === k ? ' aria-current="page"' : '') + (extra || '') + ' title="' + label + '">' + IC(ICONS[k] || ICONS.dashboard) + '<span>' + label + '</span></a>';
   const initials = (str) => String(str || '?').split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || '?';
+  const settingsTabs = () => SETTINGS_TABS.filter(t => !t[2] || can(t[2]));
   function shell(active, title, body, actions) {
     const brandName = (S.brand && S.brand.display_name) || (S.agency && S.agency.trading_name) || 'MRET RENT OS';
-    if (S.brand && S.brand.primary_color) { const c = S.brand.primary_color; document.documentElement.style.setProperty('--brand', c); const m = /^#?([0-9a-f]{6})$/i.exec(c); if (m) { const n = parseInt(m[1], 16), lum = (0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255; document.documentElement.style.setProperty('--brand-ink', lum > 0.6 ? '#0b100e' : '#ffffff'); } }
+    applyBrand();
+    const isPortal = active === 'portal';
+    const st = settingsTabs(), inSettings = st.some(t => t[0] === active);
     const nav = NAV.filter(n => n[0] === 'g' || !n[2] || can(n[2])).map(n => n[0] === 'g' ? '<div class="grp">' + n[1] + '</div>' : navLink(n[0], n[1], active)).join('')
       + (S.admin ? '<div class="grp">MRET Technologies</div>' + navLink('admin', 'Super admin', active) : '');
+    const sec = (st.length ? '<a href="#/' + st[0][0] + '"' + (inSettings ? ' aria-current="page"' : '') + ' title="Settings">' + IC(ICONS.settings) + '<span>Settings</span></a>' : '')
+      + (can('audit.read') ? navLink('audit', 'Activity log', active) : '')
+      + '<button class="side-link" id="wnB" type="button" title="What\'s new">' + IC(ICONS.news) + '<span>What\'s new</span></button>'
+      + '<a href="/rent-os-preview/contact/" title="Help and support">' + IC(ICONS.help) + '<span>Help and support</span></a>'
+      + '<button class="side-link" id="outB" type="button" title="Log out">' + OUT_SVG + '<span>Log out</span></button>';
     const switcher = S.agencies.length > 1 ? '<select class="inp" id="agSw" aria-label="Switch agency">' + S.agencies.map(a => '<option value="' + a.agency_id + '"' + (S.agency && a.agency_id === S.agency.agency_id ? ' selected' : '') + '>' + esc(a.trading_name) + '</option>').join('') + '</select>' : '';
     const prof = S.profile || {}; const who = [prof.first_name, prof.surname].filter(Boolean).join(' ') || S.user.email;
-    const plan = S.ov && S.ov.subscription ? (S.ov.subscription.plan_name || S.ov.subscription.plan_code || '') : '';
-    $('root').innerHTML = '<div class="shell"><nav class="side" aria-label="Workspace"><div class="side-brand"><span class="mark">R</span><span class="wm"><b>MRET</b><span>Rent OS</span></span></div><div class="side-nav">' + nav + '</div><div class="side-foot">' + (plan ? '<b>' + esc(plan) + '</b> plan<br>' : '') + 'MRET Technologies never holds your rental money.</div></nav>'
-      + '<div class="col"><header class="app-head"><div class="in"><button class="btn sm ghost nav-btn" id="navB" aria-label="Menu">' + MENU_SVG + '</button><div class="agency">' + (S.brand && S.brand.logo_data ? '<img src="' + esc(S.brand.logo_data) + '" alt="">' : '') + '<span class="nm">' + esc(brandName) + '</span></div>' + switcher + '<span class="sp"></span><button class="btn sm ghost theme-btn" id="thB" aria-label="Light or dark">' + THEME_SVG + '</button><span class="who"><span class="avatar" aria-hidden="true">' + esc(initials(who)) + '</span><span class="em" id="who">' + esc(S.user.email) + '</span></span><button class="btn sm" id="outB" aria-label="Sign out">' + OUT_SVG + '<span>Sign out</span></button></div></header>'
-      + '<main class="main">' + banner() + '<div class="page-head"><h1>' + title + '</h1><div class="row">' + (actions || '') + '</div></div>' + body + '</main></div></div>';
-    $('navB').onclick = () => document.body.classList.toggle('nav-open');
-    document.querySelectorAll('.side a').forEach(a => a.addEventListener('click', () => document.body.classList.remove('nav-open')));
-    $('outB').onclick = async () => { await sb.auth.signOut(); LS.set('rentos.agency', null); location.hash = '#/login'; location.reload(); };
+    const plan = S.ov && S.ov.subscription ? (S.ov.subscription.plan || S.ov.subscription.plan_code || '') : '';
+    const searchable = !isPortal && S.agency && can('properties.read');
+    const tabs = isPortal ? [['portal', 'Home', 'portal'], ['account', 'Account', 'account']] : [['dashboard', 'Dashboard', 'dashboard'], ['properties', 'Properties', 'properties', 'properties.read'], ['tenants', 'Tenants', 'tenants', 'properties.read'], ['payments', 'Payments', 'payments', 'finance.read']].filter(t => !t[3] || can(t[3]));
+    $('root').innerHTML = '<div class="shell"><nav class="side" aria-label="Workspace"><div class="side-brand"><span class="mark">R</span><span class="wm"><b>MRET</b><span>Rent OS</span></span><button class="side-col" id="sideC" type="button" aria-label="Collapse sidebar">' + IC(ICONS.chev) + '</button></div><div class="side-nav">' + nav + '</div>'
+      + '<div class="side-sec">' + (isPortal ? '<a href="/rent-os-preview/contact/" title="Help and support">' + IC(ICONS.help) + '<span>Help and support</span></a><button class="side-link" id="outB" type="button" title="Log out">' + OUT_SVG + '<span>Log out</span></button>' : sec) + '<div class="side-foot">' + (plan ? '<b>' + esc(plan) + '</b> plan. ' : '') + 'Rent is paid to the agency, never to MRET.</div></div></nav>'
+      + '<div class="col"><header class="app-head"><div class="in"><button class="icon-btn nav-btn" id="navB" aria-label="Open menu">' + MENU_SVG + '</button><div class="agency">' + (S.brand && S.brand.logo_data ? '<img src="' + esc(S.brand.logo_data) + '" alt="">' : '') + '<span class="nm">' + esc(brandName) + '</span></div>' + switcher
+      + (searchable ? '<div class="gsearch" role="search">' + IC(ICONS.search) + '<input class="inp" id="gs" type="search" placeholder="Search properties, tenants, leases, invoices" aria-label="Search" autocomplete="off"><kbd>/</kbd><div class="gres" id="gr" hidden></div></div>' : '<span class="sp"></span>')
+      + (searchable ? '' : '')
+      + (isPortal || !S.agency ? '' : '<div class="menu"><button class="icon-btn" id="bellB" aria-label="Notifications" aria-haspopup="true">' + IC(ICONS.bell) + '<span class="badge" id="bellN" hidden></span></button><div class="pop" id="bellP" hidden><div class="hdr"><b>Needs attention</b><span>Overdue invoices, leases ending soon and drafts</span></div><div id="bellL"><div class="skel" style="margin:10px"></div></div></div></div>')
+      + '<button class="icon-btn theme-btn" id="thB" aria-label="Switch light or dark">' + THEME_SVG + '</button>'
+      + '<div class="menu who"><button class="avatar" id="avB" aria-label="Your account" aria-haspopup="true">' + esc(initials(who)) + '</button><span class="em" id="who">' + esc(S.user.email) + '</span><div class="pop" id="avP" hidden><div class="hdr"><b>' + esc(who) + '</b><span>' + esc(S.user.email) + '</span></div><a href="#/account">' + IC(ICONS.account) + 'Account and security</a>' + (st.length ? '<a href="#/' + st[0][0] + '">' + IC(ICONS.settings) + 'Settings</a>' : '') + '<button type="button" id="outB2">' + IC('<path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/>') + 'Log out</button></div></div>'
+      + '</div></header>'
+      + '<main class="main">' + banner() + '<div class="page-head"><h1>' + title + '</h1><div class="row">' + (actions || '') + '</div></div>'
+      + (inSettings && st.length > 1 ? '<nav class="tabs" aria-label="Settings">' + st.map(t => '<a href="#/' + t[0] + '"' + (t[0] === active ? ' aria-current="page"' : '') + '>' + t[1] + '</a>').join('') + '</nav>' : '')
+      + body + '</main></div></div>'
+      + '<nav class="tabbar" aria-label="Quick navigation">' + tabs.map(t => '<a href="#/' + t[0] + '"' + (active === t[0] ? ' aria-current="page"' : '') + '>' + IC(ICONS[t[2]] || ICONS.dashboard) + t[1] + '</a>').join('') + '<button type="button" id="moreB">' + IC(ICONS.more) + 'More</button></nav>';
+    const html = document.body;
+    if (LS.get('rentos.sidemini', false)) html.classList.add('side-mini'); else html.classList.remove('side-mini');
+    $('sideC').onclick = () => { const on = !html.classList.contains('side-mini'); html.classList.toggle('side-mini', on); LS.set('rentos.sidemini', on); };
+    $('navB').onclick = () => html.classList.toggle('nav-open');
+    $('moreB').onclick = () => html.classList.add('nav-open');
+    document.querySelectorAll('.side a, .side button').forEach(a => { if (a.id !== 'sideC') a.addEventListener('click', () => html.classList.remove('nav-open')); });
+    const signOut = async () => { await sb.auth.signOut(); LS.set('rentos.agency', null); location.hash = '#/login'; location.reload(); };
+    $('outB').onclick = signOut; $('outB2').onclick = signOut;
     $('thB').onclick = toggleTheme;
+    if ($('wnB')) $('wnB').onclick = whatsNew;
     if ($('agSw')) $('agSw').onchange = e => switchAgency(e.target.value);
+    const pops = [['avB', 'avP'], ['bellB', 'bellP']].filter(([b]) => $(b));
+    pops.forEach(([b, p]) => { $(b).onclick = ev => { ev.stopPropagation(); const open = $(p).hidden; pops.forEach(([, q]) => $(q).hidden = true); $(p).hidden = !open; }; $(p).onclick = ev => ev.stopPropagation(); });
+    document.onclick = () => { pops.forEach(([, q]) => $(q) && ($(q).hidden = true)); if ($('gr')) $('gr').hidden = true; };
+    document.onkeydown = ev => { if (ev.key === '/' && $('gs') && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { ev.preventDefault(); $('gs').focus(); } if (ev.key === 'Escape') { pops.forEach(([, q]) => $(q) && ($(q).hidden = true)); if ($('gr')) $('gr').hidden = true; html.classList.remove('nav-open'); } };
+    if (searchable) wireSearch();
+    if ($('bellB')) loadAttention().then(items => { const n = items.length; if (n) { $('bellN').textContent = n > 9 ? '9+' : n; $('bellN').hidden = false; } $('bellL').innerHTML = n ? items.slice(0, 8).map(i => '<a class="nt" href="' + i.href + '"><i class="' + (i.sev === 'bad' ? 'bad' : '') + '"></i><span>' + esc(i.title) + '<small>' + esc(i.sub) + '</small></span></a>').join('') : '<p class="muted small" style="padding:10px">Nothing needs attention.</p>'; }).catch(() => { $('bellL').innerHTML = '<p class="muted small" style="padding:10px">Could not load.</p>'; });
+  }
+  /* global search: read-only lookups, scoped to the agency by RLS and an explicit agency filter */
+  function wireSearch() {
+    const gs = $('gs'), gr = $('gr'); let t = null, seq = 0;
+    gs.onclick = ev => ev.stopPropagation();
+    gs.oninput = () => { clearTimeout(t); const v = gs.value.trim(); if (v.length < 2) { gr.hidden = true; return; } t = setTimeout(() => run(v), 220); };
+    gs.onkeydown = ev => { const ls = [...gr.querySelectorAll('a')]; if (!ls.length) return; const i = ls.findIndex(a => a.classList.contains('on')); if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') { ev.preventDefault(); ls.forEach(a => a.classList.remove('on')); const n = ev.key === 'ArrowDown' ? (i + 1) % ls.length : (i - 1 + ls.length) % ls.length; ls[n].classList.add('on'); } if (ev.key === 'Enter') { ev.preventDefault(); (ls[i] || ls[0]).click(); } };
+    async function run(v) {
+      const my = ++seq, a = S.agency.agency_id, like = '%' + v.replace(/[%_,()]/g, ' ') + '%';
+      const fin = can('finance.read');
+      const [pr, tn, ls, iv] = await Promise.all([
+        sb.from('properties').select('id, name, suburb').eq('agency_id', a).or('name.ilike.' + like + ',address_line.ilike.' + like + ',suburb.ilike.' + like).limit(5),
+        sb.from('tenants').select('id, name, email').eq('agency_id', a).or('name.ilike.' + like + ',email.ilike.' + like).limit(5),
+        sb.from('leases').select('id, payment_reference, status, properties(name)').eq('agency_id', a).ilike('payment_reference', like).limit(5),
+        fin ? sb.from('rental_invoices').select('id, number, status, total_cents').eq('agency_id', a).ilike('number', like).limit(5) : Promise.resolve({ data: [] })]);
+      if (my !== seq) return;
+      const grp = (label, rows, fn) => rows && rows.length ? '<span class="lbl">' + label + '</span>' + rows.map(fn).join('') : '';
+      const out = grp('Properties', pr.data, r => '<a href="#/properties?s=' + encodeURIComponent(r.name) + '">' + esc(r.name) + '<span>' + esc(r.suburb || '') + '</span></a>')
+        + grp('Tenants', tn.data, r => '<a href="#/tenants?open=' + r.id + '">' + esc(r.name) + '<span>' + esc(r.email || '') + '</span></a>')
+        + grp('Leases', ls.data, r => '<a href="#/leases?open=' + r.id + '">' + esc(r.payment_reference) + '<span>' + esc((r.properties && r.properties.name) || '') + ', ' + esc(r.status) + '</span></a>')
+        + grp('Invoices', iv.data, r => '<a href="#/invoices?s=all&q=' + encodeURIComponent(r.number) + '">' + esc(r.number) + '<span>' + R(r.total_cents) + ', ' + esc(r.status.replace('_', ' ')) + '</span></a>');
+      gr.innerHTML = out || '<div class="none">No matches for "' + esc(v) + '"</div>'; gr.hidden = false;
+      gr.querySelectorAll('a').forEach(x => x.addEventListener('click', () => { gr.hidden = true; gs.value = ''; }));
+    }
+  }
+  /* "Needs attention": overdue invoices, leases ending within 60 days, draft leases, payments waiting for verification */
+  async function loadAttention() {
+    if (!S.agency) return [];
+    const a = S.agency.agency_id, today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg' }).format(new Date());
+    const in60 = new Date(Date.now() + 60 * 864e5).toISOString().slice(0, 10), out = [];
+    const jobs = [];
+    if (can('finance.read')) {
+      jobs.push(sb.from('rental_invoices').select('id, number, due_date, total_cents, paid_cents, leases(payment_reference, properties(name))').eq('agency_id', a).in('status', ['issued', 'partially_paid']).lt('due_date', today).order('due_date').limit(20).then(r => (r.data || []).forEach(i => out.push({ sev: 'bad', kind: 'inv', title: ((i.leases && i.leases.properties) ? i.leases.properties.name : i.number) + ': rent overdue', sub: i.number + ', ' + R(i.total_cents - i.paid_cents).replace(' ', '\u00a0') + ' since ' + fmtD(i.due_date), amt: i.total_cents - i.paid_cents, href: '#/arrears', action: 'Send reminder' }))));
+      jobs.push(sb.from('rental_payments').select('id', { count: 'exact', head: true }).eq('agency_id', a).eq('status', 'recorded').then(r => { if (r.count) out.push({ sev: 'warn', kind: 'pay', title: r.count + ' payment' + (r.count === 1 ? '' : 's') + ' waiting for verification', sub: 'Not counted as received until verified', href: '#/payments', action: 'Verify' }); }));
+    }
+    if (can('properties.read')) {
+      jobs.push(sb.from('leases').select('id, end_date, payment_reference, properties(name)').eq('agency_id', a).in('status', ['active', 'notice']).gte('end_date', today).lte('end_date', in60).order('end_date').limit(20).then(r => (r.data || []).forEach(l => out.push({ sev: 'warn', kind: 'lease', title: 'Lease ending: ' + ((l.properties && l.properties.name) || l.payment_reference), sub: 'Ends ' + fmtD(l.end_date) + ', ' + l.payment_reference, href: '#/leases?open=' + l.id, action: 'Plan renewal' }))));
+      jobs.push(sb.from('leases').select('id, payment_reference, properties(name)').eq('agency_id', a).eq('status', 'draft').limit(20).then(r => (r.data || []).forEach(l => out.push({ sev: 'info', kind: 'draft', title: 'Draft lease: ' + ((l.properties && l.properties.name) || l.payment_reference), sub: 'Not active yet, so it will not be invoiced', href: '#/leases?open=' + l.id, action: 'Review' }))));
+    }
+    await Promise.all(jobs);
+    const rank = { bad: 0, warn: 1, info: 2 }; return out.sort((x, y) => rank[x.sev] - rank[y.sev]);
+  }
+  function whatsNew() {
+    const d = $('dlg');
+    d.innerHTML = '<div class="in"><div class="hd"><h2>What\'s new</h2><button class="btn sm" id="wnX">Close</button></div>'
+      + '<h3>November 2026</h3><ul class="ink2"><li><b>New interface.</b> Dark theme first, a collapsible sidebar, global search (press /), notifications and a mobile tab bar.</li><li><b>Dashboard.</b> Six live figures, a collections chart and a Needs attention list.</li><li><b>Rentals.</b> Landlords, tenants, leases, monthly invoicing, payment matching, arrears, landlord statements and portals.</li></ul>'
+      + '<h3>Coming next</h3><ul class="ink2"><li>Reusable tables with filters, sorting and CSV export.</li><li>Lease detail pages with tabs.</li><li>Maintenance, inspections and reports.</li></ul></div>';
+    d.showModal(); $('wnX').onclick = () => d.close();
   }
   function banner() {
     const o = S.ov; if (!o) return '';
@@ -319,13 +425,64 @@
     await loadOverview(); const o = S.ov || {}, s = o.subscription;
     const ob = nextStep();
     const subTxt = !s ? 'No plan yet' : s.status === 'trialing' ? 'Free trial, ' + Math.max(0, daysTo(s.trial_ends_at)) + ' days left' : s.status === 'active' ? 'Active, renews ' + fmtD(s.current_period_end) : s.status === 'past_due' ? 'Payment overdue' : s.status === 'suspended' ? 'Suspended' : s.status;
+    const fin = can('finance.read');
+    let ro = null; try { const r = await sb.rpc('rental_overview', { a: S.agency.agency_id }); ro = r.data; } catch (e) {}
+    ro = ro || {};
+    const rate = ro.invoiced_month_cents ? Math.round(ro.collected_month_cents / ro.invoiced_month_cents * 100) : null;
+    const K = (icon, l, v, sub, cls) => '<div class="card kpi' + (cls ? ' ' + cls : '') + '"><div class="l">' + IC(ICONS[icon]) + l + '</div><div class="v">' + v + '</div><div class="s">' + (sub || '') + '</div></div>';
+    const kpis = K('cash', 'Rent roll', R0(o.rent_roll_cents), 'Monthly rent on occupied properties')
+      + (fin ? K('payments', 'Collected this month', R0(ro.collected_month_cents || 0), (rate == null ? 'Nothing invoiced yet this month' : rate + '% of ' + R0(ro.invoiced_month_cents) + ' invoiced'), rate != null && rate >= 95 ? 'good' : '')
+        + K('arrears', 'Arrears', R0(ro.arrears_cents || 0), ro.arrears_cents > 0 ? 'Unpaid past the due date' : 'Nobody is behind', ro.arrears_cents > 0 ? 'alert' : '') : '')
+      + K('properties', 'Occupancy', o.properties ? Math.round(o.occupied / o.properties * 100) + '%' : '–', N(o.occupied) + ' occupied, ' + N(o.vacant) + ' vacant')
+      + K('cal', 'Leases ending in 60 days', N(ro.leases_ending_60 || 0), N(ro.leases_active || 0) + ' active lease' + (ro.leases_active === 1 ? '' : 's'))
+      + K('home2', 'Properties', N(o.properties), N(ro.landlords || 0) + ' landlords, ' + N(ro.tenants || 0) + ' tenants');
+    const chart = fin ? '<div class="card chart-card" id="chC"><div class="card-head"><div><div class="lbl">Collections, verified</div><div class="total" id="chT"><span class="skel" style="display:inline-block;width:160px;height:30px"></span></div><div class="small muted" id="chS"></div></div><span class="sp"></span><div class="seg" role="group" aria-label="Period">' + [['d', 'Daily'], ['w', 'Weekly'], ['m', 'Monthly']].map(([k, l]) => '<button type="button" data-per="' + k + '" aria-pressed="' + (k === LS.get('rentos.chper', 'm') ? 'true' : 'false') + '">' + l + '</button>').join('') + '</div><input class="inp" type="date" id="chE" aria-label="Ending on" style="width:auto;min-height:34px"></div><div id="chB"><div class="skel" style="height:240px;margin-top:12px"></div></div></div>' : '';
+    const attn = '<div class="card"><div class="card-head"><h3>Needs attention</h3><span class="sp"></span><span class="chip info" id="atN">…</span></div><ul class="attn" id="atL"><li><div class="skel" style="flex:1;height:32px"></div></li></ul></div>';
     shell('dashboard', 'Dashboard', (ob && ob !== 'done' && can('agency.manage') ? '<div class="notice info" style="margin-bottom:16px">Setup is not finished. <a href="#/onboarding">Continue where you left off</a></div>' : '')
       + ((S.invites || []).length ? '<div class="notice info" style="margin-bottom:16px">You have ' + S.invites.length + ' invitation' + (S.invites.length === 1 ? '' : 's') + ' to join another agency (' + S.invites.map(i => esc(i.agency_name)).join(', ') + '). <a href="#/invites">View</a></div>' : '')
-      + '<div class="grid g4">' + kpi('Properties', N(o.properties), N(o.occupied) + ' occupied, ' + N(o.vacant) + ' vacant') + kpi('Occupancy', o.properties ? Math.round(o.occupied / o.properties * 100) + '%' : '–', 'Occupied out of active properties') + kpi('Monthly rent roll', R0(o.rent_roll_cents), 'Captured rent on occupied properties') + kpi('Team', N(o.users) + (s && s.max_users ? ' of ' + s.max_users : ''), N(o.pending_invites) + ' invitation' + (o.pending_invites === 1 ? '' : 's') + ' pending') + '</div>'
-      + '<div class="grid g2" style="margin-top:16px"><div class="card"><h3>Your plan</h3><p><span class="chip ' + (o.access === 'full' ? 'ok' : o.access === 'read_only' ? 'bad' : 'info') + '">' + esc(subTxt) + '</span> ' + (s ? '<b>' + esc(s.plan) + '</b> ' + R(s.price_cents) + ' per ' + (s.cycle === 'annual' ? 'year' : 'month') : '') + '</p>' + (s && s.max_properties ? '<div class="small muted">Properties ' + N(o.properties) + ' of ' + s.max_properties + '</div><div class="bar-meter" style="margin:6px 0 12px"><div style="width:' + Math.min(100, Math.round(o.properties / s.max_properties * 100)) + '%"></div></div>' : '') + (can('billing.manage') ? '<a class="btn sm" href="#/subscription">Manage subscription</a>' : '') + '</div>'
+      + '<div class="grid g6">' + kpis + '</div>'
+      + '<div class="grid" style="margin-top:16px;align-items:start;grid-template-columns:' + (fin ? 'minmax(0,2fr) minmax(0,1fr)' : 'minmax(0,1fr)') + '" id="dashRow">' + chart + attn + '</div>'
+      + '<div class="grid g2" style="margin-top:16px"><div class="card"><h3>Your plan</h3><p><span class="chip ' + (o.access === 'full' ? 'ok' : o.access === 'read_only' ? 'bad' : 'info') + '">' + esc(subTxt) + '</span> ' + (s ? '<b>' + esc(s.plan) + '</b> ' + R(s.price_cents) + ' per ' + (s.cycle === 'annual' ? 'year' : 'month') : '') + '</p>' + (s && s.max_properties ? '<div class="small muted">Properties ' + N(o.properties) + ' of ' + s.max_properties + '</div><div class="bar-meter" style="margin:6px 0 12px"><div style="width:' + Math.min(100, Math.round(o.properties / s.max_properties * 100)) + '%"></div></div>' : '') + '<div class="small muted" style="margin-bottom:12px">Team ' + N(o.users) + (s && s.max_users ? ' of ' + s.max_users : '') + ', ' + N(o.pending_invites) + ' invitation' + (o.pending_invites === 1 ? '' : 's') + ' pending</div>' + (can('billing.manage') ? '<a class="btn sm" href="#/subscription">Manage subscription</a>' : '') + '</div>'
       + '<div class="card" id="dashX"><h3>Rentals this month</h3><p class="muted small">Loading...</p></div></div>'
-      + '<p class="small muted" style="margin-top:16px">How these numbers are worked out: invoiced counts this month\'s rent invoices; collected counts only verified payments allocated to them; arrears are unpaid amounts past their due date. properties and occupancy count active (not archived) properties; rent roll adds the monthly rental captured on occupied properties; team counts active staff who use a seat.</p>');
+      + '<p class="small muted" style="margin-top:16px">How these numbers are worked out: collected counts only verified payments allocated to this month\'s invoices; arrears are unpaid amounts past their due date; rent roll adds the monthly rental captured on occupied properties; occupancy and properties count active (not archived) properties. The chart adds verified payments by the date they were received.</p>');
+    if (window.matchMedia('(max-width: 1000px)').matches && $('dashRow')) $('dashRow').style.gridTemplateColumns = 'minmax(0,1fr)';
     fillDash();
+    loadAttention().then(items => { if (!$('atL')) return; $('atN').textContent = items.length ? items.length + ' item' + (items.length === 1 ? '' : 's') : 'All clear'; $('atN').className = 'chip ' + (items.some(i => i.sev === 'bad') ? 'bad' : items.length ? 'warn' : 'ok');
+      $('atL').innerHTML = items.length ? items.slice(0, 6).map(i => '<li><span class="dot ' + (i.sev === 'bad' ? 'bad' : i.sev === 'info' ? 'info' : '') + '">' + IC(ICONS[i.kind === 'inv' ? 'alert' : i.kind === 'lease' ? 'cal' : i.kind === 'pay' ? 'payments' : 'leases']) + '</span><span class="tx"><a href="' + i.href + '">' + esc(i.title) + '</a><span>' + esc(i.sub) + '</span></span><a class="btn sm" href="' + i.href + '">' + esc(i.action) + '</a></li>').join('') + (items.length > 6 ? '<li><span class="small muted">and ' + (items.length - 6) + ' more in the notifications bell</span></li>' : '') : '<li><span class="dot info">' + IC('<path d="M20 6L9 17l-5-5"/>') + '</span><span class="tx">Nothing needs attention right now.<span>Overdue invoices, leases ending soon, drafts and unverified payments show here.</span></span></li>'; }).catch(e => { if ($('atL')) $('atL').innerHTML = '<li class="small muted">' + esc(friendly(e)) + '</li>'; });
+    if (fin) wireChart();
+  }
+  /* collections chart: verified payments grouped by day, week or month (SAST dates), drawn as inline SVG */
+  function wireChart() {
+    const todayS = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg' }).format(new Date());
+    $('chE').value = todayS; $('chE').max = todayS;
+    const draw = async () => {
+      const per = LS.get('rentos.chper', 'm'), end = new Date(($('chE').value || todayS) + 'T12:00:00Z');
+      const buckets = [], key = d => per === 'm' ? d.toISOString().slice(0, 7) : d.toISOString().slice(0, 10);
+      if (per === 'd') for (let i = 29; i >= 0; i--) { const d = new Date(end); d.setUTCDate(d.getUTCDate() - i); buckets.push({ k: key(d), d, v: 0 }); }
+      else if (per === 'w') { const mon = new Date(end); mon.setUTCDate(mon.getUTCDate() - ((mon.getUTCDay() + 6) % 7)); for (let i = 11; i >= 0; i--) { const d = new Date(mon); d.setUTCDate(d.getUTCDate() - 7 * i); buckets.push({ k: key(d), d, v: 0 }); } }
+      else for (let i = 11; i >= 0; i--) { const d = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() - i, 1, 12)); buckets.push({ k: key(d), d, v: 0 }); }
+      const from = buckets[0].d.toISOString().slice(0, 10), to = end.toISOString().slice(0, 10);
+      const r = await sb.from('rental_payments').select('received_on, amount_cents').eq('agency_id', S.agency.agency_id).eq('status', 'verified').gte('received_on', from).lte('received_on', to).limit(5000);
+      if (!$('chB')) return; if (r.error) { $('chB').innerHTML = '<div class="notice bad" style="margin-top:12px">' + esc(friendly(r.error)) + '</div>'; return; }
+      (r.data || []).forEach(p => { const d = new Date(p.received_on + 'T12:00:00Z'); let k; if (per === 'm') k = p.received_on.slice(0, 7); else if (per === 'd') k = p.received_on; else { d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); k = d.toISOString().slice(0, 10); } const b = buckets.find(x => x.k === k); if (b) b.v += Number(p.amount_cents); });
+      const total = buckets.reduce((a, b) => a + b.v, 0);
+      $('chT').textContent = R0(total); $('chS').textContent = (per === 'd' ? 'Last 30 days' : per === 'w' ? 'Last 12 weeks' : 'Last 12 months') + ' to ' + fmtD(to) + ', ' + (r.data || []).length + ' payment' + ((r.data || []).length === 1 ? '' : 's');
+      const W = Math.max(320, $('chB').clientWidth), H = 240, pl = 64, pr = 12, pt = 14, pb = 28, max = Math.max(1, ...buckets.map(b => b.v));
+      const step = Math.pow(10, Math.floor(Math.log10(max))), top = Math.ceil(max / step) * step;
+      const X = i => pl + (W - pl - pr) * (buckets.length === 1 ? 0.5 : i / (buckets.length - 1)), Y = v => pt + (H - pt - pb) * (1 - v / top);
+      const lbl = b => per === 'm' ? new Intl.DateTimeFormat('en-ZA', { month: 'short' }).format(b.d) : new Intl.DateTimeFormat('en-ZA', { day: '2-digit', month: 'short' }).format(b.d);
+      const every = Math.ceil(buckets.length / Math.max(2, Math.floor((W - pl) / 70)));
+      const grid = [0, .25, .5, .75, 1].map(f => '<line class="gl" x1="' + pl + '" x2="' + (W - pr) + '" y1="' + Y(top * f) + '" y2="' + Y(top * f) + '"/><text x="' + (pl - 8) + '" y="' + (Y(top * f) + 4) + '" text-anchor="end">' + esc(axis(top * f)) + '</text>').join('');
+      function axis(c) { const x = c / 100; return x >= 1e6 ? 'R ' + (x / 1e6).toFixed(1).replace(/\.0$/, '') + 'm' : x >= 1e3 ? 'R ' + Math.round(x / 1e3) + 'k' : 'R ' + Math.round(x); }
+      const pts = buckets.map((b, i) => X(i).toFixed(1) + ',' + Y(b.v).toFixed(1));
+      $('chB').innerHTML = '<svg class="ch" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Verified collections ' + esc($('chS').textContent) + ', total ' + esc(R0(total)) + '">' + grid
+        + '<path class="ar" d="M' + X(0) + ',' + Y(0) + ' L' + pts.join(' L') + ' L' + X(buckets.length - 1) + ',' + Y(0) + ' Z"/><polyline class="ln" points="' + pts.join(' ') + '"/>'
+        + buckets.map((b, i) => (i % every === 0 || i === buckets.length - 1 ? '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle">' + esc(lbl(b)) + '</text>' : '') + '<circle class="pt" cx="' + X(i) + '" cy="' + Y(b.v) + '" r="' + (b.v ? 3.5 : 2) + '"><title>' + esc(lbl(b)) + ': ' + esc(R0(b.v)) + '</title></circle>').join('') + '</svg>'
+        + (total ? '' : '<p class="small muted" style="margin:6px 0 0">No verified payments in this period yet. Payments count once they are verified on the Payments page.</p>');
+    };
+    document.querySelectorAll('[data-per]').forEach(b => b.onclick = () => { LS.set('rentos.chper', b.dataset.per); document.querySelectorAll('[data-per]').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); draw(); });
+    $('chE').onchange = draw;
+    draw().catch(e => { if ($('chB')) $('chB').innerHTML = '<div class="notice bad">' + esc(friendly(e)) + '</div>'; });
   }
   async function fillDash() { const el = $('dashX'); if (!el || !window.RentOSPages) return; try { el.innerHTML = await window.RentOSPages.dashCard(); } catch (e) { el.innerHTML = '<p class="muted small">' + esc(friendly(e)) + '</p>'; } }
   async function vProperties(q) {
