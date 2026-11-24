@@ -973,14 +973,24 @@ const KH_COLS = ['#d4af37', '#bcc4cc', '#b88457', '#e0163f', '#ba0c2f', '#8a1029
 function khCircuit(top, score, me) {
   if (!top.length) return empty('No activity yet.');
   const lead = Math.max(1, score(top[0]));
-  return '<div class="circuit"><svg viewBox="0 0 560 270" role="img" aria-label="Circuit view of the top ' + top.length + ': each marker sits at its share of the leader\'s points"><path id="khTrk" class="trk" d="' + KH_TRACK + '"/><path class="trk2" d="' + KH_TRACK + '"/><line class="fin" x1="420" y1="236" x2="420" y2="264"/><g id="khCars">' + top.map((x, i) => '<g class="mk" data-frac="' + (score(x) / lead).toFixed(4) + '" data-i="' + i + '"><circle r="11" fill="' + KH_COLS[i] + '"' + (x.user_id === me ? ' stroke="#fff"' : '') + '/><text>' + x.rank + '</text></g>').join('') + '</g></svg>'
+  return '<div class="circuit"><svg viewBox="0 0 560 270" role="img" aria-label="Circuit view of the top ' + top.length + ': the cars drive round together and each one\'s distance behind the leader is its points gap"><path id="khTrk" class="trk" d="' + KH_TRACK + '"/><path class="trk2" d="' + KH_TRACK + '"/><line class="fin" x1="420" y1="236" x2="420" y2="264"/><g id="khCars">' + top.map((x, i) => '<g class="mk" data-gap="' + Math.max(0, score(top[0]) - score(x)) + '" data-i="' + i + '"><circle r="11" fill="' + KH_COLS[i] + '"' + (x.user_id === me ? ' stroke="#fff"' : '') + '/><text>' + x.rank + '</text></g>').join('') + '</g></svg>'
     + '<ol>' + top.map((x, i) => '<li' + (x.user_id === me ? ' class="me"' : '') + '><b>' + x.rank + '</b><i style="background:' + KH_COLS[i] + '"></i><span style="flex:1">' + esc(x.name) + '</span><span class="num">' + score(x).toLocaleString('en-ZA') + ' pts <span class="muted small">' + (i ? '-' + (score(top[0]) - score(x)) : 'leader') + '</span></span></li>').join('') + '</ol></div>'
-    + '<p class="small muted" style="margin:10px 0 0">A car\'s place on the lap is its points as a share of the leader\'s points, so the gaps you see are the real gaps. It is not live movement.</p>';
+    + '<div class="row" style="margin-top:10px;gap:12px;flex-wrap:wrap"><button class="btn sm" id="khRun" type="button" aria-pressed="true">Pause</button><p class="small muted" style="margin:0;flex:1;min-width:240px">The cars lap together at the same speed, so the gaps stay fixed: each car\'s distance behind the leader matches its points behind the leader. The last car shown is three quarters of a lap behind. Positions change only when new results come in.</p></div>';
 }
 function khPlaceCars() {
   const trk = $('khTrk'); if (!trk) return; const L = trk.getTotalLength();
   const fin = (() => { let best = 0, bd = 1e9; for (let t = 0; t <= L; t += 2) { const p = trk.getPointAtLength(t), dd = Math.abs(p.x - 420) + Math.abs(p.y - 250); if (dd < bd) { bd = dd; best = t; } } return best; })();
-  document.querySelectorAll('#khCars .mk').forEach(g => { const f = +g.dataset.frac, at = (fin - (1 - f) * L * 0.94 + L * 2) % L, p = trk.getPointAtLength(at); g.setAttribute('transform', 'translate(' + p.x.toFixed(1) + ',' + p.y.toFixed(1) + ')'); });
+  const cars = [...document.querySelectorAll('#khCars .mk')], maxGap = Math.max(1, ...cars.map(g => +g.dataset.gap));
+  // distance behind the leader is proportional to the points gap; the last car shown sits 75% of a lap back
+  const behind = cars.map(g => (+g.dataset.gap / maxGap) * L * 0.75);
+  const draw = (run) => cars.forEach((g, i) => { const at = ((fin + run - behind[i]) % L + L) % L, p = trk.getPointAtLength(at); g.setAttribute('transform', 'translate(' + p.x.toFixed(1) + ',' + p.y.toFixed(1) + ')'); });
+  if (S.khAnim) cancelAnimationFrame(S.khAnim);
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches, btn = $('khRun');
+  let paused = still || S.khPaused, run = S.khRunAt || 0, last = null;
+  const lap = 14000;                       // one lap every 14 seconds, the same for every car
+  const tick = (t) => { if (!document.body.contains(trk)) return; if (last != null && !paused) run = (run + (t - last) / lap * L) % L; last = t; S.khRunAt = run; draw(run); S.khAnim = requestAnimationFrame(tick); };
+  if (btn) { const lab = () => { btn.textContent = paused ? 'Drive' : 'Pause'; btn.setAttribute('aria-pressed', String(!paused)); }; lab(); btn.onclick = () => { paused = !paused; S.khPaused = paused; lab(); }; }
+  draw(run); S.khAnim = requestAnimationFrame(tick);
 }
 VIEWS.homes = async () => {
   const k = S.kh, d = await api('trKhRace', { week: k.week, month: k.month }); S.khd = d;
