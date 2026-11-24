@@ -37,14 +37,14 @@
     const { data: { session } } = await sb.auth.getSession();
     S.session = session; S.user = session && session.user;
     if (!S.user) return;
-    const [prof, ag, adm, aal, fac, rp, mi] = await Promise.all([
+    const [prof, ag, adm, aal, fac, rp, mi, mp] = await Promise.all([
       sb.from('user_profiles').select('*').eq('id', S.user.id).maybeSingle(),
       sb.rpc('my_agencies'),
       sb.from('platform_admins').select('role').eq('user_id', S.user.id).maybeSingle(),
       sb.auth.mfa.getAuthenticatorAssuranceLevel(),
       sb.auth.mfa.listFactors(),
-      sb.from('role_permissions').select('role_key, permission_key'), sb.rpc('my_invitations')]);
-    S.invites = (mi && mi.data) || [];
+      sb.from('role_permissions').select('role_key, permission_key'), sb.rpc('my_invitations'), sb.rpc('my_portals')]);
+    S.invites = (mi && mi.data) || []; S.portals = (mp && mp.data) || [];
     S.profile = prof.data; S.agencies = ag.data || []; S.admin = adm.data ? adm.data.role : null;
     S.aal = aal.data || {}; S.factors = (fac.data && fac.data.totp) || [];
     (rp.data || []).forEach(x => (PERMS[x.role_key] = PERMS[x.role_key] || []).push(x.permission_key));
@@ -119,7 +119,8 @@
   /* ---------------- shell ---------------- */
   const NAV = [
     ['dashboard', 'Dashboard', null], ['properties', 'Properties', 'properties.read'],
-    ['g', 'Coming next'], ['soon/landlords', 'Landlords', 'properties.read'], ['soon/tenants', 'Tenants', 'properties.read'], ['soon/leases', 'Leases', 'properties.read'], ['soon/invoices', 'Invoices and payments', 'finance.read'],
+    ['landlords', 'Landlords', 'properties.read'], ['tenants', 'Tenants', 'properties.read'], ['leases', 'Leases', 'properties.read'],
+    ['g', 'Money'], ['invoices', 'Invoices', 'finance.read'], ['payments', 'Payments', 'finance.read'], ['arrears', 'Arrears', 'finance.read'], ['statements', 'Landlord statements', 'finance.read'],
     ['g', 'Agency'], ['team', 'Team', null], ['branding', 'Branding', 'branding.manage'], ['subscription', 'Subscription', 'billing.manage'], ['settings', 'Agency settings', 'agency.manage'], ['audit', 'Audit log', 'audit.read'],
     ['g', 'You'], ['account', 'Account and security', null]];
   function shell(active, title, body, actions) {
@@ -158,6 +159,7 @@
   }
   async function vOnboarding() {
     if (!S.agency && S.invites && S.invites.length && !S.skipInvites) return vPendingInvites(true);
+    if (!S.agency && (S.portals || []).length && !S.skipInvites) return go('#/portal');
     const step = nextStep();
     if (!step) return go('#/dashboard');
     if (S.agency && S.agency.role !== 'agency_owner' && S.agency.role !== 'agency_admin') return go('#/dashboard');
@@ -292,9 +294,11 @@
       + ((S.invites || []).length ? '<div class="notice info" style="margin-bottom:16px">You have ' + S.invites.length + ' invitation' + (S.invites.length === 1 ? '' : 's') + ' to join another agency (' + S.invites.map(i => esc(i.agency_name)).join(', ') + '). <a href="#/invites">View</a></div>' : '')
       + '<div class="grid g4">' + kpi('Properties', N(o.properties), N(o.occupied) + ' occupied, ' + N(o.vacant) + ' vacant') + kpi('Occupancy', o.properties ? Math.round(o.occupied / o.properties * 100) + '%' : '–', 'Occupied out of active properties') + kpi('Monthly rent roll', R0(o.rent_roll_cents), 'Captured rent on occupied properties') + kpi('Team', N(o.users) + (s && s.max_users ? ' of ' + s.max_users : ''), N(o.pending_invites) + ' invitation' + (o.pending_invites === 1 ? '' : 's') + ' pending') + '</div>'
       + '<div class="grid g2" style="margin-top:16px"><div class="card"><h3>Your plan</h3><p><span class="chip ' + (o.access === 'full' ? 'ok' : o.access === 'read_only' ? 'bad' : 'info') + '">' + esc(subTxt) + '</span> ' + (s ? '<b>' + esc(s.plan) + '</b> ' + R(s.price_cents) + ' per ' + (s.cycle === 'annual' ? 'year' : 'month') : '') + '</p>' + (s && s.max_properties ? '<div class="small muted">Properties ' + N(o.properties) + ' of ' + s.max_properties + '</div><div class="bar-meter" style="margin:6px 0 12px"><div style="width:' + Math.min(100, Math.round(o.properties / s.max_properties * 100)) + '%"></div></div>' : '') + (can('billing.manage') ? '<a class="btn sm" href="#/subscription">Manage subscription</a>' : '') + '</div>'
-      + '<div class="card"><h3>What opens next</h3><p class="ink2 small">Collections, arrears, landlord balances and maintenance figures appear here as each module is switched on for your agency: leases and invoicing first, then payments and statements.</p><a class="btn sm" href="#/properties">Go to properties</a></div></div>'
-      + '<p class="small muted" style="margin-top:16px">How these numbers are worked out: properties and occupancy count active (not archived) properties; rent roll adds the monthly rental captured on occupied properties; team counts active staff who use a seat.</p>');
+      + '<div class="card" id="dashX"><h3>Rentals this month</h3><p class="muted small">Loading...</p></div></div>'
+      + '<p class="small muted" style="margin-top:16px">How these numbers are worked out: invoiced counts this month\'s rent invoices; collected counts only verified payments allocated to them; arrears are unpaid amounts past their due date. properties and occupancy count active (not archived) properties; rent roll adds the monthly rental captured on occupied properties; team counts active staff who use a seat.</p>');
+    fillDash();
   }
+  async function fillDash() { const el = $('dashX'); if (!el || !window.RentOSPages) return; try { el.innerHTML = await window.RentOSPages.dashCard(); } catch (e) { el.innerHTML = '<p class="muted small">' + esc(friendly(e)) + '</p>'; } }
   async function vProperties(q) {
     const filt = q.get('f') || 'all', search = q.get('s') || '';
     let qr = sb.from('properties').select('*').is('archived_at', null).eq('agency_id', S.agency.agency_id).order('created_at', { ascending: false }).limit(500);
@@ -450,6 +454,8 @@
     if (SS.get('rentos.invite') && p0 !== 'invite') return vInvite(SS.get('rentos.invite'));
     if (['login', 'register', 'verify', 'forgot', ''].includes(p0)) return go(S.agency ? (nextStep() && can('agency.manage') && !(S.agency.onboarding || {}).plan ? '#/onboarding' : '#/dashboard') : S.admin ? '#/admin' : '#/onboarding');
     if (p0 === 'admin') return vAdmin(q);
+    if (p0 === 'portal' && window.RentOSPages) return window.RentOSPages.portal(q, parts);
+    if (!S.agency && (S.portals || []).length && !S.admin && !['onboarding', 'account'].includes(p0)) return go('#/portal');
     if (p0 === 'invites') return (S.invites || []).length ? vPendingInvites(false) : go('#/dashboard');
     if (p0 === 'account') return vAccount();
     if (!S.agency || p0 === 'onboarding') { if (!S.agency && p0 !== 'onboarding') return go('#/onboarding'); return vOnboarding(); }
@@ -462,9 +468,11 @@
       if (p0 === 'settings' && can('agency.manage')) return await vSettings();
       if (p0 === 'audit' && can('audit.read')) return await vAudit();
       if (p0 === 'soon') return vSoon(parts[1]);
+      if (window.RentOSPages && window.RentOSPages[p0] && p0 !== 'portal') return await window.RentOSPages[p0](q, parts);
       return go('#/dashboard');
     } catch (e) { shell('', 'Something went wrong', '<div class="notice bad">' + esc(friendly(e)) + '</div><p><a href="#/dashboard">Back to the dashboard</a></p>'); }
   }
+  window.RentOS = { sb, S, C, $, esc, R, R0, N, fmtD, fmtDT, daysTo, shell, kpi, field, inp, formData, busy, toast, friendly, can, writable, go, render: () => render(), loadAll, authShell: (t, b, f) => authShell(t, b, f), PROVINCES: null };
   let booted = false;
   async function boot() {
     const qs = new URLSearchParams(location.search);
