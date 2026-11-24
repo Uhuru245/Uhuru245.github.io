@@ -21,7 +21,7 @@
   function printDoc(title, inner, brand) {
     const w = window.open('', '_blank'); if (!w) { X().toast('Allow pop-ups to print'); return; }
     const c = (brand && brand.primary_color) || '#1f6f5c';
-    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + X().esc(title) + '</title><style>body{font:13px/1.5 Arial,sans-serif;color:#1d1f22;margin:32px}h1{color:' + c + ';margin:0;font-size:22px}table{width:100%;border-collapse:collapse;margin:14px 0}td,th{padding:6px 4px;border-bottom:1px solid #e3e3e0;text-align:left}.n{text-align:right}.hd{display:flex;justify-content:space-between;border-bottom:3px solid ' + c + ';padding-bottom:12px}.hd img{max-height:60px;max-width:200px}.tot td{font-weight:bold;border:0}.ft{color:#555;font-size:12px;border-top:1px solid #e3e3e0;padding-top:10px;white-space:pre-line}.muted{color:#666}@media print{button{display:none}}</style></head><body>' + inner + '<p><button onclick="print()">Print or save as PDF</button></p></body></html>');
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + X().esc(title) + '</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"><style>@page{margin:18mm}body{font:13px/1.55 Inter,Arial,sans-serif;color:#1b211f;margin:0;padding:40px 44px;border-top:6px solid ' + c + '}h1{color:' + c + ';margin:0;font:600 24px/1.2 Inter,Arial,sans-serif}table{width:100%;border-collapse:collapse;margin:18px 0}td,th{padding:9px 4px;border-bottom:1px solid #eceae4;text-align:left}th{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#7a817e;font-weight:600}.n{text-align:right;font-variant-numeric:tabular-nums}.hd{display:flex;justify-content:space-between;gap:20px;border-bottom:1px solid #e3e1da;padding-bottom:18px;margin-bottom:8px}.hd img{max-height:60px;max-width:200px}.tot td{font-weight:700;border:0}.muted{color:#6b726f}code{font-family:ui-monospace,Menlo,monospace}.ft{color:#5d6562;font-size:12px;border-top:1px solid #e3e1da;padding-top:12px;margin-top:20px;white-space:pre-line}button{font:600 13px Inter,Arial,sans-serif;padding:10px 16px;border-radius:9px;border:1px solid #c9c6bd;background:#fff;cursor:pointer;margin-top:18px}@media print{button{display:none}body{padding:0;border:0}}</style></head><body>' + inner + '<p><button onclick="print()">Print or save as PDF</button></p></body></html>');
     w.document.close();
   }
   async function brand(agencyId) { return (await X().sb.from('agency_branding').select('*').eq('agency_id', agencyId).maybeSingle()).data || {}; }
@@ -71,7 +71,7 @@
   }
 
   /* ---------- tenants ---------- */
-  async function tenants() {
+  async function tenants(qs) {
     const x = X(), e = x.esc;
     const [rows, parts] = await Promise.all([q(x.sb.from('tenants').select('*').eq('agency_id', A()).is('archived_at', null).order('name')), q(x.sb.from('lease_participants').select('tenant_id, leases(status, payment_reference, properties(name))').eq('agency_id', A()))]);
     const w = x.can('properties.write') && x.writable();
@@ -83,6 +83,7 @@
       if (x.$('arc')) x.$('arc').onclick = async () => { if (!confirm('Archive this tenant? Their history is kept.')) return; await q(x.sb.from('tenants').update({ archived_at: new Date().toISOString() }).eq('id', t.id).select('id')); d.close(); x.render(); }; };
     if (x.$('add')) x.$('add').onclick = () => edit({});
     document.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => edit(rows.find(r => r.id === b.dataset.ed)));
+    const op = qs && qs.get('open'); if (op && rows.find(r => r.id === op)) edit(rows.find(r => r.id === op));
   }
 
   /* ---------- leases ---------- */
@@ -91,6 +92,7 @@
     const st = qs.get('s') || 'live';
     let qr = x.sb.from('leases').select('*, properties(name), lease_participants(role, tenants(name))').eq('agency_id', A()).order('start_date', { ascending: false });
     if (st === 'live') qr = qr.in('status', ['draft', 'active', 'notice']); else if (st !== 'all') qr = qr.eq('status', st);
+    if (qs.get('q')) qr = qr.ilike('number', '%' + qs.get('q') + '%');
     const rows = await q(qr);
     const w = x.can('properties.write') && x.writable();
     x.shell('leases', 'Leases', '<div class="row" style="margin-bottom:12px">' + [['live', 'Current'], ['draft', 'Drafts'], ['ended', 'Ended'], ['all', 'All']].map(([k, l]) => '<a class="btn sm' + (k === st ? ' dark' : '') + '" href="#/leases?s=' + k + '">' + l + '</a>').join('') + '</div>'
@@ -98,6 +100,7 @@
       w ? '<button class="btn primary" id="add">New lease</button>' : '');
     if (x.$('add')) x.$('add').onclick = () => newLease();
     document.querySelectorAll('[data-op]').forEach(b => b.onclick = () => openLease(b.dataset.op));
+    if (qs.get('open')) openLease(qs.get('open'));
   }
   async function newLease() {
     const x = X(), e = x.esc;
@@ -252,7 +255,7 @@
       try { const h = await statementHtml(cur.agency_id, cur.record_id, from, to); x.$('st').innerHTML = '<div class="doc-preview tw">' + h.html + '</div><button class="btn" id="pr" style="margin-top:10px">Open printable statement</button>'; x.$('pr').onclick = () => printDoc('Statement', h.html, h.b); } catch (er) { x.$('st').innerHTML = '<div class="notice bad">' + e(x.friendly(er)) + '</div>'; }
     }
     // portal header: agency brand, nav limited to the portal
-    const side = document.querySelector('.side'); if (side) side.innerHTML = '<div class="grp">' + e(cur.agency_name) + '</div>' + ps.map(p => '<a href="#/portal?r=' + p.record_id + '"' + (p.record_id === cur.record_id ? ' aria-current="page"' : '') + '>' + (p.kind === 'tenant' ? 'Tenant' : 'Landlord') + ': ' + e(p.agency_name) + '</a>').join('') + '<div class="grp">You</div><a href="#/account">Account and security</a>';
+    const side = document.querySelector('.side-nav') || document.querySelector('.side'); if (side) side.innerHTML = '<div class="grp">' + e(cur.agency_name) + '</div>' + ps.map(p => '<a href="#/portal?r=' + p.record_id + '"' + (p.record_id === cur.record_id ? ' aria-current="page"' : '') + '><span>' + (p.kind === 'tenant' ? 'Tenant' : 'Landlord') + ': ' + e(p.agency_name) + '</span></a>').join('') + '<div class="grp">You</div><a href="#/account">Account and security</a>';
     const nm = document.querySelector('.app-head .nm'); if (nm) nm.textContent = b.display_name || cur.agency_name;
     const lg = document.querySelector('.app-head .agency'); if (lg && b.logo_data && !lg.querySelector('img')) lg.insertAdjacentHTML('afterbegin', '<img src="' + e(b.logo_data) + '" alt="">');
   }
