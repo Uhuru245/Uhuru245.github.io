@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pricing | MRET RENT OS</title>
+<meta name="description" content="MRET RENT OS plans and prices in rand: Starter, Professional, Business and Enterprise.">
+<link rel="canonical" href="https://www.mret.co.za/rent-os-preview/pricing/">
+<meta property="og:title" content="Pricing | MRET RENT OS"><meta property="og:description" content="MRET RENT OS plans and prices in rand: Starter, Professional, Business and Enterprise."><meta property="og:type" content="website">
+<meta name="theme-color" content="#070a09">
+<link rel="icon" href="/rent-os-preview/assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;550;600;650;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/rent-os-preview/assets/rentos.css?v=3">
+<script>try { const t = localStorage.getItem('rentos.theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+</head>
+<body class="mk">
+<header class="mk-head" id="top"><div class="wrap">
+  <a class="logo" href="/rent-os-preview/"><span class="mark">R</span><span>MRET <span class="wm2">Rent OS</span></span></a>
+  <nav class="mk-nav" aria-label="Main"><a href="/rent-os-preview/features/">Features</a><a href="/rent-os-preview/how-it-works/">How it works</a><a href="/rent-os-preview/solutions/agents/">For agents</a><a href="/rent-os-preview/solutions/agencies/">For agencies</a><a href="/rent-os-preview/pricing/" aria-current=page>Pricing</a><a href="/rent-os-preview/faq/">FAQ</a></nav>
+  <div class="mk-cta"><a class="btn ghost" href="/rent-os-preview/app/#/login">Log in</a><a class="btn primary" href="/rent-os-preview/app/#/register">Start free trial</a></div>
+  <button class="btn ghost menu-btn" aria-label="Menu" onclick="document.getElementById('top').classList.toggle('open')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
+</div></header>
+<main>
+<section class="hero"><div class="wrap"><span class="eyebrow">Pricing</span><h1>Plans that grow with your rental book</h1><p class="lead">Every plan starts with a 14-day free trial. Pay monthly or yearly. Cancel any time; your records stay available to you.</p><div style="margin-top:26px"><div class="grid g4" id="plans"><div class="card price-card" data-plan="starter"><h3>Starter</h3><div class="amt">R299<span class="small muted"> / month</span></div><ul><li>1 agency administrator</li><li>Up to 20 properties</li><li>Landlord and tenant management</li><li>Lease tracking</li><li>Rental invoicing</li><li>Basic reporting</li></ul><a class="btn " href="/rent-os-preview/app/#/register?plan=starter">Start free trial</a></div><div class="card price-card feat" data-plan="professional"><h3>Professional</h3><div class="amt">R799<span class="small muted"> / month</span></div><ul><li>Up to 5 users</li><li>Up to 100 properties</li><li>Agency branding</li><li>Advanced rental reporting</li><li>Landlord and tenant portals</li><li>Arrears workflows</li><li>Maintenance management</li></ul><a class="btn primary" href="/rent-os-preview/app/#/register?plan=professional">Start free trial</a></div><div class="card price-card" data-plan="business"><h3>Business</h3><div class="amt">R1 999<span class="small muted"> / month</span></div><ul><li>Up to 20 users</li><li>Up to 500 properties</li><li>Branch management</li><li>Advanced permissions</li><li>Workflow automation</li><li>Enhanced portfolio analytics</li><li>AI assistance within usage limits</li></ul><a class="btn " href="/rent-os-preview/app/#/register?plan=business">Start free trial</a></div><div class="card price-card" data-plan="enterprise"><h3>Enterprise</h3><div class="amt">Custom</div><ul><li>Negotiated capacity</li><li>Advanced white-labelling</li><li>Custom domain</li><li>Premium integrations</li><li>Advanced security controls</li><li>Enterprise reporting</li></ul><a class="btn" href="/rent-os-preview/demo/">Talk to us</a></div></div></div>
+<p class="small muted" style="margin-top:16px">Prices are in South African rand. VAT is added if and when MRET Technologies is VAT-registered. Subscription fees are paid to MRET Technologies; your tenants' rent never is.</p></div></section><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/rent-os-preview/app/config.js"></script>
+<script>
+// Live prices from the platform owner's plan settings; the static cards above stay if this cannot load.
+(async () => { try {
+  const c = window.RENTOS_CONFIG; const sb = supabase.createClient(c.url, c.key, { auth: { persistSession: false } });
+  const { data, error } = await sb.from('subscription_plans').select('code,name,monthly_price_cents,annual_price_cents,max_users,max_properties,is_custom_pricing,plan_features(label,enabled)').eq('is_public', true).eq('active', true).order('sort');
+  if (error || !data || !data.length) return;
+  const R = c => 'R' + Math.round(c / 100).toLocaleString('en-ZA');
+  const esc = s => String(s).replace(/[&<>"]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[x]);
+  document.getElementById('plans').innerHTML = data.map(p => { const f = (p.max_users ? ['Up to ' + p.max_users + ' user' + (p.max_users === 1 ? '' : 's')] : []).concat(p.max_properties ? ['Up to ' + p.max_properties + ' properties'] : [], (p.plan_features || []).filter(x => x.enabled).map(x => x.label));
+    return '<div class="card price-card' + (p.code === 'professional' ? ' feat' : '') + '" data-plan="' + esc(p.code) + '"><h3>' + esc(p.name) + '</h3>' + (p.is_custom_pricing ? '<div class="amt">Custom</div>' : '<div class="amt">' + R(p.monthly_price_cents) + '<span class="small muted"> / month</span></div><div class="small muted">or ' + R(p.annual_price_cents) + ' a year</div>') + '<ul>' + f.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' + (p.is_custom_pricing ? '<a class="btn" href="/rent-os-preview/demo/">Talk to us</a>' : '<a class="btn' + (p.code === 'professional' ? ' primary' : '') + '" href="/rent-os-preview/app/#/register?plan=' + esc(p.code) + '">Start free trial</a>') + '</div>'; }).join('');
+} catch (e) {} })();
+</script>
+</main>
+<footer class="mk-foot"><div class="wrap"><div class="cols">
+  <div><a class="logo" href="/rent-os-preview/"><span class="mark">R</span><span>MRET <span class="wm2">Rent OS</span></span></a><p style="margin-top:16px;max-width:340px">The operating system for rental property businesses. Leases, invoices, collections and landlord statements, under your own brand.</p></div>
+  <div><b>Product</b><a href="/rent-os-preview/features/">Features</a><br><a href="/rent-os-preview/how-it-works/">How it works</a><br><a href="/rent-os-preview/pricing/">Pricing</a><br><a href="/rent-os-preview/faq/">FAQ</a></div>
+  <div><b>Company</b><a href="/rent-os-preview/demo/">Book a demo</a><br><a href="/rent-os-preview/contact/">Contact</a><br><a href="/rent-os-preview/app/#/login">Log in</a><br><a href="/rent-os-preview/app/#/register">Register</a></div>
+  <div><b>Legal</b><a href="/rent-os-preview/legal/terms/">Terms of service</a><br><a href="/rent-os-preview/legal/privacy/">Privacy policy</a><br><a href="/rent-os-preview/legal/cookies/">Cookie preferences</a><br><a href="/rent-os-preview/legal/acceptable-use/">Acceptable use</a></div>
+</div><div class="base"><span>A product of MRET Technologies, South Africa.</span><span>MRET Technologies never holds your clients' rental money.</span></div></div></footer>
+</body>
+</html>
