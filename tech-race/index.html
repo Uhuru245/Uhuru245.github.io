@@ -553,6 +553,7 @@ function navItems() {
   const items = [];
   if (isAgent()) items.push(['home', 'Home'], ['learn', 'Learn'], ['race', 'Race'], ['homes', 'KW Homes Race'], ['book', 'Book'], ['me', 'Me']);
   if (isAdmin() || has('leader')) items.push(['sep', 'MCTT'], ['centre', 'Command Centre']);
+  if (isAdmin()) items.push(['comms', 'Messages']);
   if (isAdmin()) items.push(['reviews', 'Reviews'], ['challenges', 'Challenges'], ['content', 'Learning content'], ['points', 'Points']);
   if (isAdmin() || has('leader')) items.push(['race', 'Leaderboards'], ['homes', 'KW Homes Race'], ['tv', 'Office display']);
   if (has('platform')) items.push(['sep', 'Platform'], ['platform', 'Settings and security']);
@@ -1204,30 +1205,103 @@ function helpDraft(a, asg) {
   const s = S.data && S.data.settings || {};
   lines.push(s.checkin_url ? 'Book a 15-minute Tech Check-In with me here: ' + s.checkin_url : 'Reply with a time that suits you and I will sit with you for 15 minutes.');
   lines.push('The race is here: https://www.mret.co.za/tech-race/');
-  lines.push(mine + '\nMCTT, KW Edge');
   return lines.join('\n\n');
 }
-async function helpDlg(id) {
-  let j; try { j = await api('trAgent', { id }); } catch (e) { return toast(e.message); }
-  const a = j.agent, wa = waNum(a.mobile), draft = helpDraft(a, j.assignments);
-  const why = [a.overdue ? a.overdue + ' overdue' : '', (j.assignments || []).some(x => x.status === 'needs_improvement') ? 'changes requested' : '', a.lastActive ? 'last active ' + fmtD(a.lastActive) : 'never active'].filter(Boolean).join(' · ');
-  dlg('Help ' + a.name, '<p class="small muted" style="margin-top:0">' + esc(why) + '. Edit the message, then choose how to send it. Nothing is sent until you press send in WhatsApp or your email app.</p><label class="f">Message<textarea id="hMsg" rows="10">' + esc(draft) + '</textarea></label>'
-    + (wa ? '' : '<p class="small muted">No mobile number on file, so WhatsApp is not available. Email still works.</p>'),
-    '<button class="btn" data-close>Close</button><button class="btn" id="hCopy">Copy</button><button class="btn" id="hMail">Email</button>' + (wa ? '<button class="btn red" id="hWa">WhatsApp</button>' : ''), () => {
-      const msg = () => $('hMsg').value;
-      if ($('hWa')) $('hWa').onclick = () => window.open('https://wa.me/' + wa + '?text=' + encodeURIComponent(msg()), '_blank', 'noopener');
-      $('hMail').onclick = () => { location.href = 'mailto:' + encodeURIComponent(a.email) + '?subject=' + encodeURIComponent('Your Tech Race: can I help?') + '&body=' + encodeURIComponent(msg()); };
-      $('hCopy').onclick = async () => { try { await navigator.clipboard.writeText(msg()); toast('Message copied'); } catch (e) { $('hMsg').select(); toast('Press copy on your keyboard'); } };
+async function helpDlg(id) { composeDlg([id], 'help'); }
+function helpAllDlg() { composeDlg((S.ov && S.ov.agents || []).filter(a => a.needsHelp).map(a => a.id), 'help'); }
+
+/* ---------- Messages: WhatsApp and email your agents, and see who you have not spoken to ---------- */
+const CH_LABEL = { whatsapp: 'WhatsApp', email: 'Email', call: 'Call', meeting: 'Meeting', sms: 'SMS', other: 'Other' };
+async function ctLoad(force) { if (!S.ct || force || Date.now() - S.ct.at > 60000) S.ct = Object.assign(await api('trContacts'), { at: Date.now() }); return S.ct; }
+const daysAgo = iso => iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 864e5) : null;
+const agoTxt = iso => { const d = daysAgo(iso); return d == null ? 'Never' : d === 0 ? 'Today' : d === 1 ? 'Yesterday' : d + ' days ago'; };
+const myFirst = () => (S.me && S.me.name || '').split(' ')[0] || 'Your MCTT';
+const TPL = {
+  checkin: ['Check in', 'Checking in on your Tech Race', 'Hi {first},\n\nJust checking in on your Tech Race. How is it going, and is there anything I can help you with this week?\n\nThe race is here: https://www.mret.co.za/tech-race/'],
+  help: ['Offer help', 'Your Tech Race: can I help?', 'Hi {first},\n\nI am setting aside time this week to help anyone who is stuck on the Tech Race. It usually takes less than 15 minutes to get going again.\n\n{book}\n\nThe race is here: https://www.mret.co.za/tech-race/'],
+  reminder: ['Reminder', 'Your next Tech Race challenge is waiting', 'Hi {first},\n\nA quick reminder that your next Tech Race challenge is waiting for you. It takes about 15 minutes.\n\nPick it up here: https://www.mret.co.za/tech-race/'],
+  welldone: ['Well done', 'Well done on the Tech Race', 'Hi {first},\n\nWell done on your progress in the Tech Race. Keep the momentum going.\n\nSee where you stand: https://www.mret.co.za/tech-race/'],
+  booking: ['Book a check-in', 'Book a 15-minute Tech Check-In', 'Hi {first},\n\nI have opened slots for a 15-minute Tech Check-In this week. We can work through anything on MAPP, KW Command or KW Homes together.\n\n{book}'],
+  blank: ['Write my own', '', 'Hi {first},\n\n']
+};
+const fill = (t, a) => { const s = S.data && S.data.settings || {}; return t.replace(/\{book\}/g, s.checkin_url ? 'Book a time that suits you: ' + s.checkin_url : 'Reply with a time that suits you.').replace(/\{first\}/g, (String(a && a.name || '').split(' ')[0]) || 'there'); };
+async function composeDlg(ids, tplKey) {
+  const ov = S.ov || await getOv(), ct = await ctLoad().catch(() => ({ phones: {}, last: {}, mailMode: 'live' }));
+  const people = ids.map(id => ov.agents.find(a => a.id === id)).filter(Boolean); if (!people.length) return toast('Choose at least one agent.');
+  let key = tplKey || 'checkin', body = TPL[key][2], subject = TPL[key][1];
+  if (key === 'help' && people.length === 1) { try { const j = await api('trAgent', { id: people[0].id }); body = helpDraft(j.agent, j.assignments).replace('Hi ' + (String(people[0].name).split(' ')[0]), 'Hi {first}'); } catch (e) {} }
+  const phoneOf = a => waNum(ct.phones && ct.phones[a.id]), withWa = people.filter(phoneOf);
+  const names = people.length <= 3 ? people.map(a => a.name).join(', ') : people.slice(0, 3).map(a => a.name).join(', ') + ' and ' + (people.length - 3) + ' more';
+  dlg(people.length === 1 ? 'Message ' + people[0].name : 'Message ' + people.length + ' agents',
+    '<p class="small muted" style="margin-top:0">To: <b>' + esc(names) + '</b>. ' + (people.length > 1 ? '{first} becomes each person\'s first name. ' : '') + 'Emails go from the Tech Race with your signature' + (ct.mailMode === 'test' ? ' (<b>test mode is on</b>, so they come to you instead)' : '') + '. WhatsApp opens on your phone or computer for you to press send.</p>'
+    + '<div class="row" style="flex-wrap:wrap;gap:6px;margin-bottom:10px">' + Object.keys(TPL).map(k => '<button type="button" class="btn sm' + (k === key ? ' dark' : '') + '" data-tpl="' + k + '">' + TPL[k][0] + '</button>').join('') + '</div>'
+    + '<label class="f">Email subject<input type="text" id="cSub" maxlength="140" value="' + esc(subject) + '"></label><label class="f" style="margin-top:10px">Message<textarea id="cMsg" rows="9">' + esc(body) + '</textarea></label>'
+    + '<p class="small muted" id="cInfo" style="margin-bottom:0">' + (withWa.length ? withWa.length + ' of ' + people.length + ' have a mobile number for WhatsApp.' : 'No mobile numbers on file for WhatsApp, so use email.') + '</p>',
+    '<button class="btn" data-close>Close</button><button class="btn" id="cLog">Log a call or meeting</button>' + (withWa.length ? '<button class="btn" id="cWa">WhatsApp' + (withWa.length > 1 ? ' one by one' : '') + '</button>' : '') + '<button class="btn red" id="cMail">Send email' + (people.length > 1 ? ' to ' + people.length : '') + '</button>', () => {
+      document.querySelectorAll('[data-tpl]').forEach(b => b.onclick = () => { const k = b.dataset.tpl; $('cSub').value = TPL[k][1]; $('cMsg').value = TPL[k][2]; document.querySelectorAll('[data-tpl]').forEach(x => x.classList.toggle('dark', x === b)); });
+      $('cMail').onclick = async () => {
+        const sub = $('cSub').value.trim(), msg = fill($('cMsg').value, { name: '{first}' }).replace(/\{first\}/g, '{first}');
+        if (!sub) return toast('Add an email subject.'); const b = $('cMail'); b.disabled = true; b.textContent = 'Sending...';
+        try { const r = await api('trContactEmail', { users: people.map(a => a.id), subject: sub, body: msg }); $('dlg').close(); S.ct = null; toast(r.mode === 'test' ? 'Test mode: ' + r.sent + ' email' + (r.sent === 1 ? '' : 's') + ' sent to you instead' : r.sent + ' email' + (r.sent === 1 ? '' : 's') + ' sent and logged'); if (S.view === 'comms') render(); }
+        catch (e) { toast(e.message); b.disabled = false; b.textContent = 'Send email'; }
+      };
+      const wa = $('cWa'); if (wa) wa.onclick = () => waQueue(withWa, $('cMsg').value, phoneOf);
+      $('cLog').onclick = () => logDlg(people);
     });
 }
-function helpAllDlg() {
-  const list = (S.ov && S.ov.agents || []).filter(a => a.needsHelp && a.email), mine = (S.me && S.me.name || '').split(' ')[0] || 'Your MCTT', s = S.data && S.data.settings || {};
-  const body = 'Hi everyone,\n\nI am setting aside time this week to help anyone who is stuck on the Tech Race. ' + (s.checkin_url ? 'Book 15 minutes with me here: ' + s.checkin_url : 'Reply with a time that suits you.') + '\n\nThe race is here: https://www.mret.co.za/tech-race/\n\n' + mine + '\nMCTT, KW Edge';
-  dlg('Email everyone who needs help', '<p class="small muted" style="margin-top:0">' + list.length + ' agents, added as BCC so they do not see each other\'s addresses: ' + esc(list.map(a => a.name).join(', ')) + '. Nothing is sent until you press send in your email app.</p><label class="f">Message<textarea id="hAll" rows="9">' + esc(body) + '</textarea></label>',
-    '<button class="btn" data-close>Close</button><button class="btn red" id="hAllGo">Open in my email</button>', () => {
-      $('hAllGo').onclick = () => { location.href = 'mailto:?bcc=' + list.map(a => encodeURIComponent(a.email)).join(',') + '&subject=' + encodeURIComponent('Tech Race: help this week') + '&body=' + encodeURIComponent($('hAll').value); };
+function waQueue(list, tpl, phoneOf) {
+  let i = 0, logged = 0;
+  const step = () => {
+    if (i >= list.length) { $('dlg').close(); S.ct = null; toast(logged + ' WhatsApp message' + (logged === 1 ? '' : 's') + ' logged'); if (S.view === 'comms') render(); return; }
+    const a = list[i], text = fill(tpl, a) + '\n\n' + myFirst() + '\nMCTT, KW Edge';
+    dlg('WhatsApp ' + (list.length > 1 ? (i + 1) + ' of ' + list.length : a.name), '<p style="margin-top:0"><b>' + esc(a.name) + '</b> · ' + esc((S.ct && S.ct.phones[a.id]) || '') + '</p><div class="small" style="white-space:pre-wrap;background:var(--card-2);border:1px solid var(--line);padding:12px;max-height:240px;overflow:auto">' + esc(text) + '</div><p class="small muted">1. Press Open WhatsApp and send it there. 2. Come back and press Sent so it is logged.</p>',
+      '<button class="btn" id="wSkip">' + (i + 1 < list.length ? 'Skip' : 'Done') + '</button><button class="btn" id="wOpen">Open WhatsApp</button><button class="btn red" id="wSent">Sent, log it' + (i + 1 < list.length ? ' and next' : '') + '</button>', () => {
+        $('wOpen').onclick = () => window.open('https://wa.me/' + phoneOf(a) + '?text=' + encodeURIComponent(text), '_blank', 'noopener');
+        $('wSkip').onclick = () => { i++; step(); };
+        $('wSent').onclick = async () => { $('wSent').disabled = true; try { await api('trContactLog', { users: [a.id], channel: 'whatsapp', subject: 'WhatsApp', note: text.slice(0, 1000) }); logged++; } catch (e) { toast(e.message); } i++; step(); };
+      });
+  };
+  step();
+}
+function logDlg(people) {
+  dlg('Log a conversation', '<p class="small muted" style="margin-top:0">For a call, a meeting in the office or anything else you did yourself. ' + esc(people.map(a => a.name).join(', ')) + '.</p><label class="f">How<select id="lCh"><option value="call">Phone call</option><option value="meeting">Meeting or in person</option><option value="whatsapp">WhatsApp (sent from my phone)</option><option value="email">Email (sent from my own inbox)</option><option value="other">Other</option></select></label><label class="f" style="margin-top:10px">Note <span class="hint">optional</span><textarea id="lNote" rows="3" maxlength="1000"></textarea></label>',
+    '<button class="btn" data-close>Cancel</button><button class="btn red" id="lGo">Log it</button>', () => {
+      $('lGo').onclick = async () => { $('lGo').disabled = true; try { await api('trContactLog', { users: people.map(a => a.id), channel: $('lCh').value, note: $('lNote').value }); $('dlg').close(); S.ct = null; toast('Logged'); if (S.view === 'comms') render(); } catch (e) { toast(e.message); $('lGo').disabled = false; } };
     });
 }
+VIEWS.comms = async () => {
+  if (!isAdmin()) return '<div class="alert info">Only the MCTT can send messages.</div>';
+  const [ov, ct] = await Promise.all([getOv(), ctLoad(true)]), f = S.cf || (S.cf = { show: 'stale', q: '' });
+  const live = ov.agents.filter(a => a.status !== 'suspended');
+  const last = a => ct.last[a.id], d = a => daysAgo(last(a) && last(a).at);
+  const never = live.filter(a => !last(a)), stale = live.filter(a => d(a) == null || d(a) >= 14), week = live.filter(a => d(a) != null && d(a) < 7), helpNo = live.filter(a => a.needsHelp && (d(a) == null || d(a) >= 7));
+  let list = f.show === 'stale' ? stale : f.show === 'never' ? never : f.show === 'help' ? live.filter(a => a.needsHelp) : live;
+  if (f.q) list = list.filter(a => (a.name + ' ' + a.email).toLowerCase().includes(f.q.toLowerCase()));
+  list = list.slice().sort((x, y) => (d(y) == null ? 1e9 : d(y)) - (d(x) == null ? 1e9 : d(x)) || x.name.localeCompare(y.name));
+  const kp = (l, v, s, show) => '<button class="kpi" style="text-align:left;cursor:pointer;color:inherit;font:inherit' + (f.show === show ? ';border-color:var(--red)' : '') + '" data-show="' + show + '"><div class="l">' + l + '</div><div class="v num">' + v + '</div><div class="s">' + s + '</div></button>';
+  const rows = list.map(a => { const l = last(a), ph = waNum(ct.phones[a.id]); return '<tr><td style="width:34px"><input type="checkbox" class="pick" value="' + a.id + '" aria-label="Select ' + esc(a.name) + '"></td><td><b>' + esc(a.name) + '</b>' + (a.needsHelp ? ' <span class="tag needs_improvement">help</span>' : '') + '<div class="small muted">' + esc(a.email) + '</div></td><td class="small">' + (l ? '<b>' + agoTxt(l.at) + '</b><div class="muted">' + esc(CH_LABEL[l.channel] || l.channel) + (ct.counts[a.id] > 1 ? ' · ' + ct.counts[a.id] + ' in total' : '') + '</div>' : '<b style="color:var(--red-ink)">Never</b>') + '</td><td class="num" style="white-space:nowrap">' + (ph ? '<button class="btn sm" data-wa="' + a.id + '">WhatsApp</button> ' : '') + '<button class="btn sm" data-em="' + a.id + '">Email</button> <button class="btn sm" data-lg="' + a.id + '">Log</button></td></tr>'; }).join('');
+  const recent = (ct.log || []).slice(0, 12).map(c => { const a = ov.agents.find(x => x.id === c.user_id); return '<li><b>' + esc(a ? a.name : 'Someone') + '</b> · ' + esc(CH_LABEL[c.channel] || c.channel) + (c.subject ? ': ' + esc(c.subject) : '') + ' <span class="small muted">' + fmtDT(c.at) + '</span></li>'; }).join('');
+  return '<div class="ph"><div><h1>Messages</h1><p>WhatsApp and email your agents in a few clicks, and see who you have not spoken to. Everything you send or log is recorded here.</p></div></div>'
+    + '<div class="rc">' + kp('Not spoken to in 14 days', stale.length, 'including never', 'stale') + kp('Never contacted', never.length, 'since the race started', 'never') + kp('Need help', helpNo.length, 'and not contacted in 7 days', 'help') + kp('Spoken to this week', week.length, 'of ' + live.length + ' agents', 'all') + '</div>'
+    + (ct.mailMode === 'test' ? '<div class="alert warn">Email test mode is on, so emails come to you instead of the agents. Switch it off in Settings and security.</div>' : '')
+    + '<div class="card"><div class="row" style="flex-wrap:wrap;margin-bottom:12px"><div class="seg">' + [['stale', 'Not in 14 days'], ['never', 'Never'], ['help', 'Need help'], ['all', 'Everyone']].map(([k, l]) => '<button data-show="' + k + '" aria-pressed="' + (f.show === k) + '">' + l + '</button>').join('') + '</div><input type="text" id="cQ" placeholder="Search name or email" value="' + esc(f.q) + '" style="width:auto;flex:1;min-width:180px;min-height:38px"></div>'
+    + '<div class="row" style="flex-wrap:wrap;margin-bottom:10px"><label class="check small"><input type="checkbox" id="pickAll"> Select all ' + list.length + '</label><span style="flex:1"></span><button class="btn sm red" id="bMsg" disabled>Message selected</button><button class="btn sm" id="bLog" disabled>Log for selected</button></div>'
+    + (rows ? '<div class="tablebox"><table><thead><tr><th></th><th>Agent</th><th>Last spoken to</th><th class="num">Send</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : empty(f.show === 'stale' ? 'Everyone has been contacted in the last 14 days.' : 'Nobody here.')) + '</div>'
+    + '<div class="card"><h2>Recent conversations</h2>' + (recent ? '<ul class="trail">' + recent + '</ul>' : empty('Nothing logged yet. Messages you send from here are logged automatically.')) + '</div>';
+};
+VIEWS.comms.after = () => {
+  const picked = () => [...document.querySelectorAll('.pick:checked')].map(x => x.value);
+  const upd = () => { const n = picked().length; $('bMsg').disabled = $('bLog').disabled = !n; $('bMsg').textContent = n ? 'Message ' + n + ' selected' : 'Message selected'; };
+  document.querySelectorAll('.pick').forEach(x => x.onchange = upd);
+  const pa = $('pickAll'); if (pa) pa.onchange = () => { document.querySelectorAll('.pick').forEach(x => { x.checked = pa.checked; }); upd(); };
+  document.querySelectorAll('[data-show]').forEach(b => b.onclick = () => { S.cf.show = b.dataset.show; render(); });
+  const q = $('cQ'); q.oninput = () => { clearTimeout(q._t); q._t = setTimeout(() => { S.cf.q = q.value; render(); }, 300); };
+  $('bMsg').onclick = () => composeDlg(picked(), 'checkin');
+  $('bLog').onclick = () => logDlg(picked().map(id => S.ov.agents.find(a => a.id === id)).filter(Boolean));
+  document.querySelectorAll('[data-em]').forEach(b => b.onclick = () => composeDlg([b.dataset.em], S.ov.agents.find(a => a.id === b.dataset.em).needsHelp ? 'help' : 'checkin'));
+  document.querySelectorAll('[data-wa]').forEach(b => b.onclick = () => { const a = S.ov.agents.find(x => x.id === b.dataset.wa); composeDlg([a.id], a.needsHelp ? 'help' : 'checkin'); });
+  document.querySelectorAll('[data-lg]').forEach(b => b.onclick = () => logDlg([S.ov.agents.find(a => a.id === b.dataset.lg)]));
+};
 
 async function getOv() { S.ov = await api('trOverview'); return S.ov; }
 const pctBar = p => '<div class="bar" style="min-width:80px"><i style="width:' + p + '%"></i></div>';
@@ -1242,7 +1316,7 @@ VIEWS.centre = async () => {
           + podHtml(bd.slice(0, 3).map(r => ({ id: r.id, rank: r.rank, tied: r.tied, name: r.name, score: r.xp, unit: 'XP this week', mv: mvHtml(r.rank, r.lastWeekRank || null, true) }))); })()
     + '<div class="grid g4" style="margin-bottom:12px">' + kp('Enrolled', k.enrolled, k.pendingJoin ? k.pendingJoin + ' waiting for approval' : '') + kp('Active last 7 days', k.participating7, 'of ' + k.active + ' active') + kp('Onboarding complete', k.completed, 'average ' + k.completionPct + '% verified') + kp('Awaiting your review', k.awaiting, '') + kp('Overdue tasks', k.overdue, '') + kp('Need assistance', k.needHelp, 'overdue, inactive or changes requested') + Object.values(o.byTrack).map(t => kp(esc(t.name), t.pct + '%', t.verified + ' of ' + t.total + ' verified')).join('') + '</div>'
     + (!o.readOnly && o.agents.some(a => a.status === 'roster') ? '<div class="alert info no-print"><b>' + o.agents.filter(a => a.status === 'roster').length + ' agents imported but not yet invited.</b> Nobody has been emailed. <button class="btn sm red" id="sendInv" style="margin-left:8px">Send invitations</button></div>' : (!o.readOnly && o.agents.some(a => a.status === 'invited') ? '<div class="alert info no-print"><b>' + o.agents.filter(a => a.status === 'invited').length + ' agents invited but not yet joined.</b> <button class="btn sm" id="sendInv" style="margin-left:8px">Resend invitations</button></div>' : ''))
-    + (o.agents.some(a => a.needsHelp) ? '<div class="alert warn no-print" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:220px"><b>' + o.agents.filter(a => a.needsHelp).length + ' agent' + (o.agents.filter(a => a.needsHelp).length === 1 ? ' needs' : 's need') + ' help.</b> Press Help next to a name for a message ready to send by WhatsApp or email.</span><button class="btn sm" id="helpAll">Email all of them</button></div>' : '')
+    + (o.agents.some(a => a.needsHelp) ? '<div class="alert warn no-print" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:220px"><b>' + o.agents.filter(a => a.needsHelp).length + ' agent' + (o.agents.filter(a => a.needsHelp).length === 1 ? ' needs' : 's need') + ' help.</b> Press Help next to a name, or open Messages to see everyone you have not spoken to.</span><button class="btn sm" id="helpAll">Message all of them</button></div>' : '')
     + '<div class="card"><h2>Agents</h2><div class="filters no-print"><input type="text" id="fQ" placeholder="Search name or email" value="' + esc(f.q || '') + '"><select id="fTeam">' + opt(o.teams, f.team, 'All teams') + '</select><select id="fCohort">' + opt(o.cohorts, f.cohort, 'All cohorts') + '</select><select id="fStatus"><option value="">All statuses</option>' + [['active', 'Active'], ['roster', 'Not yet invited'], ['pending', 'Waiting for approval'], ['invited', 'Invited'], ['help', 'Needs assistance'], ['inactive', 'Inactive 7+ days'], ['suspended', 'Suspended']].map(x => '<option value="' + x[0] + '"' + (f.status === x[0] ? ' selected' : '') + '>' + x[1] + '</option>').join('') + '</select></div>'
     + '<div class="tablebox"><table><thead><tr><th>Agent</th><th>Status</th><th>Onboarding</th><th>XP</th><th>Overdue</th><th>Review</th><th>Last active</th></tr></thead><tbody>' + (list.map(a => '<tr class="click" data-agent="' + a.id + '"><td><b>' + esc(a.name) + '</b>' + (a.needsHelp ? ' <span class="tag needs_improvement">help</span> <button class="btn sm red no-print" data-help="' + a.id + '" style="margin-left:6px;min-height:28px">Help</button>' : '') + '<div class="small muted">' + esc(a.email) + (a.team ? ' · ' + esc(a.team) : '') + '</div></td><td>' + esc(a.status) + '</td><td>' + pctBar(a.pct) + '<span class="small">' + a.verified + '/' + a.verifiedTotal + '</span></td><td class="num">' + a.xp + '<div class="small muted">' + esc(a.level) + '</div></td><td class="num">' + (a.overdue || '') + '</td><td class="num">' + (a.pending || '') + '</td><td class="small">' + (a.lastActive ? fmtD(a.lastActive) : 'never') + '</td></tr>').join('') || '<tr><td colspan="7">' + empty('No agents match.') + '</td></tr>') + '</tbody></table></div></div>'
     + '<div class="card"><h2>This week\'s race</h2>' + (o.board.length ? '<table><thead><tr><th>#</th><th>Agent</th><th>XP this week</th><th>Last week</th></tr></thead><tbody>' + o.board.map(r => '<tr><td>' + (r.tied ? '=' : '') + r.rank + '</td><td>' + esc(r.name) + '</td><td class="num">' + r.xp + '</td><td class="small">' + (r.lastWeekRank ? '#' + r.lastWeekRank + (r.lastWeekRank > r.rank ? ' &uarr;' : r.lastWeekRank < r.rank ? ' &darr;' : '') : 'new') + '</td></tr>').join('') + '</tbody></table>' : empty('No points yet this week.')) + '</div>';
