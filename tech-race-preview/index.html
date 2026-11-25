@@ -412,6 +412,49 @@ function f1Unlock() {
   try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
   try { if (!f1Unlock.a) { const a = new Audio(F1_SILENT); a.setAttribute('playsinline', ''); a.preload = 'auto'; f1Unlock.a = a; } const pr = f1Unlock.a.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
 }
+/* "Start your engine": a race engine starting up. Starter motor cranks, the engine catches, settles into a rough idle, then two sharp throttle blips. Made in the browser, no audio file. */
+function f1BuildStart(ctx, out, t0) {
+  const D = 3.6;
+  const master = ctx.createGain(); master.gain.value = 0.0001; master.connect(out);
+  // 1. starter motor: a low whirr that chugs as the engine turns over
+  const st = ctx.createOscillator(), stg = ctx.createGain(), stlp = ctx.createBiquadFilter(), chug = ctx.createOscillator(), chg = ctx.createGain();
+  st.type = 'sawtooth'; st.frequency.setValueAtTime(70, t0); st.frequency.linearRampToValueAtTime(115, t0 + 0.65);
+  stlp.type = 'lowpass'; stlp.frequency.value = 900; chug.type = 'square'; chug.frequency.setValueAtTime(9, t0); chug.frequency.linearRampToValueAtTime(15, t0 + 0.65); chg.gain.value = 0.16;
+  stg.gain.setValueAtTime(0.0001, t0); stg.gain.exponentialRampToValueAtTime(0.22, t0 + 0.08); stg.gain.setValueAtTime(0.22, t0 + 0.62); stg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.78);
+  chug.connect(chg); chg.connect(stg.gain); st.connect(stlp); stlp.connect(stg); stg.connect(master);
+  st.start(t0); st.stop(t0 + 0.8); chug.start(t0); chug.stop(t0 + 0.8);
+  // 2. the engine: a firing note that follows the revs (fundamental in Hz), with harmonics and grit
+  const tc = t0 + 0.62;                                 // the moment it catches
+  const rev = [[tc, 95], [tc + 0.12, 330], [tc + 0.32, 250], [tc + 0.62, 240], [tc + 0.82, 880], [tc + 1.05, 900], [tc + 1.38, 265], [tc + 1.7, 250], [tc + 1.86, 1050], [tc + 2.08, 1080], [tc + 2.42, 270], [D + t0, 255]];
+  const shaper = ctx.createWaveShaper(), curve = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; curve[i] = Math.tanh(3.2 * x); } shaper.curve = curve;
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2.5;
+  const eg = ctx.createGain(); eg.gain.value = 0.0001; shaper.connect(lp); lp.connect(eg); eg.connect(master);
+  const follow = (param, mul, add) => { param.setValueAtTime(rev[0][1] * mul + (add || 0), rev[0][0]); for (let i = 1; i < rev.length; i++) param.exponentialRampToValueAtTime(rev[i][1] * mul + (add || 0), rev[i][0]); };
+  [['sawtooth', 1, 0.5], ['sawtooth', 2.004, 0.3], ['square', 0.5, 0.28], ['sawtooth', 3.01, 0.14], ['triangle', 4.02, 0.08]].forEach(([type, mul, g]) => { const o = ctx.createOscillator(), og = ctx.createGain(); o.type = type; o.frequency.setValueAtTime(rev[0][1] * mul, tc); follow(o.frequency, mul); og.gain.value = g; o.connect(og); og.connect(shaper); o.start(tc); o.stop(t0 + D + 0.05); });
+  follow(lp.frequency, 3.2, 700);
+  // rough idle: the volume stutters at low revs and smooths out when the throttle opens
+  const idle = ctx.createOscillator(), ig = ctx.createGain(); idle.type = 'square'; idle.frequency.value = 22; ig.gain.setValueAtTime(0, t0);
+  [[tc, 0.28], [tc + 0.7, 0.26], [tc + 0.85, 0.04], [tc + 1.3, 0.24], [tc + 1.84, 0.03], [tc + 2.35, 0.24]].forEach(([t, v]) => ig.gain.linearRampToValueAtTime(v, t));
+  idle.connect(ig); ig.connect(eg.gain); idle.start(tc); idle.stop(t0 + D + 0.05);
+  // volume: catch, idle, louder on each blip, then fade
+  [[tc, 0.0001, 'set'], [tc + 0.05, 0.42], [tc + 0.4, 0.3], [tc + 0.72, 0.3], [tc + 0.85, 0.62], [tc + 1.08, 0.6], [tc + 1.45, 0.32], [tc + 1.78, 0.32], [tc + 1.9, 0.7], [tc + 2.12, 0.66], [tc + 2.5, 0.3], [t0 + D - 0.35, 0.22], [t0 + D, 0.0001]]
+    .forEach(([t, v, k]) => k ? eg.gain.setValueAtTime(v, t) : eg.gain.exponentialRampToValueAtTime(v, t));
+  // a crack of exhaust as it catches
+  const nb = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 0.25), ctx.sampleRate), nd = nb.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / nd.length, 3);
+  const ns = ctx.createBufferSource(), nf = ctx.createBiquadFilter(), ngn = ctx.createGain(); ns.buffer = nb; nf.type = 'bandpass'; nf.frequency.value = 700; nf.Q.value = 0.7; ngn.gain.value = 0.9; ns.connect(nf); nf.connect(ngn); ngn.connect(master); ns.start(tc);
+  master.gain.setValueAtTime(0.0001, t0); master.gain.exponentialRampToValueAtTime(1, t0 + 0.06); master.gain.setValueAtTime(1, t0 + D - 0.1); master.gain.exponentialRampToValueAtTime(0.0001, t0 + D);
+  return D;
+}
+function f1Start() {
+  try {
+    if (store.get('tr.sound') === 'off') return;
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    const ctx = f1Pass.ctx || (f1Pass.ctx = new AC());
+    f1Unlock(); f1Pass.done = true; if (f1Arm.off) f1Arm.off();     // this load already has its sound
+    let go = false; const play = () => { if (go || ctx.state !== 'running') return; go = true; const comp = ctx.createDynamicsCompressor(); comp.connect(ctx.destination); f1BuildStart(ctx, comp, ctx.currentTime + 0.04); };
+    if (ctx.state === 'running') play(); else { const r = ctx.resume(); if (r && r.then) r.then(play).catch(() => {}); setTimeout(play, 120); }
+  } catch (e) {}
+}
 function f1Pass() {
   try {
     if (f1Pass.done || store.get('tr.sound') === 'off') return;
@@ -457,7 +500,7 @@ function showAuth(mode, msg, kind) {
   $('aPriv').onclick = e => { e.preventDefault(); privacyDlg(); };
   $('fAuth').onsubmit = async e => {
     e.preventDefault(); const b = e.submitter; b.disabled = true;
-    if (mode === 'signin') f1Pass();
+    if (mode === 'signin') f1Start();
     try {
       if (mode === 'signin') { const j = await api('trLogin', { email: $('aEmail').value, password: $('aPw').value }); signedIn(j.token); return; }
       if (mode === 'request') { const j = await api('trRegister', { name: $('aName').value, email: $('aEmail').value, mobile: $('aMobile').value, kw_join_date: $('aJoin').value, password: $('aPw').value }); showAuth('signin', j.message + ' Then wait for the MCTT to approve you.', 'ok'); return; }
