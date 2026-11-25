@@ -385,25 +385,18 @@ const svg = k => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 
 /* ---------- "Start your engine": a race car passing by, made in the browser (no audio file). Plays only after a click; off if the device asks for reduced motion or the driver mutes it. ---------- */
 function f1Build(ctx, out, t0) {
-  const D = 2.6, tp = t0 + 1.05;                       // total length, moment the car passes
-  const master = ctx.createGain(); master.gain.value = 0.0001;
-  const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
-  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 3;
-  const shaper = ctx.createWaveShaper(); const curve = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; curve[i] = Math.tanh(2.6 * x); } shaper.curve = curve;
-  shaper.connect(lp); lp.connect(master); if (pan) { master.connect(pan); pan.connect(out); } else master.connect(out);
-  // engine: three harmonics that rise as the car approaches, then drop as it passes (the Doppler effect)
-  const f = (o, mul) => { o.frequency.setValueAtTime(410 * mul, t0); o.frequency.linearRampToValueAtTime(560 * mul, tp - 0.08); o.frequency.exponentialRampToValueAtTime(345 * mul, tp + 0.22); o.frequency.linearRampToValueAtTime(318 * mul, t0 + D); };
-  [['sawtooth', 1, 0.55], ['sawtooth', 2.003, 0.3], ['square', 0.5, 0.22], ['sawtooth', 3.01, 0.12]].forEach(([type, mul, g]) => { const o = ctx.createOscillator(), gg = ctx.createGain(); o.type = type; f(o, mul); gg.gain.value = g; o.connect(gg); gg.connect(shaper); o.start(t0); o.stop(t0 + D + 0.05); });
-  // a fast rasp on top so it sounds like a racing engine, not a hum
-  const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 38; lg.gain.value = 0.18; lfo.connect(lg); lg.connect(master.gain); lfo.start(t0); lfo.stop(t0 + D + 0.05);
-  // wind and tyre noise
+  const D = 2.8, tp = t0 + 1.15;                                // the car passes at tp
+  const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null, bus = ctx.createGain(); bus.gain.value = 1;
+  if (pan) { bus.connect(pan); pan.connect(out); pan.pan.setValueAtTime(-0.95, t0); pan.pan.linearRampToValueAtTime(0, tp); pan.pan.linearRampToValueAtTime(0.95, tp + 0.8); } else bus.connect(out);
+  // flat out with quick upshifts (revs drop about 1,500 rpm per gear), then the Doppler drop as it goes by
+  const dop = (r, t) => t < tp - 0.05 ? r * 1.1 : t < tp + 0.2 ? r * (1.1 - (t - tp + 0.05) / 0.25 * 0.26) : r * 0.84;
+  const raw = [[t0, 10600], [t0 + 0.32, 11900], [t0 + 0.33, 10400, 'cut'], [t0 + 0.7, 11900], [t0 + 0.71, 10500, 'cut'], [t0 + 1.08, 11800], [tp + 0.2, 11900], [t0 + 1.7, 12000], [t0 + 1.71, 10600, 'cut'], [t0 + D, 11600]];
+  const rpm = raw.map(([t, r, k]) => [t, dop(r, t), k]);
+  f1V6(ctx, bus, t0, t0 + D, rpm, [[t0, 0.0001, 1], [t0 + 0.5, 0.07], [tp - 0.05, 0.55], [tp + 0.1, 0.5], [tp + 0.6, 0.1], [t0 + D, 0.0001]], { turbo: 0.035, rough: 0.04 });
+  // wind and tyres
   const n = ctx.createBufferSource(), buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * D), ctx.sampleRate), ch = buf.getChannelData(0); for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1; n.buffer = buf;
-  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(1400, t0); bp.frequency.linearRampToValueAtTime(2600, tp); bp.frequency.exponentialRampToValueAtTime(900, t0 + D); bp.Q.value = 0.8;
-  const ng = ctx.createGain(); ng.gain.value = 0.35; n.connect(bp); bp.connect(ng); ng.connect(master); n.start(t0); n.stop(t0 + D);
-  // brightness, loudness and left-to-right movement around the pass
-  lp.frequency.setValueAtTime(1500, t0); lp.frequency.exponentialRampToValueAtTime(5200, tp); lp.frequency.exponentialRampToValueAtTime(1100, t0 + D);
-  master.gain.setValueAtTime(0.0001, t0); master.gain.exponentialRampToValueAtTime(0.06, t0 + 0.45); master.gain.exponentialRampToValueAtTime(0.42, tp); master.gain.exponentialRampToValueAtTime(0.09, tp + 0.45); master.gain.exponentialRampToValueAtTime(0.0001, t0 + D);
-  if (pan) { pan.pan.setValueAtTime(-0.95, t0); pan.pan.linearRampToValueAtTime(0, tp); pan.pan.linearRampToValueAtTime(0.95, tp + 0.7); }
+  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(1500, t0); bp.frequency.linearRampToValueAtTime(2800, tp); bp.frequency.exponentialRampToValueAtTime(900, t0 + D); bp.Q.value = 0.8;
+  const ng = ctx.createGain(); ng.gain.setValueAtTime(0.0001, t0); ng.gain.exponentialRampToValueAtTime(0.12, tp); ng.gain.exponentialRampToValueAtTime(0.0001, t0 + D); n.connect(bp); bp.connect(ng); ng.connect(bus); n.start(t0); n.stop(t0 + D);
   return D;
 }
 const F1_SILENT = 'data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
@@ -413,36 +406,41 @@ function f1Unlock() {
   try { if (!f1Unlock.a) { const a = new Audio(F1_SILENT); a.setAttribute('playsinline', ''); a.preload = 'auto'; f1Unlock.a = a; } const pr = f1Unlock.a.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
 }
 /* "Start your engine": a race engine starting up. Starter motor cranks, the engine catches, settles into a rough idle, then two sharp throttle blips. Made in the browser, no audio file. */
+/* "Start your engine": a current-era Formula 1 power unit starting up (1.6-litre turbo V6 hybrid). Modelled from how these engines work, not a recording:
+   a V6 fires three times per turn, so the note is rpm / 20 Hz; idle sits near 4,000 rpm and the blips reach about 11,500 rpm, with turbo whistle on top. */
+function f1V6(ctx, dest, t0, t1, rpm, gainPts, opts) {
+  opts = opts || {};
+  const shaper = ctx.createWaveShaper(), curve = new Float32Array(2048); for (let i = 0; i < 2048; i++) { const x = i / 1024 - 1; curve[i] = Math.tanh(4 * x) * 0.9 + 0.1 * Math.sin(9 * x); } shaper.curve = curve;
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 1.6;
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 90;
+  const eg = ctx.createGain(), trem = ctx.createGain(); eg.gain.value = 0.0001; trem.gain.value = 1; shaper.connect(lp); lp.connect(hp); hp.connect(eg); eg.connect(trem); trem.connect(dest);
+  const hz = r => r / 20;                                        // firing frequency of a four-stroke V6
+  const follow = (param, mul, add, kind) => { param.setValueAtTime(hz(rpm[0][1]) * mul + (add || 0), rpm[0][0]); for (let i = 1; i < rpm.length; i++) { const v = hz(rpm[i][1]) * mul + (add || 0), t = rpm[i][0]; if (rpm[i][2] === 'cut') param.setValueAtTime(v, t); else param.exponentialRampToValueAtTime(v, t); } };
+  // the firing order and its harmonics: the 3rd-order note is the core, the half orders give the rasp of a hybrid V6
+  [['sawtooth', 1, 0.55], ['sawtooth', 2.002, 0.32], ['square', 0.5, 0.2], ['sawtooth', 1.5, 0.16], ['sawtooth', 3.004, 0.1], ['triangle', 4.01, 0.06]].forEach(([type, mul, g]) => { const o = ctx.createOscillator(), og = ctx.createGain(); o.type = type; follow(o.frequency, mul); og.gain.value = g; o.connect(og); og.connect(shaper); o.start(t0); o.stop(t1 + 0.05); });
+  follow(lp.frequency, 4.5, 900);
+  // turbo whistle: a thin, high whine that climbs with boost
+  const tw = ctx.createOscillator(), twg = ctx.createGain(), twf = ctx.createBiquadFilter(); tw.type = 'sine'; follow(tw.frequency, 9.5, 900); twf.type = 'bandpass'; twf.frequency.value = 5200; twf.Q.value = 0.6; twg.gain.value = opts.turbo == null ? 0.05 : opts.turbo; tw.connect(twg); twg.connect(twf); twf.connect(eg); tw.start(t0); tw.stop(t1 + 0.05);
+  // a slight unevenness at low revs, smoothing out as the revs rise
+  const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.type = 'triangle'; lfo.frequency.value = 26; lg.gain.value = opts.rough == null ? 0.12 : opts.rough; lfo.connect(lg); lg.connect(trem.gain); lfo.start(t0); lfo.stop(t1 + 0.05);
+  gainPts.forEach(([t, v, k]) => k ? eg.gain.setValueAtTime(v, t) : eg.gain.exponentialRampToValueAtTime(v, t));
+  return eg;
+}
 function f1BuildStart(ctx, out, t0) {
-  const D = 3.6;
-  const master = ctx.createGain(); master.gain.value = 0.0001; master.connect(out);
-  // 1. starter motor: a low whirr that chugs as the engine turns over
+  const D = 3.8, master = ctx.createGain(); master.gain.value = 1; master.connect(out);
+  // 1. the external starter spins the engine over
   const st = ctx.createOscillator(), stg = ctx.createGain(), stlp = ctx.createBiquadFilter(), chug = ctx.createOscillator(), chg = ctx.createGain();
-  st.type = 'sawtooth'; st.frequency.setValueAtTime(70, t0); st.frequency.linearRampToValueAtTime(115, t0 + 0.65);
-  stlp.type = 'lowpass'; stlp.frequency.value = 900; chug.type = 'square'; chug.frequency.setValueAtTime(9, t0); chug.frequency.linearRampToValueAtTime(15, t0 + 0.65); chg.gain.value = 0.16;
-  stg.gain.setValueAtTime(0.0001, t0); stg.gain.exponentialRampToValueAtTime(0.22, t0 + 0.08); stg.gain.setValueAtTime(0.22, t0 + 0.62); stg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.78);
-  chug.connect(chg); chg.connect(stg.gain); st.connect(stlp); stlp.connect(stg); stg.connect(master);
-  st.start(t0); st.stop(t0 + 0.8); chug.start(t0); chug.stop(t0 + 0.8);
-  // 2. the engine: a firing note that follows the revs (fundamental in Hz), with harmonics and grit
-  const tc = t0 + 0.62;                                 // the moment it catches
-  const rev = [[tc, 95], [tc + 0.12, 330], [tc + 0.32, 250], [tc + 0.62, 240], [tc + 0.82, 880], [tc + 1.05, 900], [tc + 1.38, 265], [tc + 1.7, 250], [tc + 1.86, 1050], [tc + 2.08, 1080], [tc + 2.42, 270], [D + t0, 255]];
-  const shaper = ctx.createWaveShaper(), curve = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; curve[i] = Math.tanh(3.2 * x); } shaper.curve = curve;
-  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2.5;
-  const eg = ctx.createGain(); eg.gain.value = 0.0001; shaper.connect(lp); lp.connect(eg); eg.connect(master);
-  const follow = (param, mul, add) => { param.setValueAtTime(rev[0][1] * mul + (add || 0), rev[0][0]); for (let i = 1; i < rev.length; i++) param.exponentialRampToValueAtTime(rev[i][1] * mul + (add || 0), rev[i][0]); };
-  [['sawtooth', 1, 0.5], ['sawtooth', 2.004, 0.3], ['square', 0.5, 0.28], ['sawtooth', 3.01, 0.14], ['triangle', 4.02, 0.08]].forEach(([type, mul, g]) => { const o = ctx.createOscillator(), og = ctx.createGain(); o.type = type; o.frequency.setValueAtTime(rev[0][1] * mul, tc); follow(o.frequency, mul); og.gain.value = g; o.connect(og); og.connect(shaper); o.start(tc); o.stop(t0 + D + 0.05); });
-  follow(lp.frequency, 3.2, 700);
-  // rough idle: the volume stutters at low revs and smooths out when the throttle opens
-  const idle = ctx.createOscillator(), ig = ctx.createGain(); idle.type = 'square'; idle.frequency.value = 22; ig.gain.setValueAtTime(0, t0);
-  [[tc, 0.28], [tc + 0.7, 0.26], [tc + 0.85, 0.04], [tc + 1.3, 0.24], [tc + 1.84, 0.03], [tc + 2.35, 0.24]].forEach(([t, v]) => ig.gain.linearRampToValueAtTime(v, t));
-  idle.connect(ig); ig.connect(eg.gain); idle.start(tc); idle.stop(t0 + D + 0.05);
-  // volume: catch, idle, louder on each blip, then fade
-  [[tc, 0.0001, 'set'], [tc + 0.05, 0.42], [tc + 0.4, 0.3], [tc + 0.72, 0.3], [tc + 0.85, 0.62], [tc + 1.08, 0.6], [tc + 1.45, 0.32], [tc + 1.78, 0.32], [tc + 1.9, 0.7], [tc + 2.12, 0.66], [tc + 2.5, 0.3], [t0 + D - 0.35, 0.22], [t0 + D, 0.0001]]
-    .forEach(([t, v, k]) => k ? eg.gain.setValueAtTime(v, t) : eg.gain.exponentialRampToValueAtTime(v, t));
-  // a crack of exhaust as it catches
-  const nb = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 0.25), ctx.sampleRate), nd = nb.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / nd.length, 3);
-  const ns = ctx.createBufferSource(), nf = ctx.createBiquadFilter(), ngn = ctx.createGain(); ns.buffer = nb; nf.type = 'bandpass'; nf.frequency.value = 700; nf.Q.value = 0.7; ngn.gain.value = 0.9; ns.connect(nf); nf.connect(ngn); ngn.connect(master); ns.start(tc);
-  master.gain.setValueAtTime(0.0001, t0); master.gain.exponentialRampToValueAtTime(1, t0 + 0.06); master.gain.setValueAtTime(1, t0 + D - 0.1); master.gain.exponentialRampToValueAtTime(0.0001, t0 + D);
+  st.type = 'sawtooth'; st.frequency.setValueAtTime(140, t0); st.frequency.linearRampToValueAtTime(230, t0 + 0.6);
+  stlp.type = 'lowpass'; stlp.frequency.value = 1400; chug.type = 'square'; chug.frequency.setValueAtTime(11, t0); chug.frequency.linearRampToValueAtTime(19, t0 + 0.6); chg.gain.value = 0.1;
+  stg.gain.setValueAtTime(0.0001, t0); stg.gain.exponentialRampToValueAtTime(0.16, t0 + 0.08); stg.gain.setValueAtTime(0.16, t0 + 0.58); stg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.72);
+  chug.connect(chg); chg.connect(stg.gain); st.connect(stlp); stlp.connect(stg); stg.connect(master); st.start(t0); st.stop(t0 + 0.75); chug.start(t0); chug.stop(t0 + 0.75);
+  // 2. it fires, settles near 4,000 rpm, then two sharp blips to about 11,500 rpm
+  const tc = t0 + 0.6;
+  const rpm = [[tc, 2600], [tc + 0.1, 6200], [tc + 0.32, 4300], [tc + 0.7, 4100], [tc + 0.86, 11200], [tc + 1.02, 11500], [tc + 1.34, 4400], [tc + 1.72, 4100], [tc + 1.86, 11800], [tc + 2.02, 12000], [tc + 2.36, 4300], [t0 + D, 4000]];
+  f1V6(ctx, master, tc, t0 + D, rpm, [[tc, 0.0001, 1], [tc + 0.04, 0.5], [tc + 0.35, 0.28], [tc + 0.74, 0.28], [tc + 0.88, 0.72], [tc + 1.04, 0.7], [tc + 1.38, 0.3], [tc + 1.76, 0.3], [tc + 1.9, 0.78], [tc + 2.05, 0.74], [tc + 2.42, 0.3], [t0 + D - 0.4, 0.22], [t0 + D, 0.0001]]);
+  // exhaust crack as it catches
+  const nb = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 0.22), ctx.sampleRate), nd = nb.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / nd.length, 3);
+  const ns = ctx.createBufferSource(), nf = ctx.createBiquadFilter(), ngn = ctx.createGain(); ns.buffer = nb; nf.type = 'bandpass'; nf.frequency.value = 900; nf.Q.value = 0.7; ngn.gain.value = 0.8; ns.connect(nf); nf.connect(ngn); ngn.connect(master); ns.start(tc);
   return D;
 }
 function f1Start() {
