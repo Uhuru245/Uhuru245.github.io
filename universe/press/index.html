@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Universe Times · MRET Universe</title>
+<meta name="description" content="Entrepreneur spotlights, founder interviews, industry insight and news from Universe Labs.">
+<meta property="og:title" content="The Universe Times · MRET Universe"><meta property="og:description" content="Entrepreneur spotlights, founder interviews, industry insight and news from Universe Labs."><meta property="og:site_name" content="MRET Universe">
+<meta name="theme-color" content="#0A0A0B">
+<link rel="icon" href="/universe/assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/universe/assets/uv.css">
+<script src="/universe/assets/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/universe/assets/uv.js"></script>
+</head>
+<body>
+<main id="main" class="wrap app"><div class="skel" style="height:300px"></div></main>
+<script>
+(async () => {
+  const { $, $$, esc, url, rpc, sb, q, qs, formData, busy, date, track } = UV;
+  await UV.page({ nav: 'press/', flag: 'press', track: false });
+  const CAT = { spotlight: 'Entrepreneur spotlight', interview: 'Founder interview', success: 'Success story', new_business: 'New businesses', industry: 'Industry insight', technology: 'Technology', education: 'Business education', collaboration: 'Collaboration', intelligence: 'Market intelligence', real_estate: 'Real estate', community: 'Community', events: 'Events', labs: 'Universe Labs' };
+  // a small, safe text format: blank lines make paragraphs, "## " makes a heading, **bold**, *italic*, [text](https://link)
+  const fmt = t => esc(t || '').split(/\n{2,}/).map(b => { b = b.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" rel="noopener nofollow" target="_blank">$1</a>');
+    if (b.startsWith('## ')) return `<h2>${b.slice(3)}</h2>`; if (b.startsWith('&gt; ')) return `<blockquote class="serif" style="font-size:24px;border-left:3px solid var(--accent);margin:0;padding-left:16px">${b.slice(5)}</blockquote>`; return `<p>${b.replace(/\n/g, '<br>')}</p>`; }).join('');
+  const subForm = (src) => `<form class="card form" id="subscribe"><p class="eyebrow">Free newsletter</p><h3 class="serif" style="font-size:28px">Subscribe to The Universe Times</h3><p class="muted small">Stories of the people building here, sent when a new edition is out. Unsubscribe with one click.</p>
+    <div class="two"><label class="f">Name <span class="hint">Optional</span><input name="name" maxlength="80" autocomplete="name"></label><label class="f">Email<input name="email" type="email" required autocomplete="email"></label></div>
+    <label class="check"><input type="checkbox" required> <span>Yes, send me The Universe Times. I can unsubscribe at any time. <a href="${url('privacy/')}">Privacy</a></span></label><p class="small" id="sm" role="status"></p><button class="btn primary">Subscribe</button></form>`;
+  function wireSub(src) { const f = $('#subscribe'); if (!f) return; f.onsubmit = async e => { e.preventDefault(); const d = formData(f); await busy(e.submitter, async () => { try { await rpc('uv_subscribe', { p_email: d.email, p_name: d.name || null, p_source: src }); f.innerHTML = '<h3>Subscribed</h3><p class="muted">Thank you. The next edition will reach your inbox.</p>'; } catch (x) { $('#sm').textContent = x.message; } }); }; }
+
+  const tok = qs.get('t'), slug = qs.get('a');
+  if (tok) return manage(tok);
+  if (slug) return article(slug);
+  track('page_viewed');
+  const cat = qs.get('c');
+  let qq = sb.from('uv_articles').select('slug,title,excerpt,category,cover_url,publish_at,created_at,featured,author_name,edition').eq('status', 'published').order('featured', { ascending: false }).order('publish_at', { ascending: false, nullsFirst: false }).limit(60);
+  if (cat) qq = qq.eq('category', cat);
+  const rows = await q(qq).catch(() => []);
+  const [lead, ...rest] = rows;
+  $('#main').innerHTML = `<div class="row" style="border-bottom:1px solid var(--line);padding-bottom:16px"><div class="grow"><p class="eyebrow">Universe Press</p><h1 class="serif" style="font-size:clamp(40px,7vw,80px);margin:0">The Universe Times</h1></div><p class="muted small">${esc(new Intl.DateTimeFormat('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date()))}</p></div>
+    <div class="chips"><a class="chip" ${!cat ? 'style="background:var(--ink);color:var(--bg)"' : ''} href="${url('press/')}">All</a>${Object.entries(CAT).map(([k, v]) => `<a class="chip" ${cat === k ? 'style="background:var(--ink);color:var(--bg)"' : ''} href="?c=${k}">${v}</a>`).join('')}</div>
+    ${lead ? `<a class="grid g2 card pad-lg" style="text-decoration:none;align-items:center" href="?a=${esc(lead.slug)}">${lead.cover_url ? `<img src="${esc(lead.cover_url)}" alt="" style="border-radius:12px;aspect-ratio:16/10;object-fit:cover">` : ''}<div><p class="eyebrow">${esc(CAT[lead.category] || '')}</p><h2 style="font-size:clamp(30px,4vw,48px)">${esc(lead.title)}</h2><p class="muted">${esc(lead.excerpt || '')}</p><p class="tiny muted">${esc(lead.author_name || 'MRET Universe')} · ${esc(date(lead.publish_at || lead.created_at))}</p></div></a>` : `<div class="empty"><h3>The first edition is being written.</h3><p>Subscribe and it will come to you.</p></div>`}
+    <div class="grid g3">${rest.map(a => `<a class="card" style="text-decoration:none" href="?a=${esc(a.slug)}">${a.cover_url ? `<img src="${esc(a.cover_url)}" alt="" loading="lazy" style="border-radius:10px;aspect-ratio:16/9;object-fit:cover;margin-bottom:12px">` : ''}<p class="eyebrow">${esc(CAT[a.category] || '')}</p><h3 class="serif" style="font-size:24px">${esc(a.title)}</h3><p class="muted small">${esc(a.excerpt || '')}</p><p class="tiny muted" style="margin:0">${esc(date(a.publish_at || a.created_at))}</p></a>`).join('')}</div>
+    ${subForm('press')}`;
+  wireSub('press');
+  if (location.hash === '#subscribe') $('#subscribe').scrollIntoView();
+
+  async function article(s) {
+    const a = await q(sb.from('uv_articles').select('*').eq('slug', s).maybeSingle()).catch(() => null);
+    if (!a) { $('#main').innerHTML = `<div class="empty"><h3>Article not found.</h3><a class="btn" href="${url('press/')}">The Universe Times</a></div>`; return; }
+    track('article_viewed', { slug: s });
+    document.title = (a.seo_title || a.title) + ' · The Universe Times';
+    const md = document.querySelector('meta[name="description"]'); if (md) md.content = a.seo_description || a.excerpt || '';
+    $('#main').style.maxWidth = '780px';
+    $('#main').innerHTML = `<article class="stack">${a.status !== 'published' ? '<div class="notice warn">Preview: this article is not published.</div>' : ''}<a class="small" href="${url('press/')}">← The Universe Times</a><p class="eyebrow">${esc(CAT[a.category] || '')}${a.edition ? ' · Edition ' + esc(a.edition) : ''}</p>
+      <h1 style="font-size:clamp(36px,6vw,60px)">${esc(a.title)}</h1>${a.excerpt ? `<p class="lead muted" style="font-size:20px">${esc(a.excerpt)}</p>` : ''}<p class="small muted">${esc(a.author_name || 'MRET Universe')} · ${esc(date(a.publish_at || a.created_at))}</p>
+      ${a.cover_url ? `<img src="${esc(a.cover_url)}" alt="" style="border-radius:14px;width:100%">` : ''}<div style="font-size:18px;line-height:1.7">${fmt(a.body)}</div>
+      <div class="row"><button class="btn sm" id="sh">${UV.ICON.share} Share</button></div>${subForm('article')}</article>`;
+    $('#sh').onclick = () => UV.share(a.title, location.href); wireSub('article');
+  }
+  async function manage(t) {
+    const s = await rpc('uv_subscription', { p_token: t }).catch(() => null);
+    if (!s) { $('#main').innerHTML = '<div class="empty"><h3>This link is no longer valid.</h3></div>'; return; }
+    $('#main').style.maxWidth = '620px';
+    $('#main').innerHTML = `<div class="card pad-lg stack"><h1 style="font-size:36px">Your newsletter preferences</h1><p class="muted">For ${esc(s.email)}</p>
+      <label class="check"><input type="checkbox" id="times" ${s.status === 'active' && s.prefs.times !== false ? 'checked' : ''}> <span>The Universe Times editions</span></label>
+      <label class="check"><input type="checkbox" id="labs" ${s.prefs.labs ? 'checked' : ''}> <span>Universe Labs updates and beta invitations</span></label>
+      <div class="row"><button class="btn primary" id="save">Save preferences</button><button class="btn danger" id="off">Unsubscribe from everything</button></div><p class="small" id="msg" role="status"></p></div>`;
+    $('#save').onclick = e => busy(e.target, async () => { const times = $('#times').checked, labs = $('#labs').checked; await rpc('uv_subscription_update', { p_token: t, p_prefs: { times, labs }, p_status: times || labs ? 'active' : 'unsubscribed' }); $('#msg').textContent = 'Saved.'; });
+    $('#off').onclick = e => busy(e.target, async () => { await rpc('uv_subscription_update', { p_token: t, p_prefs: { times: false, labs: false }, p_status: 'unsubscribed' }); $('#times').checked = $('#labs').checked = false; $('#msg').textContent = 'You are unsubscribed. You will not receive further newsletters.'; });
+  }
+})();
+</script>
+</body>
+</html>

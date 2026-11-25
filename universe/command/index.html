@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Universe Command · MRET Universe</title>
+<meta name="description" content="Founder and staff command centre.">
+<meta property="og:title" content="Universe Command · MRET Universe"><meta property="og:description" content="Founder and staff command centre."><meta property="og:site_name" content="MRET Universe">
+<meta name="theme-color" content="#0A0A0B">
+<link rel="icon" href="/universe/assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/universe/assets/uv.css">
+<script src="/universe/assets/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/universe/assets/uv.js"></script>
+</head>
+<body>
+<main id="main" class="wrap app">
+  <div class="app-head"><div class="grow"><p class="eyebrow">Universe Command</p><h1 id="ttl">Command centre</h1></div><div class="row" id="range"></div></div>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div id="panel" class="stack"><div class="skel" style="height:300px"></div></div>
+</main>
+<script>
+(async () => {
+  const { $, $$, esc, num, url, rpc, sb, q, ICON, busy, toast, formData, date, ago, founding, bars, spark, store } = UV;
+  const m = await UV.page({ nav: '', auth: true, track: false }); if (!m) return;
+  const P = h => $('#panel').innerHTML = h;
+  if (!m.role) { P(`<div class="empty"><h3>This area is for the MRET team.</h3><a class="btn" href="${url('dashboard/')}">Go to your dashboard</a></div>`); $('#tabs').remove(); return; }
+  if (m.require_mfa && m.aal !== 'aal2') { P(`<div class="notice warn">Two-step verification is required for Command. <a href="${url('login/?next=/universe/command/')}">Sign in again with your code</a>.</div>`); return; }
+  const R = m.role, can = (...r) => R === 'founder' || r.includes(R);
+  const TABS = [['overview', 'Overview', can('admin', 'analyst')], ['applications', 'Applications', can('admin', 'moderator')], ['businesses', 'Businesses', can('admin', 'moderator', 'support', 'analyst')],
+    ['intel', 'Intelligence', can('admin', 'analyst')], ['labs', 'Labs', can('admin', 'analyst')], ['press', 'Press', can('admin', 'editor')], ['moderation', 'Moderation', can('admin', 'moderator')],
+    ['privacy', 'Privacy', can('admin', 'support')], ['settings', 'Settings', can('admin')], ['team', 'Team and security', can('admin')], ['assistant', 'AI assistant', can('admin', 'analyst')]].filter(t => t[2]);
+  let cur = (location.hash || '#' + TABS[0][0]).slice(1); if (!TABS.find(t => t[0] === cur)) cur = TABS[0][0];
+  const today = new Date(), iso = d => d.toISOString().slice(0, 10);
+  let range = store.get('uv.cmd.range', 30);
+  function rangeUi() { $('#range').innerHTML = ['overview', 'intel'].includes(cur) ? `<div class="chips">${[7, 30, 90, 365].map(n => `<button class="chip" aria-pressed="${n === range}" data-r="${n}">${n === 365 ? '12 months' : n + ' days'}</button>`).join('')}</div>` : '';
+    $$('[data-r]').forEach(b => b.onclick = () => { range = +b.dataset.r; store.set('uv.cmd.range', range); rangeUi(); show(); }); }
+  function tabs() { $('#tabs').innerHTML = TABS.map(([k, l]) => `<button role="tab" aria-selected="${k === cur}" data-t="${k}">${l}</button>`).join('');
+    $$('#tabs button').forEach(b => b.onclick = () => { cur = b.dataset.t; history.replaceState(null, '', '#' + cur); tabs(); rangeUi(); show(); }); }
+  const intel = (from, to) => rpc('uv_intel', { p_from: from, p_to: to || iso(today), p_test: store.get('uv.cmd.test', false) });
+  const pct = (a, b) => b ? Math.round(100 * a / b) + '%' : '–';
+  const csv = (name, rows) => { if (!rows.length) return toast('Nothing to export'); const keys = Object.keys(rows[0]); const cell = v => { v = v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([[keys.join(','), ...rows.map(r => keys.map(k => cell(r[k])).join(','))].join('\n')], { type: 'text/csv' })); a.download = name + '-' + iso(today) + '.csv'; a.click(); };
+  async function show() { P('<div class="skel" style="height:260px"></div>'); try { await ({ overview, applications, businesses, intel: intelTab, labs, press, moderation, privacy, settings, team, assistant }[cur])(); } catch (e) { P(`<div class="notice bad">${esc(e.message)}</div>`); } }
+
+  // ---------- overview ----------
+  async function overview() {
+    const from = iso(new Date(Date.now() - (range - 1) * 864e5));
+    const [I, S] = await Promise.all([intel(from), q(sb.from('uv_settings').select('key,value').in('key', ['kpi_targets', 'campaign']))]);
+    const kt = (S.find(s => s.key === 'kpi_targets') || {}).value || {}; const start = kt.start_date || from;
+    const [K, L] = await Promise.all([intel(start), rpc('uv_labs_intel').catch(() => ({ problems: [] }))]);
+    const validated = L.problems.filter(p => ['validated', 'solution_proposed', 'approved', 'prototype', 'beta', 'launched', 'measured', 'improving'].includes(p.stage)).length;
+    const days = Math.max(1, Math.round((Date.now() - new Date(start)) / 864e5) + 1), pace = Math.min(1, days / (kt.window_days || 90));
+    const KPI = [['Pilot entrepreneurs', Math.min(K.totals.approved, kt.pilot_entrepreneurs || 100), kt.pilot_entrepreneurs], ['Approved founding businesses', K.totals.founding, kt.approved_founding], ['Published business homes', K.totals.published, kt.published_profiles],
+      ['Industries represented', K.industries.filter(x => x.published > 0).length, kt.industries], ['Unique visitors', K.funnel.visitors, kt.consumer_visitors], ['Business enquiries', K.engagement.enquiries, kt.enquiries],
+      ['Problems submitted', K.engagement.problems, kt.problems], ['Collaboration requests', K.engagement.connections_requested, kt.collaboration_requests], ['Newsletter subscribers', K.subscribers, kt.newsletter_subscribers], ['Validated opportunities', validated, kt.validated_opportunities]];
+    const rag = (v, t) => { if (!t) return ''; const r = v / (t * pace); return r >= 1 ? 'g' : r >= 0.6 ? 'a' : 'r'; };
+    const T = I.totals, F = I.funnel, c = I.campaign || {};
+    P(`${store.get('uv.cmd.test', false) ? '<div class="notice warn">Showing test records as well as real ones.</div>' : ''}
+      <div class="grid g4"><div class="stat"><div class="v">${num(T.founding)}<span class="muted" style="font-size:18px"> / ${num(c.founding_target || 1000)}</span></div><div class="l">Founding 1,000</div><div class="meter" style="margin-top:8px"><i style="width:${Math.min(100, 100 * T.founding / (c.founding_target || 1000))}%"></i></div></div>
+        <div class="stat"><div class="v">${num(T.new_in_period)}</div><div class="l">Registrations · ${range} days</div><div class="d ${T.new_in_period >= T.new_prev_period ? 'up' : 'down'}">${T.new_prev_period ? (T.new_in_period >= T.new_prev_period ? '▲ ' : '▼ ') + pct(Math.abs(T.new_in_period - T.new_prev_period), T.new_prev_period) + ' vs previous' : 'No previous period'}</div></div>
+        <div class="stat"><div class="v">${num(I.queues.applications)}</div><div class="l">Applications waiting</div><div class="d">${num(T.waitlist)} on the waiting list</div></div>
+        <div class="stat"><div class="v">${num(T.active)}</div><div class="l">Active businesses</div><div class="d muted">${num(T.published)} published · ${num(T.verified)} verified</div></div></div>
+      <div class="grid g2"><div class="card"><h3>Visitors per day</h3>${spark(I.daily, 'visitors')}</div><div class="card"><h3>Registrations per day</h3>${spark(I.daily, 'registrations')}</div></div>
+      <div class="card"><div class="row"><h3 class="grow" style="margin:0">KPI scorecard</h3><span class="tiny muted">Since ${esc(date(start))} · day ${days} of ${kt.window_days || 90}. Targets are proposals, editable in Settings.</span></div>
+        <div class="scroll-x"><table class="tbl" style="margin-top:10px"><tr><th></th><th>Measure</th><th class="num">Actual</th><th class="num">Target</th><th class="num">Progress</th></tr>
+        ${KPI.map(([l, v, t]) => `<tr><td><span class="rag ${rag(v, t)}" title="${rag(v, t) === 'g' ? 'On pace' : rag(v, t) === 'a' ? 'Behind pace' : 'Well behind pace'}"></span></td><td>${l}</td><td class="num">${num(v)}</td><td class="num">${t ? num(t) : '–'}</td><td class="num">${pct(v, t)}</td></tr>`).join('')}</table></div>
+        <p class="tiny muted" style="margin:8px 0 0">Green: at or ahead of the straight-line pace to the target. Amber: at least 60% of pace. Red: below that.</p></div>
+      <div class="grid g2"><div class="card"><h3>Acquisition funnel · ${range} days</h3><table class="tbl">${[['Visitors', F.visitors], ['Started registration', F.started], ['Completed registration', F.completed], ['Approved', F.approved], ['Published', F.published]].map(([l, v], i, a) => `<tr><td>${l}</td><td class="num">${num(v)}</td><td class="num muted">${i ? pct(v, a[i - 1][1]) : ''}</td></tr>`).join('')}</table></div>
+        <div class="card"><h3>Where registrations came from</h3>${bars(I.sources, 'source', 'n')}</div></div>
+      <div class="grid g3"><div class="card"><h3>Queues</h3><dl class="kv"><dt>Applications</dt><dd>${num(I.queues.applications)}</dd><dt>Open reports</dt><dd>${num(I.queues.reports)}</dd><dt>Privacy requests</dt><dd>${num(I.queues.privacy)}</dd><dt>Articles in review</dt><dd>${num(I.queues.articles_in_review)}</dd></dl></div>
+        <div class="card"><h3>Engagement · ${range} days</h3><dl class="kv"><dt>Profile views</dt><dd>${num(I.engagement.profile_views)}</dd><dt>Enquiries</dt><dd>${num(I.engagement.enquiries)}</dd><dt>WhatsApp clicks</dt><dd>${num(I.engagement.whatsapp)}</dd><dt>Search to enquiry</dt><dd>${pct(I.engagement.enquiries, I.searches.total)}</dd><dt>Collaborations</dt><dd>${num(I.engagement.connections_accepted)} of ${num(I.engagement.connections_requested)} accepted</dd><dt>DAU / MAU</dt><dd>${num(I.dau)} / ${num(I.mau)}</dd></dl></div>
+        <div class="card"><h3>Data quality</h3><dl class="kv"><dt>No city</dt><dd>${num(I.data_quality.no_city)}</dd><dt>No contact</dt><dd>${num(I.data_quality.no_contact)}</dd><dt>Approved, unpublished</dt><dd>${num(I.data_quality.unpublished_approved)}</dd><dt>Under 50% complete</dt><dd>${num(I.data_quality.low_completeness)}</dd><dt>Test records</dt><dd>${num(I.data_quality.test_records)}</dd></dl>
+          <label class="check small" style="margin-top:10px"><input type="checkbox" id="tst" ${store.get('uv.cmd.test', false) ? 'checked' : ''}> Include test records</label></div></div>
+      <p class="tiny muted">All figures are measured from platform records. Nothing here is estimated or forecast.</p>`);
+    $('#tst').onchange = e => { store.set('uv.cmd.test', e.target.checked); show(); };
+  }
+
+  // ---------- applications ----------
+  async function applications() {
+    const rows = await q(sb.from('uv_businesses').select('id,slug,name,status,city,province,suburb,phone,whatsapp,email,website,tagline,size_range,founded_year,created_at,acquisition,referred_by,is_test,category_id,uv_categories(name)').in('status', ['pending', 'waitlist']).order('created_at'));
+    P(rows.length ? `<p class="muted">Founding numbers are assigned automatically, in approval order, until the Founding 1,000 target is reached.</p><div class="stack">${rows.map(b => `<div class="card"><div class="row"><strong>${esc(b.name)}</strong><span class="chip ${b.status === 'waitlist' ? 'warn' : ''}">${b.status}</span>${b.is_test ? '<span class="chip info">test</span>' : ''}<span class="tiny muted right">${esc(ago(b.created_at))}</span></div>
+      <dl class="kv small" style="margin-top:10px"><dt>Industry</dt><dd>${esc(b.uv_categories ? b.uv_categories.name : '')}</dd><dt>Where</dt><dd>${esc([b.suburb, b.city, b.province].filter(Boolean).join(', '))}</dd><dt>Contact</dt><dd>${esc([b.whatsapp, b.phone, b.email].filter(Boolean).join(' · '))}</dd>${b.website ? `<dt>Website</dt><dd><a href="${esc(UV.safeUrl(b.website) || '#')}" target="_blank" rel="noopener nofollow">${esc(b.website)}</a></dd>` : ''}${b.tagline ? `<dt>Says</dt><dd>${esc(b.tagline)}</dd>` : ''}<dt>Source</dt><dd>${esc((b.acquisition || {}).source || 'direct')}${b.referred_by ? ' (referred)' : ''}</dd><dt>Web address</dt><dd>/business/${esc(b.slug)}</dd></dl>
+      <div class="row" style="margin-top:10px"><input placeholder="Note to the business (optional, shown if not approved)" data-note="${b.id}" class="grow" style="min-height:38px;max-width:420px"><button class="btn sm gold" data-d="${b.id}:approve">Approve</button>${b.status !== 'waitlist' ? `<button class="btn sm" data-d="${b.id}:waitlist">Waiting list</button>` : ''}<button class="btn sm danger" data-d="${b.id}:reject">Decline</button></div></div>`).join('')}</div>`
+      : '<div class="empty"><h3>No applications waiting.</h3></div>');
+    $$('[data-d]').forEach(b => b.onclick = () => busy(b, async () => { const [id, d] = b.dataset.d.split(':'); const note = ($(`[data-note="${id}"]`) || {}).value || null;
+      if (d === 'reject' && !await UV.confirmBox('Decline this application?', 'The business will see your note in their dashboard.', 'Decline')) return;
+      try { const r = await rpc('uv_review_business', { p_id: id, p_decision: d, p_note: note }); toast(d === 'approve' ? (r.founding_no ? 'Approved as ' + founding(r.founding_no) : 'Approved') : 'Done'); applications(); } catch (e) { toast(e.message, 5000); } }));
+  }
+
+  // ---------- businesses ----------
+  async function businesses() {
+    P(`<div class="row"><input id="bq" placeholder="Search name or city" style="max-width:320px;min-height:40px"><select id="bs" style="width:auto;min-height:40px"><option value="">All statuses</option><option>approved</option><option>pending</option><option>waitlist</option><option>rejected</option><option>suspended</option></select><button class="btn sm right" id="bx">Export CSV</button></div><div id="bl" style="margin-top:14px"></div>`);
+    let rows = [];
+    async function load() { let qq = sb.from('uv_businesses').select('id,slug,name,status,city,province,is_published,verified,founding_no,completeness,created_at,is_test,uv_categories(name)').order('created_at', { ascending: false }).limit(500);
+      if ($('#bs').value) qq = qq.eq('status', $('#bs').value); const t = $('#bq').value.trim(); if (t) qq = qq.or(`name.ilike.%${t.replace(/[%,()]/g, '')}%,city.ilike.%${t.replace(/[%,()]/g, '')}%`);
+      rows = await q(qq);
+      $('#bl').innerHTML = `<div class="scroll-x card" style="padding:0"><table class="tbl"><tr><th>Business</th><th>Status</th><th>Industry</th><th>City</th><th class="num">No.</th><th class="num">Complete</th><th>Verified</th><th></th></tr>${rows.map(b => `<tr><td>${b.is_published ? `<a href="${UV.bizUrl(b.slug)}" target="_blank">${esc(b.name)}</a>` : esc(b.name)}${b.is_test ? ' <span class="chip info tiny">test</span>' : ''}</td><td>${esc(b.status)}${b.is_published ? ' · live' : ''}</td><td>${esc(b.uv_categories ? b.uv_categories.name : '')}</td><td>${esc(b.city || '')}</td><td class="num">${b.founding_no || ''}</td><td class="num">${b.completeness}%</td>
+        <td><label class="check"><input type="checkbox" data-v="${b.id}" ${b.verified ? 'checked' : ''} ${can('admin', 'moderator') ? '' : 'disabled'}><span class="sr">Verified</span></label></td><td>${can('admin', 'moderator') ? (b.status === 'suspended' ? `<button class="btn sm" data-s="${b.id}:reinstate">Reinstate</button>` : b.status === 'approved' ? `<button class="btn sm ghost danger" data-s="${b.id}:suspend">Suspend</button>` : '') : ''}</td></tr>`).join('')}</table></div>`;
+      $$('[data-v]').forEach(c => c.onchange = async () => { await rpc('uv_verify_business', { p_id: c.dataset.v, p_verified: c.checked }).then(() => toast(c.checked ? 'Verified' : 'Verification removed'), e => toast(e.message)); });
+      $$('[data-s]').forEach(b => b.onclick = async () => { const [id, d] = b.dataset.s.split(':'); let note = null; if (d === 'suspend') { if (!await UV.confirmBox('Suspend this business?', 'Its page goes offline immediately.', 'Suspend')) return; note = prompt('Reason shown to the business (optional)') || null; }
+        await rpc('uv_review_business', { p_id: id, p_decision: d, p_note: note }).then(load, e => toast(e.message)); }); }
+    let t; $('#bq').oninput = () => { clearTimeout(t); t = setTimeout(load, 250); }; $('#bs').onchange = load; $('#bx').onclick = () => csv('universe-businesses', rows.map(r => ({ ...r, uv_categories: r.uv_categories && r.uv_categories.name })));
+    load();
+  }
+
+  // ---------- intelligence ----------
+  async function intelTab() {
+    const from = iso(new Date(Date.now() - (range - 1) * 864e5)); const I = await intel(from);
+    const gaps = I.industries.map(x => ({ ...x, ratio: x.searches / Math.max(1, x.published) })).sort((a, b) => b.ratio - a.ratio);
+    P(`<div class="grid g2"><div class="card"><h3>Searches per day</h3>${spark(I.daily, 'searches')}</div><div class="card"><h3>Enquiries per day</h3>${spark(I.daily, 'enquiries')}</div></div>
+      <div class="card"><h3>Supply and demand by industry · ${range} days</h3><p class="small muted">Searches compared with published businesses. A high ratio means customers are looking and few businesses are there yet.</p>
+        <div class="scroll-x"><table class="tbl"><tr><th>Industry</th><th class="num">Registered</th><th class="num">Published</th><th class="num">Searches</th><th class="num">Searches per business</th></tr>${gaps.map(x => `<tr><td>${esc(x.category)}</td><td class="num">${num(x.businesses)}</td><td class="num">${num(x.published)}</td><td class="num">${num(x.searches)}</td><td class="num">${x.ratio.toFixed(1)}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">No data yet.</td></tr>'}</table></div></div>
+      <div class="grid g2"><div class="card"><h3>Top searches</h3>${bars(I.searches.top, 'q', 'n')}</div><div class="card"><h3>Searches with no results</h3><p class="small muted">Possible market gaps: ${num(I.searches.zero)} of ${num(I.searches.total)} searches found nothing.</p>${bars(I.searches.unmet.map(x => ({ ...x, l: x.q + (x.city ? ' · ' + x.city : '') })), 'l', 'n')}</div></div>
+      <div class="grid g2"><div class="card"><h3>Where businesses are</h3>${bars(I.geography.map(g => ({ ...g, l: (g.city || 'No city') + ', ' + g.province })), 'l', 'n')}</div><div class="card"><h3>Most viewed business homes</h3>${bars(I.top_profiles, 'name', 'views')}</div></div>
+      <div class="grid g2"><div class="card"><h3>Labs problems by category</h3>${bars(I.labs, 'category', 'n')}</div><div class="card"><h3>Exports</h3><p class="small muted">Aggregated tables only. Identifiable personal information is not included.</p><div class="row"><button class="btn sm" id="x1">Industries CSV</button><button class="btn sm" id="x2">Searches CSV</button><button class="btn sm" id="x3">Daily CSV</button></div></div></div>`);
+    $('#x1').onclick = () => csv('universe-industries', gaps); $('#x2').onclick = () => csv('universe-searches', [...I.searches.top.map(x => ({ ...x, kind: 'top' })), ...I.searches.unmet.map(x => ({ q: x.q, n: x.n, city: x.city, kind: 'no_results' }))]); $('#x3').onclick = () => csv('universe-daily', I.daily);
+  }
+
+  // ---------- labs ----------
+  async function labs() {
+    const L = await rpc('uv_labs_intel'); const W = L.weights || {};
+    const STAGES = ['submitted', 'categorised', 'grouped', 'investigating', 'validated', 'solution_proposed', 'approved', 'prototype', 'beta', 'launched', 'measured', 'improving', 'closed'];
+    const NAMES = { affected: 'Businesses affected', frequency: 'Frequency', severity: 'Severity', financial_impact: 'Financial impact', willingness_to_pay: 'Willingness to pay', commercial_potential: 'Commercial potential', cross_industry: 'Cross-industry reach', low_complexity: 'Low complexity', low_cost: 'Low cost', strategic_alignment: 'Strategic fit' };
+    P(`<div class="card"><div class="row"><h3 class="grow" style="margin:0">Opportunity score weights</h3><button class="btn sm" id="sw">Save weights</button></div><div class="grid g4" style="margin-top:12px">${Object.keys(NAMES).map(k => `<label class="f small">${NAMES[k]}<input type="number" min="0" max="10" step="1" data-w="${k}" value="${W[k] ?? 1}"></label>`).join('')}</div>
+      <p class="tiny muted">Each input is scaled 0 to 1, multiplied by its weight, and the total is shown out of 100. Commercial potential, complexity, cost and strategic fit come from your own scores below (default 3 of 5).</p></div>
+      <div class="stack" style="margin-top:16px">${L.problems.map(p => `<details class="card"><summary class="row" style="cursor:pointer"><strong class="grow">${esc(p.title)}</strong><span class="chip">${esc(p.category)}</span><span class="chip gold">${esc(p.stage)}</span><span class="serif" style="font-size:28px">${p.score.score}</span></summary>
+        <p style="white-space:pre-wrap;margin-top:12px">${esc(p.description)}</p><dl class="kv small"><dt>Votes</dt><dd>${p.score.votes.same} same problem · ${p.score.votes.interest} would use · ${p.score.votes.beta} beta</dd><dt>Frequency</dt><dd>${esc(p.frequency || '–')}</dd><dt>Severity / urgency</dt><dd>${p.severity || '–'} / ${p.urgency || '–'}</dd><dt>Hours lost a month</dt><dd>${p.hours_lost_per_month ?? '–'}</dd><dt>Cost a month</dt><dd>${esc(p.financial_impact_band || '–')}</dd><dt>Would pay</dt><dd>${esc(p.willingness_to_pay_band || '–')}</dd>${p.existing_solutions ? `<dt>Uses today</dt><dd>${esc(p.existing_solutions)}</dd>` : ''}${p.limitations ? `<dt>Limits</dt><dd>${esc(p.limitations)}</dd>` : ''}${p.desired_outcome ? `<dt>Wants</dt><dd>${esc(p.desired_outcome)}</dd>` : ''}<dt>Visibility</dt><dd>${esc(p.visibility)}</dd></dl>
+        <h4 style="margin-top:14px">Why it scores ${p.score.score}</h4>${bars(Object.entries(p.score.parts).map(([k, v]) => ({ l: NAMES[k] + ' × ' + (W[k] ?? 1), v: Math.round(v * 100) })), 'l', 'v')}
+        <form class="form" data-pf="${p.id}" style="margin-top:14px"><div class="two"><label class="f">Stage<select name="stage">${STAGES.map(s => `<option ${s === p.stage ? 'selected' : ''} ${s === 'approved' && R !== 'founder' ? 'disabled' : ''}>${s}</option>`).join('')}</select></label>
+          <label class="f">Group under<select name="group_id"><option value="">Not grouped</option>${L.problems.filter(x => x.id !== p.id && !x.group_id).map(x => `<option value="${x.id}" ${x.id === p.group_id ? 'selected' : ''}>${esc(x.title.slice(0, 60))}</option>`).join('')}</select></label></div>
+          <div class="grid g4">${[['commercial', 'Commercial potential'], ['complexity', 'Complexity'], ['cost', 'Build cost'], ['alignment', 'Strategic fit']].map(([k, l]) => `<label class="f small">${l} (1 to 5)<input type="number" min="1" max="5" name="fs_${k}" value="${(p.founder_scores || {})[k] || ''}"></label>`).join('')}</div>
+          <label class="f">Founder note<textarea name="founder_note" rows="2">${esc(p.founder_note || '')}</textarea></label><button class="btn sm primary">Save</button></form></details>`).join('') || '<div class="empty"><h3>No problems submitted yet.</h3></div>'}</div>`);
+    $('#sw').onclick = e => busy(e.target, async () => { const w = {}; $$('[data-w]').forEach(i => w[i.dataset.w] = Math.max(0, Math.min(10, +i.value || 0))); await q(sb.from('uv_settings').update({ value: w, updated_by: m.id }).eq('key', 'labs_weights').select('key')).then(() => { toast('Weights saved'); labs(); }, x => toast(x.message)); });
+    $$('[data-pf]').forEach(f => f.onsubmit = async e => { e.preventDefault(); const d = formData(f); const fs = {}; ['commercial', 'complexity', 'cost', 'alignment'].forEach(k => { if (d['fs_' + k]) fs[k] = Math.max(1, Math.min(5, +d['fs_' + k])); });
+      await busy(e.submitter, async () => { try { await rpc('uv_problem_update', { p_id: f.dataset.pf, p: { stage: d.stage, group_id: d.group_id, founder_note: d.founder_note, founder_scores: fs } }); toast('Saved'); labs(); } catch (x) { toast(x.message, 5000); } }); });
+  }
+
+  // ---------- press ----------
+  async function press() {
+    const [arts, subs] = await Promise.all([q(sb.from('uv_articles').select('*').order('updated_at', { ascending: false }).limit(200)), q(sb.from('uv_subscribers').select('email,name,status,prefs,source,created_at').order('created_at', { ascending: false })).catch(() => [])]);
+    const active = subs.filter(s => s.status === 'active').length;
+    P(`<div class="row"><button class="btn gold" id="na">New article</button><span class="muted small right">${num(active)} active subscriber${active === 1 ? '' : 's'}</span><button class="btn sm" id="sx">Export subscribers</button></div>
+      <div class="notice" style="margin-top:12px">Email delivery of editions needs a sending provider (blocker B1). Until then, compile an edition here and share the link; subscribers are kept ready.</div>
+      <div class="card scroll-x" style="padding:0;margin-top:14px"><table class="tbl"><tr><th>Title</th><th>Category</th><th>Status</th><th>Publish</th><th></th></tr>${arts.map(a => `<tr><td>${esc(a.title)}${a.featured ? ' <span class="chip gold tiny">featured</span>' : ''}</td><td>${esc(a.category)}</td><td>${esc(a.status)}</td><td>${esc(date(a.publish_at))}</td><td><button class="btn sm" data-e="${a.id}">Edit</button> <a class="btn sm ghost" href="${url('press/?a=' + a.slug)}" target="_blank">View</a></td></tr>`).join('') || '<tr><td colspan="5" class="muted">No articles yet.</td></tr>'}</table></div>`);
+    $('#na').onclick = () => editor({}); $$('[data-e]').forEach(b => b.onclick = () => editor(arts.find(a => a.id === b.dataset.e)));
+    $('#sx').onclick = () => csv('universe-subscribers', subs.filter(s => s.status === 'active'));
+    function editor(a) {
+      const CATS = ['spotlight', 'interview', 'success', 'new_business', 'industry', 'technology', 'education', 'collaboration', 'intelligence', 'real_estate', 'community', 'events', 'labs'];
+      const d = UV.dialog(a.id ? 'Edit article' : 'New article', `<form class="form" id="af"><label class="f">Title<input name="title" required minlength="5" maxlength="160" value="${esc(a.title || '')}"></label>
+        <label class="f">Web address<input name="slug" required pattern="[a-z0-9]+(-[a-z0-9]+)*" value="${esc(a.slug || '')}"></label><label class="f">Summary<textarea name="excerpt" maxlength="300" rows="2">${esc(a.excerpt || '')}</textarea></label>
+        <label class="f">Article <span class="hint">Blank line between paragraphs. "## " for a heading, "> " for a quote, **bold**, [link](https://…). Use only real quotes and facts the entrepreneur approved.</span><textarea name="body" rows="14">${esc(a.body || '')}</textarea></label>
+        <div class="two"><label class="f">Category<select name="category">${CATS.map(c => `<option ${c === a.category ? 'selected' : ''}>${c}</option>`).join('')}</select></label><label class="f">Status<select name="status">${['draft', 'review', 'scheduled', 'published', 'archived'].map(s => `<option ${s === (a.status || 'draft') ? 'selected' : ''}>${s}</option>`).join('')}</select></label></div>
+        <div class="two"><label class="f">Publish at<input type="datetime-local" name="publish_at" value="${a.publish_at ? new Date(a.publish_at).toISOString().slice(0, 16) : ''}"></label><label class="f">Edition <span class="hint">e.g. 2026-12</span><input name="edition" value="${esc(a.edition || '')}"></label></div>
+        <div class="two"><label class="f">Author name<input name="author_name" value="${esc(a.author_name || (m.profile && m.profile.display_name) || '')}"></label><label class="f">Cover image<input type="file" accept="image/*" id="cv">${a.cover_url ? `<img src="${esc(a.cover_url)}" alt="" style="max-height:80px;border-radius:8px;margin-top:6px">` : ''}</label></div>
+        <div class="two"><label class="f">SEO title<input name="seo_title" maxlength="70" value="${esc(a.seo_title || '')}"></label><label class="f">SEO description<input name="seo_description" maxlength="160" value="${esc(a.seo_description || '')}"></label></div>
+        <label class="check"><input type="checkbox" name="featured" ${a.featured ? 'checked' : ''}> <span>Feature at the top of the Times</span></label><p class="err" id="ae"></p></form>`, `${a.id && can('admin') ? '<button class="btn danger" id="del">Delete</button>' : ''}<button class="btn" data-c>Cancel</button><button class="btn primary" id="sv">Save</button>`);
+      let cover = a.cover_url || null; const f = UV.$('#af', d);
+      f.title.oninput = () => { if (!a.id) f.slug.value = f.title.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80); };
+      UV.$('#cv', d).onchange = async e => { try { cover = await UV.upload('press', e.target.files[0], 1800); toast('Cover uploaded'); } catch (x) { toast(x.message); } };
+      UV.$('[data-c]', d).onclick = () => d.close();
+      if (UV.$('#del', d)) UV.$('#del', d).onclick = async () => { if (!await UV.confirmBox('Delete this article?', 'This cannot be undone. Archiving keeps it instead.', 'Delete')) return; await q(sb.from('uv_articles').delete().eq('id', a.id).select('id')).then(() => { d.close(); press(); }, x => toast(x.message)); };
+      UV.$('#sv', d).onclick = e => busy(e.target, async () => { if (!f.reportValidity()) return; const v = formData(f);
+        const row = { title: v.title, slug: v.slug, excerpt: v.excerpt || null, body: v.body || '', category: v.category, status: v.status, publish_at: v.publish_at ? new Date(v.publish_at).toISOString() : (v.status === 'published' ? new Date().toISOString() : null),
+          edition: v.edition || null, author_name: v.author_name || null, seo_title: v.seo_title || null, seo_description: v.seo_description || null, featured: f.featured.checked, cover_url: cover };
+        try { if (a.id) await q(sb.from('uv_articles').update(row).eq('id', a.id).select('id')); else await q(sb.from('uv_articles').insert(Object.assign(row, { author_id: m.id })).select('id')); d.close(); toast('Saved'); press(); } catch (x) { UV.$('#ae', d).textContent = x.message; } });
+    }
+  }
+
+  // ---------- moderation ----------
+  async function moderation() {
+    const rows = await q(sb.from('uv_reports').select('*').order('created_at', { ascending: false }).limit(200));
+    P(rows.length ? `<div class="stack">${rows.map(r => `<div class="card"><div class="row"><span class="chip">${esc(r.target_type)}</span><span class="chip ${r.status === 'open' ? 'warn' : ''}">${esc(r.status)}</span><span class="tiny muted right">${esc(ago(r.created_at))}</span></div><p style="margin:10px 0;white-space:pre-wrap">${esc(r.reason)}</p>
+      <div class="row"><span class="tiny muted">Target ${esc(r.target_id)}</span>${r.status === 'open' ? `<button class="btn sm right" data-r="${r.id}:actioned">Mark actioned</button><button class="btn sm ghost" data-r="${r.id}:dismissed">Dismiss</button>` : ''}</div></div>`).join('')}</div>` : '<div class="empty"><h3>No reports.</h3></div>');
+    $$('[data-r]').forEach(b => b.onclick = async () => { const [id, s] = b.dataset.r.split(':'); await q(sb.from('uv_reports').update({ status: s }).eq('id', id).select('id')).then(moderation, e => toast(e.message)); });
+  }
+
+  // ---------- privacy ----------
+  async function privacy() {
+    const rows = await q(sb.from('uv_privacy_requests').select('*').order('created_at', { ascending: false }).limit(200));
+    P(`<div class="notice">POPIA: respond within a reasonable time (aim for 30 days). Deletion: unpublish and remove the business rows, then delete the sign-in account in the Supabase dashboard (Authentication → Users). Record what you did in the response.</div>
+      ${rows.length ? `<div class="stack" style="margin-top:14px">${rows.map(r => `<form class="card form" data-p="${r.id}"><div class="row"><strong>${esc(r.kind)}</strong><span class="tiny muted">User ${esc(r.user_id)}</span><span class="tiny muted right">${esc(date(r.created_at))}</span></div>${r.details ? `<p style="white-space:pre-wrap">${esc(r.details)}</p>` : ''}
+        <div class="two"><label class="f">Status<select name="status">${['open', 'in_progress', 'completed', 'rejected'].map(s => `<option ${s === r.status ? 'selected' : ''}>${s}</option>`).join('')}</select></label><label class="f">Response to the person<input name="response" value="${esc(r.response || '')}"></label></div><button class="btn sm">Save</button></form>`).join('')}</div>` : '<div class="empty" style="margin-top:14px"><h3>No privacy requests.</h3></div>'}`);
+    $$('[data-p]').forEach(f => f.onsubmit = async e => { e.preventDefault(); const d = formData(f); await q(sb.from('uv_privacy_requests').update({ status: d.status, response: d.response || null, closed_at: ['completed', 'rejected'].includes(d.status) ? new Date().toISOString() : null }).eq('id', f.dataset.p).select('id')).then(() => toast('Saved'), x => toast(x.message)); });
+  }
+
+  // ---------- settings ----------
+  async function settings() {
+    const [S, F] = await Promise.all([q(sb.from('uv_settings').select('*').order('key')), q(sb.from('uv_feature_flags').select('*').order('phase').order('key'))]);
+    const get = k => (S.find(s => s.key === k) || {}).value; const c = get('campaign') || {}, k = get('kpi_targets') || {};
+    const KL = { pilot_entrepreneurs: 'Pilot entrepreneurs', approved_founding: 'Approved founding businesses', published_profiles: 'Published profiles', industries: 'Industries represented', consumer_visitors: 'Unique visitors', enquiries: 'Enquiries', problems: 'Problems submitted', collaboration_requests: 'Collaboration requests', newsletter_subscribers: 'Newsletter subscribers', validated_opportunities: 'Validated opportunities' };
+    P(`<div class="grid g2"><form class="card form" id="cf"><h3>The Founding 1,000</h3><div class="two"><label class="f">Pilot target<input type="number" name="pilot_target" min="1" value="${c.pilot_target || 100}"></label><label class="f">Founding target<input type="number" name="founding_target" min="1" value="${c.founding_target || 1000}"></label></div>
+        <label class="f">Approval capacity <span class="hint">Pending plus approved before new applications join the waiting list</span><input type="number" name="approval_cap" min="1" value="${c.approval_cap || 100}"></label>
+        <label class="check"><input type="checkbox" name="founding_open" ${c.founding_open !== false ? 'checked' : ''}> <span>Founding numbers are being assigned</span></label><button class="btn sm primary">Save campaign</button></form>
+      <form class="card form" id="kf"><h3>KPI targets</h3><p class="tiny muted" style="margin:0">Proposed stretch targets, not forecasts.</p><div class="two"><label class="f">Start date<input type="date" name="start_date" value="${k.start_date || iso(today)}"></label><label class="f">Window (days)<input type="number" name="window_days" value="${k.window_days || 90}"></label></div>
+        <div class="two">${Object.entries(KL).map(([key, l]) => `<label class="f small">${l}<input type="number" min="0" name="${key}" value="${k[key] ?? ''}"></label>`).join('')}</div><button class="btn sm primary">Save targets</button></form>
+      <div class="card stack"><h3>Feature flags</h3><p class="tiny muted" style="margin:0">Unfinished or regulated divisions stay off until approved. Turning a division on does not build it; only switch on what is ready.</p>
+        <table class="tbl small">${F.map(f => `<tr><td><strong>${esc(f.division)}</strong><div class="tiny muted">${esc(f.description || '')}</div></td><td>Phase ${f.phase}</td><td><label class="check"><input type="checkbox" data-f="${f.key}" ${f.enabled ? 'checked' : ''}><span class="sr">Enabled</span></label></td></tr>`).join('')}</table></div>
+      <div class="card stack"><h3>Safety switches</h3><label class="check"><input type="checkbox" data-sx="require_mfa" ${get('require_mfa') === true ? 'checked' : ''}> <span>Require two-step verification for all staff (enrol yourself first under Team and security)</span></label>
+        <label class="check"><input type="checkbox" data-sx="show_test_data" ${get('show_test_data') === true ? 'checked' : ''}> <span>Show test businesses in public search (testing only; keep off in production)</span></label></div></div>`);
+    const save = (key, value) => q(sb.from('uv_settings').update({ value, updated_by: m.id, updated_at: new Date().toISOString() }).eq('key', key).select('key')).then(() => toast('Saved'), e => toast(e.message));
+    $('#cf').onsubmit = e => { e.preventDefault(); const d = formData(e.target); save('campaign', Object.assign({}, c, { pilot_target: +d.pilot_target, founding_target: +d.founding_target, approval_cap: +d.approval_cap, founding_open: e.target.founding_open.checked })); };
+    $('#kf').onsubmit = e => { e.preventDefault(); const d = formData(e.target); const v = { start_date: d.start_date, window_days: +d.window_days }; Object.keys(KL).forEach(key => { if (d[key] !== '') v[key] = +d[key]; }); save('kpi_targets', v); };
+    $$('[data-f]').forEach(i => i.onchange = async () => { if (i.checked && !await UV.confirmBox('Switch on ' + i.dataset.f + '?', 'Only switch on divisions that are built, tested and approved.', 'Switch on')) { i.checked = false; return; } await q(sb.from('uv_feature_flags').update({ enabled: i.checked, updated_at: new Date().toISOString() }).eq('key', i.dataset.f).select('key')).then(() => toast('Saved'), e => toast(e.message)); });
+    $$('[data-sx]').forEach(i => i.onchange = async () => { if (i.dataset.sx === 'require_mfa' && i.checked && m.aal !== 'aal2') { const { data } = await sb.auth.mfa.listFactors(); if (!(data.totp || []).some(f => f.status === 'verified')) { i.checked = false; return toast('Enrol two-step verification for your own account first.', 5000); } } save(i.dataset.sx, i.checked); });
+  }
+
+  // ---------- team and security ----------
+  async function team() {
+    const [staff, audit, fac] = await Promise.all([rpc('uv_staff_list'), q(sb.from('uv_audit').select('*').order('created_at', { ascending: false }).limit(100)), sb.auth.mfa.listFactors()]);
+    const mine = ((fac.data || {}).totp || []).filter(f => f.status === 'verified');
+    P(`<div class="grid g2"><div class="card stack"><h3>Team</h3><table class="tbl small"><tr><th>Email</th><th>Role</th><th>2-step</th></tr>${staff.map(s => `<tr><td>${esc(s.email)}</td><td>${esc(s.role)}</td><td>${s.mfa ? '<span class="chip ok tiny">on</span>' : '<span class="chip warn tiny">off</span>'}</td></tr>`).join('')}</table>
+        ${R === 'founder' ? `<form class="form" id="gf"><div class="two"><label class="f">Email of an existing account<input name="email" type="email" required></label><label class="f">Role<select name="role"><option>admin</option><option>editor</option><option>moderator</option><option>analyst</option><option>developer</option><option>support</option><option value="none">Remove access</option></select></label></div><button class="btn sm primary">Update access</button></form>` : ''}</div>
+      <div class="card stack"><h3>Your two-step verification</h3>${mine.length ? '<p class="okmsg">On. You will be asked for a code when you sign in.</p>' : '<p class="small muted">Protect Command with an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password).</p><button class="btn sm gold" id="enr">Set up two-step verification</button><div id="enrBox"></div>'}</div></div>
+      <div class="card" style="margin-top:16px"><h3>Audit log</h3><div class="scroll-x"><table class="tbl small"><tr><th>When</th><th>Action</th><th>Record</th><th>Detail</th></tr>${audit.map(a => `<tr><td>${esc(ago(a.created_at))}</td><td>${esc(a.action)}</td><td>${esc(a.entity)} ${esc((a.entity_id || '').slice(0, 8))}</td><td class="tiny muted" style="max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(JSON.stringify(a.details).slice(0, 200))}</td></tr>`).join('')}</table></div></div>`);
+    if ($('#gf')) $('#gf').onsubmit = async e => { e.preventDefault(); const d = formData(e.target); await rpc('uv_grant_role', { p_email: d.email, p_role: d.role }).then(() => { toast('Access updated'); team(); }, x => toast(x.message, 5000)); };
+    if ($('#enr')) $('#enr').onclick = async e => { const { data, error } = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'MRET Universe ' + Date.now() }); if (error) return toast(error.message);
+      $('#enrBox').innerHTML = `<p class="small">Scan this with your authenticator app, then enter the 6-digit code.</p><img src="${data.totp.qr_code}" alt="QR code for your authenticator app" style="width:180px;background:#fff;padding:8px;border-radius:8px"><p class="tiny muted">Or enter this key: ${esc(data.totp.secret)}</p><form class="row" id="vf"><input name="code" inputmode="numeric" maxlength="6" required style="max-width:140px"><button class="btn sm primary">Verify</button></form>`;
+      $('#vf').onsubmit = async ev => { ev.preventDefault(); const { error: er } = await sb.auth.mfa.challengeAndVerify({ factorId: data.id, code: formData(ev.target).code }); if (er) return toast('That code did not work.'); toast('Two-step verification is on'); team(); }; };
+  }
+
+  // ---------- AI assistant (prepared, switched off) ----------
+  async function assistant() {
+    const f = await UV.flags();
+    P(`<div class="card pad-lg stack"><h3>Founder AI assistant</h3>${f.ai_assistant ? '' : '<span class="chip">Switched off (phase 3)</span>'}
+      <p class="muted">The assistant will answer questions such as “Which industries are growing fastest?” or “What are entrepreneurs struggling with?” using only the aggregated, authorised figures shown in Command, with the reporting period and supporting numbers in every answer. It will not get direct database access.</p>
+      <p class="muted small">Before switching it on: choose a model provider, add its key as a Supabase Edge Function secret (never in this page), and approve the cost. Until then, the Overview, Intelligence and Labs tabs answer these questions with measured data.</p></div>`);
+  }
+  tabs(); rangeUi(); show();
+})();
+</script>
+</body>
+</html>

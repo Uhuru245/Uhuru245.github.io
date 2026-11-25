@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard · MRET Universe</title>
+<meta name="description" content="Manage your MRET Universe business home.">
+<meta property="og:title" content="Dashboard · MRET Universe"><meta property="og:description" content="Manage your MRET Universe business home."><meta property="og:site_name" content="MRET Universe">
+<meta name="theme-color" content="#0A0A0B">
+<link rel="icon" href="/universe/assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/universe/assets/uv.css">
+<script src="/universe/assets/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/universe/assets/uv.js"></script>
+</head>
+<body>
+<main id="main" class="wrap app">
+  <div class="app-head"><div class="grow"><div class="chips" id="bstat" style="margin-bottom:8px"></div><h1 id="bname">Dashboard</h1></div><div class="row" id="bacts"></div></div>
+  <div id="banner"></div>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div id="panel" class="stack"><div class="skel" style="height:300px"></div></div>
+</main>
+<script>
+(async () => {
+  const { $, $$, esc, num, url, rpc, q, sb, qs, ICON, busy, toast, formData, date, ago, founding, categories, PROVINCES, waLink, store } = UV;
+  let m = await UV.page({ nav: '', auth: true }); if (!m) return;
+  if (!m.email_confirmed) { $('#panel').innerHTML = `<div class="empty"><h3>Please confirm your email address.</h3><p>Open the link we emailed you, then come back.</p></div>`; return; }
+  if (!m.businesses.length) { $('#bname').textContent = 'Welcome' + (m.profile && m.profile.display_name ? ', ' + m.profile.display_name : ''); $('#tabs').remove();
+    $('#panel').innerHTML = `<div class="empty"><h3>You have not registered a business yet.</h3><p>Create your free business home and apply for the Founding 1,000.</p><a class="btn gold" href="${url('join/')}">Create my business home</a></div>
+      <div class="card" style="margin-top:16px"><h3>Account</h3><p class="muted small">Signed in as ${esc(m.email)}.</p><div class="row"><a class="btn sm" href="${url('labs/')}">Universe Labs</a><button class="btn sm" id="so">Sign out</button></div></div>`;
+    $('#so').onclick = async () => { await sb.auth.signOut(); location.href = url(); }; return; }
+  const cats = await categories();
+  let bid = qs.get('b') && m.businesses.find(x => x.id === qs.get('b')) ? qs.get('b') : (store.get('uv.biz', null) && m.businesses.find(x => x.id === store.get('uv.biz', null)) ? store.get('uv.biz', null) : m.businesses[0].id);
+  let B, D;   // B: private business row, D: dashboard numbers
+  const TABS = [['overview', 'Overview'], ['website', 'Website'], ['enquiries', 'Enquiries'], ['connect', 'Connect'], ['labs', 'Labs'], ['membership', 'Membership'], ['settings', 'Settings']];
+  const STATUS = { pending: ['warn', 'Awaiting MRET review'], waitlist: ['warn', 'On the waiting list'], approved: ['ok', 'Approved'], rejected: ['bad', 'Not approved'], suspended: ['bad', 'Suspended'] };
+
+  async function load() {
+    store.set('uv.biz', bid);
+    [B, D] = await Promise.all([q(sb.from('uv_businesses').select('*').eq('id', bid).single()), rpc('uv_dashboard', { p_business: bid })]);
+    const st = STATUS[B.status] || ['', B.status];
+    $('#bname').textContent = B.name;
+    $('#bstat').innerHTML = `<span class="chip ${st[0]}">${st[1]}</span> ${B.founding_no ? `<span class="chip gold">${ICON.star} ${founding(B.founding_no)}</span>` : ''} ${B.is_published ? '<span class="chip ok">Live</span>' : '<span class="chip">Not published</span>'}`;
+    $('#bacts').innerHTML = (m.businesses.length > 1 ? `<label class="sr" for="bsw">Business</label><select id="bsw" style="width:auto;min-height:38px">${m.businesses.map(x => `<option value="${x.id}" ${x.id === bid ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>` : '')
+      + (B.is_published ? `<a class="btn sm" href="${UV.bizUrl(B.slug)}" target="_blank">View live page</a>` : '') + (m.role ? `<a class="btn sm" href="${url('command/')}">Command</a>` : '');
+    if ($('#bsw')) $('#bsw').onchange = e => { bid = e.target.value; boot(); };
+    $('#banner').innerHTML = B.status === 'pending' ? `<div class="notice warn">Your application is with MRET for review. You can build your page now and publish as soon as you are approved.</div>`
+      : B.status === 'waitlist' ? `<div class="notice warn">The pilot community is full, so you are on the waiting list. Keep building your page; we will let you know when a place opens.</div>`
+      : B.status === 'rejected' ? `<div class="notice bad">Your application was not approved${B.review_note ? ': ' + esc(B.review_note) : '.'} Reply to us at ${esc(UV.C.supportEmail)} if you think this is a mistake.</div>`
+      : B.status === 'suspended' ? `<div class="notice bad">This business home is suspended${B.review_note ? ': ' + esc(B.review_note) : '.'}</div>`
+      : !B.is_published ? `<div class="notice ok row"><span class="grow">You are approved${B.founding_no ? ' as ' + founding(B.founding_no) : ''}. Publish your business home so customers can find you.</span><button class="btn sm gold" data-publish>Publish now</button></div>`
+      : D.unpublished_changes ? `<div class="notice row"><span class="grow">You have changes that are not live yet.</span><button class="btn sm gold" data-publish>Publish changes</button></div>` : '';
+    $$('[data-publish]').forEach(b => b.onclick = () => publish(b));
+  }
+  async function publish(btn) { await busy(btn, async () => { try { await rpc('uv_publish_business', { p_id: bid }); toast('Your business home is live'); m = await UV.me(true); await load(); show(cur); } catch (e) { toast(e.message, 5000); } }); }
+  let cur = (location.hash || '#overview').slice(1);
+  function tabs() {
+    $('#tabs').innerHTML = TABS.map(([k, l]) => `<button role="tab" aria-selected="${k === cur}" data-t="${k}">${l}${k === 'enquiries' && D.enquiries_open ? `<span class="n">${D.enquiries_open}</span>` : ''}${k === 'connect' && D.connections_in ? `<span class="n">${D.connections_in}</span>` : ''}</button>`).join('');
+    $$('#tabs button').forEach(b => b.onclick = () => { cur = b.dataset.t; history.replaceState(null, '', '#' + cur); tabs(); show(cur); });
+  }
+  async function boot() { await load(); tabs(); show(cur); }
+  function show(t) { ({ overview, website, enquiries, connect, labs, membership, settings }[t] || overview)(); }
+  const P = h => $('#panel').innerHTML = h;
+  const delta = (a, b) => b ? `<div class="d ${a >= b ? 'up' : 'down'}">${a >= b ? '▲' : '▼'} ${Math.abs(Math.round(100 * (a - b) / b))}% vs previous 30 days</div>` : '';
+
+  function overview() {
+    const todo = D.checklist.filter(c => !c.done);
+    P(`<div class="grid g4">
+      <div class="stat"><div class="v">${num(D.views)}</div><div class="l">Profile views · 30 days</div>${delta(D.views, D.views_prev)}</div>
+      <div class="stat"><div class="v">${num(D.appearances)}</div><div class="l">Search appearances</div></div>
+      <div class="stat"><div class="v">${num(D.enquiries)}</div><div class="l">Enquiries</div>${D.enquiries_open ? `<div class="d">${D.enquiries_open} waiting for a reply</div>` : ''}</div>
+      <div class="stat"><div class="v">${num(D.whatsapp)}</div><div class="l">WhatsApp clicks</div><div class="d muted">${num(D.calls)} calls, emails and website visits</div></div></div>
+      <div class="grid g2"><div class="card"><h3>Profile views</h3>${UV.spark(D.daily, 'views')}</div>
+      <div class="card stack"><div class="row"><h3 class="grow" style="margin:0">Profile strength</h3><strong>${D.completeness}%</strong></div><div class="meter"><i style="width:${D.completeness}%"></i></div>
+        ${todo.length ? `<p class="small muted" style="margin:0">Next steps that help customers choose you:</p><ul class="small" style="margin:0;padding-left:18px">${todo.slice(0, 5).map(c => `<li><a href="#website" data-go="website">${esc(c.label)}</a></li>`).join('')}</ul>` : '<p class="okmsg">Your profile is complete.</p>'}</div></div>
+      <div class="grid g3">
+        <div class="card"><h3>${D.enquiries_open ? `Reply to ${D.enquiries_open} enquir${D.enquiries_open === 1 ? 'y' : 'ies'}` : 'Enquiries'}</h3><p class="muted small">${D.enquiries_open ? 'Quick replies win work.' : 'New enquiries appear here and in the Enquiries tab.'}</p><button class="btn sm" data-go="enquiries">Open enquiries</button></div>
+        <div class="card"><h3>${D.connections_in ? `${D.connections_in} collaboration request${D.connections_in === 1 ? '' : 's'}` : 'Find collaborators'}</h3><p class="muted small">${num(D.connections)} connection${D.connections === 1 ? '' : 's'} so far.</p><button class="btn sm" data-go="connect">Open Connect</button></div>
+        <div class="card"><h3>Invite other entrepreneurs</h3><p class="muted small">${num(D.referrals)} business${D.referrals === 1 ? '' : 'es'} joined with your link.</p><button class="btn sm" data-go="membership">Get my link</button></div></div>`);
+    $$('[data-go]').forEach(a => a.onclick = e => { e.preventDefault(); cur = a.dataset.go; history.replaceState(null, '', '#' + cur); tabs(); show(cur); });
+  }
+
+  // ---------------- website editor ----------------
+  function website() {
+    const d = JSON.parse(JSON.stringify(B)); d.content = d.content || {}; const c = d.content;
+    const ORDER = ['about', 'services', 'products', 'gallery', 'team', 'faq', 'announcements', 'testimonials'];
+    const LABEL = { about: 'About and founder', services: 'Services', products: 'Products', gallery: 'Portfolio', team: 'Team', faq: 'Questions', announcements: 'News', testimonials: 'Customer words' };
+    c.order = (c.order && c.order.length ? c.order : ORDER).filter(k => ORDER.includes(k)); ORDER.forEach(k => { if (!c.order.includes(k)) c.order.push(k); });
+    const DAYS = [['mon', 'Mon'], ['tue', 'Tue'], ['wed', 'Wed'], ['thu', 'Thu'], ['fri', 'Fri'], ['sat', 'Sat'], ['sun', 'Sun'], ['pub', 'Public holidays']];
+    const LISTS = { services: [['name', 'Service'], ['description', 'Short description'], ['price', 'Price (optional), e.g. From R450']], products: [['name', 'Product'], ['description', 'Short description'], ['price', 'Price (optional)'], ['image', 'image']],
+      team: [['name', 'Name'], ['role', 'Role'], ['photo', 'image']], faq: [['q', 'Question'], ['a', 'Answer', 'area']], announcements: [['title', 'Title'], ['body', 'Text', 'area'], ['date', 'Date', 'date']], testimonials: [['quote', 'What the customer said', 'area'], ['name', 'Customer name']] };
+    P(`<div class="editor"><div class="stack" id="ed">
+      <details class="card" open><summary><h3 style="display:inline">Basics</h3></summary><div class="form" style="margin-top:14px">
+        <label class="f">Business name<input data-k="name" maxlength="90" value="${esc(d.name)}"></label>
+        <label class="f">Tagline<input data-k="tagline" maxlength="140" value="${esc(d.tagline || '')}"></label>
+        <label class="f">About your business <span class="hint">What you do, who you serve, what makes you different.</span><textarea data-k="description" maxlength="4000" rows="6">${esc(d.description || '')}</textarea></label>
+        <div class="two"><label class="f">Industry<select data-k="category_id">${cats.map(x => `<option value="${x.slug}">${esc(x.name)}</option>`).join('')}</select></label><label class="f">Year started<input data-k="founded_year" type="number" min="1900" max="2100" value="${esc(d.founded_year || '')}"></label></div></div></details>
+      <details class="card"><summary><h3 style="display:inline">Look and feel</h3></summary><div class="form" style="margin-top:14px">
+        <div class="two"><label class="f">Template<select data-k="template"><option value="classic">Classic</option><option value="editorial">Editorial</option><option value="bold">Bold</option></select></label><label class="f">Brand colour<input type="color" data-k="brand_color" value="${esc(d.brand_color || '#C6A66A')}"></label></div>
+        <div class="two"><div class="f">Logo<div class="thumbs" id="logoT"></div><input type="file" accept="image/*" data-up="logo_url"></div><div class="f">Cover image<div class="thumbs" id="coverT"></div><input type="file" accept="image/*" data-up="cover_url"></div></div></div></details>
+      <details class="card"><summary><h3 style="display:inline">Contact and location</h3></summary><div class="form" style="margin-top:14px">
+        <div class="two"><label class="f">WhatsApp<input data-k="whatsapp" type="tel" maxlength="20" value="${esc(d.whatsapp || '')}"></label><label class="f">Phone<input data-k="phone" type="tel" maxlength="20" value="${esc(d.phone || '')}"></label></div>
+        <div class="two"><label class="f">Email<input data-k="email" type="email" value="${esc(d.email || '')}"></label><label class="f">Website<input data-k="website" type="url" value="${esc(d.website || '')}"></label></div>
+        <label class="f">Booking link <span class="hint">Optional, e.g. your Calendly or booking page</span><input data-c="booking_url" type="url" value="${esc(c.booking_url || '')}"></label>
+        <div class="two"><label class="f">Province<select data-k="province"><option value="">Choose…</option>${PROVINCES.map(p => `<option>${p}</option>`).join('')}</select></label><label class="f">City or town<input data-k="city" value="${esc(d.city || '')}"></label></div>
+        <label class="f">Suburb<input data-k="suburb" value="${esc(d.suburb || '')}"></label>
+        <label class="f">Areas you serve <span class="hint">Separate with commas</span><input data-k="service_areas" value="${esc((d.service_areas || []).join(', '))}"></label>
+        <div class="two">${['facebook', 'instagram', 'tiktok', 'linkedin', 'youtube', 'x'].map(s => `<label class="f">${s === 'x' ? 'X' : s[0].toUpperCase() + s.slice(1)}<input data-s="${s}" type="url" placeholder="https://" value="${esc((d.socials || {})[s] || '')}"></label>`).join('')}</div></div></details>
+      <details class="card"><summary><h3 style="display:inline">Operating hours</h3></summary><div class="form" style="margin-top:14px"><p class="small muted" style="margin:0">For example “08:00 to 17:00” or “Closed”. Leave a day empty to hide it.</p>
+        <div class="two">${DAYS.map(([k, l]) => `<label class="f">${l}<input data-h="${k}" value="${esc((d.hours || {})[k] || '')}"></label>`).join('')}</div></div></details>
+      ${['services', 'products'].map(k => `<details class="card"><summary><h3 style="display:inline">${LABEL[k]}</h3></summary><div class="listed" data-list="${k}" style="margin-top:14px"></div><button class="btn sm" data-add="${k}" style="margin-top:10px">Add ${k === 'services' ? 'a service' : 'a product'}</button></details>`).join('')}
+      <details class="card"><summary><h3 style="display:inline">Portfolio images</h3></summary><div class="thumbs" id="galT" style="margin-top:14px"></div><input type="file" accept="image/*" multiple id="galUp" style="margin-top:10px"></details>
+      <details class="card"><summary><h3 style="display:inline">Founder and team</h3></summary><div class="form" style="margin-top:14px">
+        <label class="f">Founder name<input data-f="name" value="${esc((c.founder || {}).name || '')}"></label><label class="f">Founder story<textarea data-f="bio" rows="4">${esc((c.founder || {}).bio || '')}</textarea></label>
+        <div class="f">Founder photo<div class="thumbs" id="fndT"></div><input type="file" accept="image/*" id="fndUp"></div></div>
+        <div class="listed" data-list="team" style="margin-top:14px"></div><button class="btn sm" data-add="team" style="margin-top:10px">Add a team member</button></details>
+      ${['faq', 'announcements', 'testimonials'].map(k => `<details class="card"><summary><h3 style="display:inline">${LABEL[k]}</h3></summary>${k === 'testimonials' ? '<p class="small muted" style="margin:10px 0 0">Only add words your customers really said, with their permission.</p>' : ''}<div class="listed" data-list="${k}" style="margin-top:14px"></div><button class="btn sm" data-add="${k}" style="margin-top:10px">Add</button></details>`).join('')}
+      <details class="card"><summary><h3 style="display:inline">Section order</h3></summary><div class="listed" id="ord" style="margin-top:14px"></div></details>
+      <div class="card row" style="position:sticky;bottom:12px;z-index:5;box-shadow:var(--shadow)"><span class="small muted grow" id="saveMsg">Changes are saved as a draft until you publish.</span><button class="btn" id="save">Save draft</button><button class="btn gold" id="pub" ${B.status !== 'approved' ? 'disabled title="Available once MRET approves your business"' : ''}>Save and publish</button></div>
+      </div>
+      <div class="pv"><div class="row" style="margin-bottom:10px"><strong class="grow">Live preview</strong><div class="chips"><button class="chip" aria-pressed="true" data-pv="desk">Desktop</button><button class="chip" aria-pressed="false" data-pv="mobile">Phone</button></div></div>
+        <div class="pv-frame" id="pvf"><iframe id="pv" title="Preview of your business home" src="${url('business/?preview=1')}"></iframe></div></div></div>`);
+    const ed = $('#ed');
+    $('[data-k="category_id"]', ed).value = (cats.find(x => x.id === d.category_id) || {}).slug || (B._catslug) || '';
+    // categories in this list carry slugs; map ids lazily
+    const catBySlug = {}; let catsFull; q(sb.from('uv_categories').select('id,slug,name')).then(r => { catsFull = r; r.forEach(x => catBySlug[x.slug] = x); const cs = r.find(x => x.id === d.category_id); if (cs) $('[data-k="category_id"]', ed).value = cs.slug; push(); });
+    $('[data-k="template"]', ed).value = d.template || 'classic'; $('[data-k="province"]', ed).value = d.province || '';
+    let dirty = false, pt;
+    const snapshot = () => { const cs = catsFull && catsFull.find(x => x.id === d.category_id); return Object.assign({}, d, { category: cs ? { slug: cs.slug, name: cs.name } : null, verified: B.verified, founding_no: B.founding_no, founding_at: B.founding_at, similar: [], complementary: [] }); };
+    const push = () => { clearTimeout(pt); pt = setTimeout(() => $('#pv').contentWindow && $('#pv').contentWindow.postMessage({ type: 'uv-preview', data: snapshot() }, location.origin), 120); };
+    window.addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.type === 'uv-preview-ready') push(); });
+    const changed = () => { dirty = true; $('#saveMsg').textContent = 'Unsaved changes'; push(); };
+    ed.addEventListener('input', e => { const t = e.target;
+      if (t.dataset.k) { let v = t.value; if (t.dataset.k === 'service_areas') v = v.split(',').map(s => s.trim()).filter(Boolean).slice(0, 30); else if (t.dataset.k === 'category_id') v = catBySlug[v] ? catBySlug[v].id : d.category_id; else if (t.dataset.k === 'founded_year') v = v ? +v : null; else v = v.trim() === '' ? null : v; d[t.dataset.k] = v; }
+      else if (t.dataset.c) c[t.dataset.c] = t.value.trim() || null;
+      else if (t.dataset.s) { d.socials = Object.assign({}, d.socials); if (t.value.trim()) d.socials[t.dataset.s] = t.value.trim(); else delete d.socials[t.dataset.s]; }
+      else if (t.dataset.h) { d.hours = Object.assign({}, d.hours); if (t.value.trim()) d.hours[t.dataset.h] = t.value.trim(); else delete d.hours[t.dataset.h]; }
+      else if (t.dataset.f) { c.founder = Object.assign({}, c.founder); c.founder[t.dataset.f] = t.value; }
+      else if (t.dataset.li) { const [k, i, f] = t.dataset.li.split(':'); c[k][+i][f] = t.value; }
+      else return; changed(); });
+    const thumb = (u, rm) => `<figure><img src="${esc(u)}" alt=""><button class="iconbtn" style="width:26px;height:26px" data-rm="${rm}" aria-label="Remove">${ICON.x}</button></figure>`;
+    function thumbs() { $('#logoT').innerHTML = d.logo_url ? thumb(d.logo_url, 'logo_url') : ''; $('#coverT').innerHTML = d.cover_url ? thumb(d.cover_url, 'cover_url') : '';
+      $('#galT').innerHTML = (c.gallery || []).map((g, i) => thumb(g.url, 'gal:' + i)).join(''); $('#fndT').innerHTML = c.founder && c.founder.photo ? thumb(c.founder.photo, 'fnd') : ''; }
+    ed.addEventListener('click', e => { const r = e.target.closest('[data-rm]'); if (!r) return; e.preventDefault(); const k = r.dataset.rm;
+      if (k.startsWith('gal:')) c.gallery.splice(+k.slice(4), 1); else if (k === 'fnd') delete c.founder.photo; else if (k.startsWith('li:')) { const [, lk, i, f] = k.split(':'); delete c[lk][+i][f]; lists(); } else d[k] = null; thumbs(); changed(); });
+    const up = async (file, max) => { $('#saveMsg').textContent = 'Uploading…'; try { return await UV.upload('b/' + bid, file, max); } catch (x) { toast(x.message, 5000); return null; } finally { $('#saveMsg').textContent = 'Unsaved changes'; } };
+    $$('[data-up]', ed).forEach(inp => inp.onchange = async () => { const f = inp.files[0]; if (!f) return; const u = await up(f, inp.dataset.up === 'logo_url' ? 600 : 1800); if (u) { d[inp.dataset.up] = u; thumbs(); changed(); } inp.value = ''; });
+    $('#galUp').onchange = async e => { c.gallery = c.gallery || []; for (const f of Array.from(e.target.files).slice(0, 12 - c.gallery.length)) { const u = await up(f, 1600); if (u) c.gallery.push({ url: u }); thumbs(); } changed(); e.target.value = ''; };
+    $('#fndUp').onchange = async e => { const f = e.target.files[0]; if (!f) return; const u = await up(f, 600); if (u) { c.founder = Object.assign({}, c.founder, { photo: u }); thumbs(); changed(); } e.target.value = ''; };
+    function lists() { $$('[data-list]', ed).forEach(box => { const k = box.dataset.list; c[k] = c[k] || [];
+      box.innerHTML = c[k].map((it, i) => `<div class="it">${LISTS[k].map(([f, l, type]) => type === 'image' || l === 'image' ? `<div class="row">${it[f] ? `<div class="thumbs">${thumb(it[f], 'li:' + k + ':' + i + ':' + f)}</div>` : ''}<label class="btn sm">Add photo<input type="file" accept="image/*" class="sr" data-liup="${k}:${i}:${f}"></label></div>`
+        : type === 'area' ? `<textarea rows="3" placeholder="${l}" data-li="${k}:${i}:${f}">${esc(it[f] || '')}</textarea>` : `<input ${type === 'date' ? 'type="date"' : ''} placeholder="${l}" data-li="${k}:${i}:${f}" value="${esc(it[f] || '')}">`).join('')}
+        <div class="row"><button class="btn sm ghost" data-mv="${k}:${i}:-1" aria-label="Move up">↑</button><button class="btn sm ghost" data-mv="${k}:${i}:1" aria-label="Move down">↓</button><button class="btn sm ghost danger right" data-del="${k}:${i}">Remove</button></div></div>`).join('') || '<p class="small muted" style="margin:0">Nothing added yet.</p>'; });
+      $$('[data-liup]', ed).forEach(inp => inp.onchange = async () => { const [k, i, f] = inp.dataset.liup.split(':'); const u = await up(inp.files[0], 900); if (u) { c[k][+i][f] = u; lists(); changed(); } }); }
+    ed.addEventListener('click', e => { const a = e.target.closest('[data-add],[data-del],[data-mv],[data-om]'); if (!a) return; e.preventDefault();
+      if (a.dataset.add) { const k = a.dataset.add; c[k] = c[k] || []; if (c[k].length >= 40) return; c[k].push(k === 'announcements' ? { date: new Date().toISOString().slice(0, 10) } : {}); }
+      else if (a.dataset.del) { const [k, i] = a.dataset.del.split(':'); c[k].splice(+i, 1); }
+      else if (a.dataset.mv) { const [k, i, s] = a.dataset.mv.split(':'); const j = +i + +s; if (j < 0 || j >= c[k].length) return; [c[k][i], c[k][j]] = [c[k][j], c[k][i]]; }
+      else if (a.dataset.om) { const [i, s] = a.dataset.om.split(':').map(Number); const j = i + s; if (j < 0 || j >= c.order.length) return; [c.order[i], c.order[j]] = [c.order[j], c.order[i]]; order(); changed(); return; }
+      lists(); changed(); });
+    function order() { $('#ord').innerHTML = c.order.map((k, i) => `<div class="row it" style="padding:8px 12px"><span class="grow">${LABEL[k]}</span><button class="btn sm ghost" data-om="${i}:-1" aria-label="Move up">↑</button><button class="btn sm ghost" data-om="${i}:1" aria-label="Move down">↓</button></div>`).join(''); }
+    $$('[data-pv]').forEach(b => b.onclick = () => { $$('[data-pv]').forEach(x => x.setAttribute('aria-pressed', x === b)); $('#pvf').classList.toggle('mobile', b.dataset.pv === 'mobile'); });
+    thumbs(); lists(); order();
+    const clean = () => { ['services', 'products', 'team', 'faq', 'announcements', 'testimonials'].forEach(k => c[k] = (c[k] || []).filter(x => Object.values(x).some(v => v && String(v).trim()))); c.gallery = (c.gallery || []).slice(0, 24); };
+    async function save() { clean();
+      const fields = ['name', 'tagline', 'description', 'category_id', 'founded_year', 'template', 'brand_color', 'logo_url', 'cover_url', 'whatsapp', 'phone', 'email', 'website', 'province', 'city', 'suburb', 'service_areas', 'socials', 'hours'];
+      const row = { content: c }; fields.forEach(f => row[f] = d[f] === undefined ? null : d[f]); if (!row.name || row.name.length < 2) throw new Error('Your business needs a name.');
+      if (row.website && !UV.safeUrl(row.website)) throw new Error('Please check the website address.');
+      await q(sb.from('uv_businesses').update(row).eq('id', bid).select('id')); dirty = false; $('#saveMsg').textContent = 'Draft saved ' + new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' }); }
+    $('#save').onclick = e => busy(e.target, async () => { try { await save(); B = Object.assign(B, d); D = await rpc('uv_dashboard', { p_business: bid }); } catch (x) { toast(x.message, 5000); } });
+    $('#pub').onclick = e => busy(e.target, async () => { try { await save(); await rpc('uv_publish_business', { p_id: bid }); toast('Published. Your page is live.'); await load(); } catch (x) { toast(x.message, 5000); } });
+    window.onbeforeunload = () => dirty ? true : undefined;
+  }
+
+  // ---------------- enquiries ----------------
+  async function enquiries() {
+    P('<div class="skel" style="height:200px"></div>');
+    const rows = await q(sb.from('uv_enquiries').select('*').eq('business_id', bid).order('created_at', { ascending: false }).limit(200));
+    const ST = { new: 'warn', read: '', replied: 'ok', archived: '' };
+    P(rows.length ? `<div class="stack">${rows.map(r => `<div class="card ${r.status === 'archived' ? 'muted' : ''}"><div class="row"><strong>${esc(r.name)}</strong><span class="chip ${ST[r.status]}">${r.status}</span><span class="tiny muted right">${esc(ago(r.created_at))}</span></div>
+      <p style="margin:10px 0;white-space:pre-wrap">${esc(r.message)}</p><div class="row">${r.email ? `<a class="btn sm" href="mailto:${esc(r.email)}?subject=${encodeURIComponent('Your enquiry to ' + B.name)}" data-rep="${r.id}">${ICON.mail} Reply by email</a>` : ''}
+      ${r.phone ? `<a class="btn sm" href="${waLink(r.phone, 'Hi ' + r.name + ', thank you for your enquiry to ' + B.name + '.')}" target="_blank" data-rep="${r.id}">${ICON.wa} WhatsApp</a><a class="btn sm ghost" href="tel:${esc(r.phone)}">${esc(r.phone)}</a>` : ''}
+      <span class="right"></span>${r.status !== 'replied' ? `<button class="btn sm ghost" data-st="${r.id}:replied">Mark replied</button>` : ''}${r.status !== 'archived' ? `<button class="btn sm ghost" data-st="${r.id}:archived">Archive</button>` : ''}</div></div>`).join('')}</div>`
+      : `<div class="empty"><h3>No enquiries yet.</h3><p>When customers contact you through your page, their messages appear here.${B.is_published ? '' : ' Publish your page to start receiving enquiries.'}</p></div>`);
+    const setSt = async (id, s) => { await q(sb.from('uv_enquiries').update({ status: s }).eq('id', id).select('id')).catch(e => toast(e.message)); D = await rpc('uv_dashboard', { p_business: bid }); tabs(); };
+    rows.filter(r => r.status === 'new').forEach(r => setSt(r.id, 'read'));
+    $$('[data-st]').forEach(b => b.onclick = async () => { const [id, s] = b.dataset.st.split(':'); await setSt(id, s); enquiries(); });
+    $$('[data-rep]').forEach(a => a.addEventListener('click', () => setSt(a.dataset.rep, 'replied')));
+  }
+
+  // ---------------- connect ----------------
+  async function connect() {
+    P('<div class="skel" style="height:200px"></div>');
+    const [cons, recs] = await Promise.all([rpc('uv_connections_for', { p_business: bid }), B.status === 'approved' ? rpc('uv_recommend', { p_business: bid }) : Promise.resolve([])]);
+    const KIND = { connect: 'Connection', collaboration: 'Collaboration', referral: 'Referral partnership', supplier: 'Supplier' };
+    const inc = cons.filter(c => c.direction === 'in' && c.status === 'pending'), acc = cons.filter(c => c.status === 'accepted'), out = cons.filter(c => c.direction === 'out' && c.status === 'pending');
+    const item = c => `<div class="card"><div class="row"><a href="${UV.bizUrl(c.other.slug)}" target="_blank"><strong>${esc(c.other.name)}</strong></a><span class="chip">${KIND[c.kind]}</span><span class="tiny muted right">${esc(ago(c.created_at))}</span></div>
+      <p class="small muted" style="margin:6px 0">${esc(c.other.category ? c.other.category.name : '')}${c.other.city ? ' · ' + esc(c.other.city) : ''}</p>${c.message ? `<p style="white-space:pre-wrap">${esc(c.message)}</p>` : ''}
+      ${c.status === 'accepted' ? `<div class="row">${c.other.whatsapp ? `<a class="btn sm" target="_blank" href="${waLink(c.other.whatsapp)}">${ICON.wa} WhatsApp</a>` : ''}${c.other.phone ? `<a class="btn sm" href="tel:${esc(c.other.phone)}">${ICON.phone} Call</a>` : ''}${c.other.email ? `<a class="btn sm" href="mailto:${esc(c.other.email)}">${ICON.mail} Email</a>` : ''}<button class="btn sm ghost right" data-out="${c.id}">${c.outcome ? 'Update result' : 'Report a result'}</button></div>${c.outcome ? `<p class="small okmsg" style="margin-top:8px">Result: ${esc(c.outcome)}</p>` : ''}`
+        : c.direction === 'in' ? `<div class="row"><button class="btn sm gold" data-ac="${c.id}:accept">Accept</button><button class="btn sm" data-ac="${c.id}:decline">Decline</button><button class="btn sm ghost right" data-blk="${c.other.slug}">Block</button></div>` : `<button class="btn sm ghost" data-ac="${c.id}:withdraw">Withdraw</button>`}</div>`;
+    P(`${B.status !== 'approved' ? '<div class="notice warn">You can send collaboration requests once MRET approves your business.</div>' : ''}
+      ${inc.length ? `<h2 style="font-size:26px">Requests for you</h2><div class="grid g2">${inc.map(item).join('')}</div>` : ''}
+      <h2 style="font-size:26px;margin-top:20px">Your connections</h2>${acc.length ? `<div class="grid g2">${acc.map(item).join('')}</div>` : '<p class="muted">No connections yet. Contact details are shared only after both businesses agree.</p>'}
+      ${out.length ? `<h2 style="font-size:26px;margin-top:20px">Waiting for a reply</h2><div class="grid g2">${out.map(item).join('')}</div>` : ''}
+      <h2 style="font-size:26px;margin-top:20px">Suggested for you</h2><p class="muted small">Businesses whose services complement yours, nearest first.</p>
+      ${recs.length ? `<div class="grid g3">${recs.map(r => `<div class="card stack"><a href="${UV.bizUrl(r.slug)}" target="_blank"><strong>${esc(r.name)}</strong></a><p class="small muted" style="margin:0">${esc(r.category ? r.category.name : '')}${r.city ? ' · ' + esc(r.city) : ''}</p><p class="small" style="margin:0">${esc(r.reason)}</p><button class="btn sm" data-cn="${esc(r.slug)}" data-nm="${esc(r.name)}">Propose a collaboration</button></div>`).join('')}</div>` : '<p class="muted">Suggestions appear as more businesses join.</p>'}
+      <p style="margin-top:16px"><a class="btn sm" href="${url('connect/')}">Search all businesses</a></p>`);
+    $$('[data-ac]').forEach(b => b.onclick = () => busy(b, async () => { const [id, a] = b.dataset.ac.split(':'); try { await rpc('uv_respond_connection', { p_id: id, p_action: a }); toast(a === 'accept' ? 'Connected. Contact details are now shared.' : 'Done'); D = await rpc('uv_dashboard', { p_business: bid }); tabs(); connect(); } catch (e) { toast(e.message); } }));
+    $$('[data-cn]').forEach(b => b.onclick = () => connectDialog(b.dataset.cn, b.dataset.nm, connect));
+    $$('[data-blk]').forEach(b => b.onclick = async () => { if (!await UV.confirmBox('Block this business?', 'They will not be able to send you requests, and you will not see them in suggestions.', 'Block')) return;
+      const t = await rpc('uv_business_public', { p_slug: b.dataset.blk }); await q(sb.from('uv_blocks').insert({ business_id: bid, blocked_business: t.id }).select()).catch(e => toast(e.message));
+      const c = cons.find(x => x.other.slug === b.dataset.blk && x.status === 'pending'); if (c) await rpc('uv_respond_connection', { p_id: c.id, p_action: 'decline' }).catch(() => {}); connect(); });
+    $$('[data-out]').forEach(b => b.onclick = () => { const d = UV.dialog('Report a collaboration result', `<form class="form" id="of"><p class="muted small">Optional. It helps MRET measure the real value of collaboration. Only MRET sees this.</p><label class="f">What happened?<textarea name="outcome" maxlength="1000" placeholder="e.g. We did two weddings together"></textarea></label><label class="f">Approximate value<select name="band"><option value="">Prefer not to say</option><option value="under_5k">Under R5,000</option><option value="5k_20k">R5,000 to R20,000</option><option value="20k_100k">R20,000 to R100,000</option><option value="over_100k">Over R100,000</option></select></label><button class="btn primary">Save</button></form>`);
+      UV.$('#of', d).onsubmit = async e => { e.preventDefault(); const f = formData(e.target); await rpc('uv_respond_connection', { p_id: b.dataset.out, p_action: 'outcome', p_outcome: f.outcome, p_value_band: f.band || null }).catch(x => toast(x.message)); d.close(); connect(); }; });
+  }
+  function connectDialog(slug, name, after) {
+    const d = UV.dialog('Contact ' + name, `<form class="form" id="cf"><label class="f">What would you like?<select name="kind"><option value="collaboration">Collaborate on work together</option><option value="referral">Refer customers to each other</option><option value="supplier">Buy from or supply to them</option><option value="connect">Simply connect</option></select></label>
+      <label class="f">Message<textarea name="message" required maxlength="1000" placeholder="Introduce your business and what you have in mind."></textarea></label><p class="tiny muted">They see your business name and message. Phone numbers and emails are shared only if they accept.</p><p class="err" id="ce"></p><button class="btn primary">Send request</button></form>`);
+    UV.$('#cf', d).onsubmit = async e => { e.preventDefault(); const f = formData(e.target); await busy(e.submitter, async () => { try { await rpc('uv_connect', { p_from: bid, p_to_slug: slug, p_kind: f.kind, p_message: f.message }); d.close(); toast('Request sent'); after && after(); } catch (x) { UV.$('#ce', d).textContent = x.message; } }); };
+  }
+
+  // ---------------- labs ----------------
+  async function labs() {
+    const mine = await rpc('uv_problems_list', { p_sort: 'new', p_mine: true }).catch(() => []);
+    P(`<div class="row"><p class="muted grow" style="margin:0">Problems you have told MRET about, and where they are in the Labs pipeline.</p><a class="btn gold" href="${url('labs/?new=1')}">Submit a problem</a></div>
+      ${mine.length ? `<div class="stack" style="margin-top:14px">${mine.map(p => `<div class="card"><div class="row"><strong class="grow">${esc(p.title)}</strong><span class="chip gold">${esc(p.stage.replace('_', ' '))}</span></div><p class="small muted">${num(p.same_count)} others have this problem · ${num(p.interest_count)} would use a solution · ${num(p.beta_count)} want to beta test</p></div>`).join('')}</div>` : '<div class="empty" style="margin-top:14px"><h3>No problems submitted yet.</h3><p>What takes too much of your time? Bookings, invoicing, marketing? Tell us.</p></div>'}`);
+  }
+
+  // ---------------- membership ----------------
+  function membership() {
+    const ref = UV.C.site + url('join/?ref=' + D.referral_code + '&utm_source=referral&utm_medium=member');
+    const page = UV.C.site + UV.bizUrl(B.slug);
+    P(`<div class="grid g2"><div class="card stack"><h3>Membership</h3><dl class="kv"><dt>Status</dt><dd>${esc((STATUS[B.status] || [, B.status])[1])}</dd><dt>Founding number</dt><dd>${B.founding_no ? 'No. ' + String(B.founding_no).padStart(4, '0') : B.status === 'approved' ? 'Founding places were full when you were approved' : 'Assigned on approval'}</dd>
+        <dt>Joined</dt><dd>${esc(date(B.created_at))}</dd><dt>Verification</dt><dd>${B.verified ? 'Verified by MRET' : 'Not yet verified'}</dd><dt>Plan</dt><dd>Free (basic business home)</dd></dl>
+        ${B.founding_no && B.is_published ? `<a class="btn gold" href="${url('founding-1000/?cert=' + B.slug)}">${ICON.star} View certificate</a>` : B.founding_no ? '<p class="small muted">Publish your page to unlock your certificate.</p>' : ''}</div>
+      <div class="card stack"><h3>Invite other entrepreneurs</h3><p class="muted small">Share your personal link. ${num(D.referrals)} business${D.referrals === 1 ? ' has' : 'es have'} joined with it.</p>
+        <input readonly value="${esc(ref)}" id="refl"><div class="row"><button class="btn sm" id="cpy">Copy link</button><a class="btn sm" target="_blank" href="https://wa.me/?text=${encodeURIComponent('I have a free business home on MRET Universe. Join the Founding 1,000: ' + ref)}">${ICON.wa} Share on WhatsApp</a></div></div>
+      <div class="card stack"><h3>Your page QR code</h3><p class="muted small">Print it on flyers, business cards or your counter.</p><div id="qr" style="background:#fff;padding:12px;border-radius:10px;width:max-content"></div><div class="row"><button class="btn sm" id="qdl">Download QR</button><a class="btn sm ghost" href="${page}" target="_blank">${esc(page.replace('https://', ''))}</a></div></div></div>`);
+    $('#cpy').onclick = async () => { try { await navigator.clipboard.writeText(ref); toast('Link copied'); } catch (e) { $('#refl').select(); } };
+    UV.qr($('#qr'), page + '?utm_source=qr&utm_medium=print', 200).catch(() => {});
+    $('#qdl').onclick = () => { const i = $('#qr img') || $('#qr canvas'); const a = document.createElement('a'); a.download = B.slug + '-qr.png'; a.href = i.src || i.toDataURL(); a.click(); };
+  }
+
+  // ---------------- settings and privacy ----------------
+  async function settings() {
+    const [reqs, nl] = await Promise.all([q(sb.from('uv_privacy_requests').select('*').order('created_at', { ascending: false })).catch(() => []), rpc('uv_my_newsletter', { p_on: null }).catch(() => null)]);
+    P(`<div class="grid g2"><form class="card form" id="pf"><h3>Your profile</h3><label class="f">Display name<input name="display_name" maxlength="80" value="${esc((m.profile || {}).display_name || '')}"></label><p class="small muted" style="margin:0">Signed in as ${esc(m.email)}</p><button class="btn sm">Save</button></form>
+      <form class="card form" id="pw"><h3>Password</h3><label class="f">New password<input name="password" type="password" minlength="8" required autocomplete="new-password"></label><button class="btn sm">Change password</button></form>
+      <div class="card stack"><h3>Communication</h3><label class="check"><input type="checkbox" id="nl" ${nl === 'active' ? 'checked' : ''}> <span>Send me The Universe Times</span></label>
+        <label class="check"><input type="checkbox" id="an" ${store.get('uv.analytics', true) !== false ? 'checked' : ''}> <span>Help improve MRET Universe with anonymous usage statistics on this device</span></label>
+        <p class="tiny muted">Service messages about your account and enquiries are sent regardless; marketing is always optional.</p></div>
+      <div class="card stack"><h3>Your data</h3><p class="small muted">Download everything MRET Universe holds about your account and businesses, or ask us to correct or delete it.</p>
+        <div class="row"><button class="btn sm" id="exp">Download my data</button><button class="btn sm" data-pr="correction">Request a correction</button><button class="btn sm danger" data-pr="deletion">Delete my account</button></div>
+        ${reqs.length ? `<table class="tbl small"><tr><th>Request</th><th>Status</th><th>Date</th></tr>${reqs.map(r => `<tr><td>${esc(r.kind)}</td><td>${esc(r.status)}${r.response ? `<div class="tiny muted">${esc(r.response)}</div>` : ''}</td><td>${esc(date(r.created_at))}</td></tr>`).join('')}</table>` : ''}</div>
+      <div class="card stack"><h3>Business page</h3><p class="small muted">Take your page offline at any time. You can publish it again later.</p><div class="row">${B.is_published ? '<button class="btn sm" id="unp">Unpublish page</button>' : ''}<a class="btn sm" href="${url('join/')}">Register another business</a></div>
+        <p class="tiny muted">Team members: inviting colleagues to manage this page arrives in the next release.</p></div>
+      <div class="card stack"><h3>Session</h3><button class="btn sm" id="so">Sign out</button></div></div>`);
+    $('#pf').onsubmit = async e => { e.preventDefault(); await busy(e.submitter, async () => { await q(sb.from('uv_profiles').update({ display_name: formData(e.target).display_name || null }).eq('id', m.id).select('id')).then(() => toast('Saved'), x => toast(x.message)); m = await UV.me(true); }); };
+    $('#pw').onsubmit = async e => { e.preventDefault(); await busy(e.submitter, async () => { const { error } = await sb.auth.updateUser({ password: formData(e.target).password }); toast(error ? error.message : 'Password changed'); e.target.reset(); }); };
+    $('#nl').onchange = async e => { await rpc('uv_my_newsletter', { p_on: e.target.checked }).then(() => toast(e.target.checked ? 'Subscribed' : 'Unsubscribed'), x => toast(x.message)); };
+    $('#an').onchange = e => { store.set('uv.analytics', e.target.checked ? null : false); toast('Saved on this device'); };
+    $('#exp').onclick = e => busy(e.target, async () => { const data = await rpc('uv_my_data'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); a.download = 'mret-universe-my-data.json'; a.click(); });
+    $$('[data-pr]').forEach(b => b.onclick = () => { const k = b.dataset.pr; const d = UV.dialog(k === 'deletion' ? 'Delete my account' : 'Request a correction', `<form class="form" id="prf"><p class="small muted">${k === 'deletion' ? 'MRET will remove your account, business pages and personal information, except records we must keep by law. We confirm by email within 30 days.' : 'Tell us what is wrong and what it should say.'}</p><label class="f">Details<textarea name="details" maxlength="2000" ${k === 'correction' ? 'required' : ''}></textarea></label><button class="btn ${k === 'deletion' ? 'danger' : 'primary'}">Send request</button></form>`);
+      UV.$('#prf', d).onsubmit = async e => { e.preventDefault(); await q(sb.from('uv_privacy_requests').insert({ user_id: m.id, kind: k, details: formData(e.target).details || null }).select('id')).then(() => { d.close(); toast('Request received'); settings(); }, x => toast(x.message)); }; });
+    if ($('#unp')) $('#unp').onclick = async e => { if (!await UV.confirmBox('Unpublish your page?', 'Customers will no longer find your business home until you publish again.', 'Unpublish')) return; await rpc('uv_unpublish_business', { p_id: bid }); toast('Page unpublished'); await load(); settings(); };
+    $('#so').onclick = async () => { await sb.auth.signOut(); location.href = url(); };
+  }
+  boot().catch(e => P(`<div class="notice bad">${esc(e.message)}</div>`));
+})();
+</script>
+</body>
+</html>

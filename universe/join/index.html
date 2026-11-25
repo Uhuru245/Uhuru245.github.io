@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Join the Founding 1,000 · MRET Universe</title>
+<meta name="description" content="Create a free digital business home on MRET Universe.">
+<meta property="og:title" content="Join the Founding 1,000 · MRET Universe"><meta property="og:description" content="Create a free digital business home on MRET Universe."><meta property="og:site_name" content="MRET Universe">
+<meta name="theme-color" content="#0A0A0B">
+<link rel="icon" href="/universe/assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/universe/assets/uv.css">
+<script src="/universe/assets/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/universe/assets/uv.js"></script>
+</head>
+<body>
+<main id="main" class="wrap app" style="max-width:760px">
+  <div><p class="eyebrow">The Founding 1,000</p><h1>Create your business home</h1><p class="muted">Free. No payment details. About five minutes.</p></div>
+  <ol class="chips" id="steps" style="list-style:none;padding:0;margin:0"><li class="chip" data-s="1">1 · Account</li><li class="chip" data-s="2">2 · Your business</li><li class="chip" data-s="3">3 · Submitted</li></ol>
+  <div id="ref"></div>
+  <div id="view"><div class="skel" style="height:300px"></div></div>
+</main>
+<script>
+(async () => {
+  const { $, esc, url, rpc, sb, store, categories, PROVINCES, formData, busy, track, C } = UV;
+  let m = await UV.page({ nav: '' });
+  const setStep = n => UV.$$('#steps li').forEach(li => li.className = 'chip' + (+li.dataset.s === n ? ' gold' : +li.dataset.s < n ? ' ok' : ''));
+  const code = store.get('uv.ref', null);
+  if (code) rpc('uv_referral', { p_code: code }).then(r => { if (r && r.name) $('#ref').innerHTML = `<div class="notice ok">You were invited by <strong>${esc(r.name)}</strong>.</div>`; }).catch(() => {});
+  let started = false; document.addEventListener('focusin', () => { if (!started) { started = true; track('registration_started'); } });
+
+  function accountView(mode) {
+    setStep(1);
+    $('#view').innerHTML = `<form class="card pad-lg form" id="af"><h2 style="font-size:28px">${mode === 'in' ? 'Sign in to continue' : 'Create your account'}</h2>
+      ${mode === 'in' ? '' : '<label class="f">Your name<input name="display_name" required maxlength="80" autocomplete="name"></label>'}
+      <label class="f">Email address<input name="email" type="email" required autocomplete="email"></label>
+      <label class="f">Password <span class="hint">At least 8 characters</span><input name="password" type="password" required minlength="8" autocomplete="${mode === 'in' ? 'current-password' : 'new-password'}"></label>
+      <p class="err" id="ae" role="alert"></p><button class="btn primary" type="submit">${mode === 'in' ? 'Sign in' : 'Create account'}</button>
+      <p class="small muted" style="margin:0">${mode === 'in' ? `New here? <a href="#" id="sw">Create an account</a> · <a href="${url('login/?forgot=1')}">Forgot password?</a>` : 'Already have an account? <a href="#" id="sw">Sign in</a>'}</p></form>`;
+    $('#sw').onclick = e => { e.preventDefault(); accountView(mode === 'in' ? 'up' : 'in'); };
+    $('#af').onsubmit = async e => { e.preventDefault(); const d = formData(e.target); $('#ae').textContent = '';
+      await busy(e.submitter, async () => {
+        if (mode === 'in') { const { error } = await sb.auth.signInWithPassword({ email: d.email, password: d.password }); if (error) return $('#ae').textContent = error.message === 'Email not confirmed' ? 'Please confirm your email address first. Check your inbox.' : 'That email and password do not match.'; }
+        else { const { data, error } = await sb.auth.signUp({ email: d.email, password: d.password, options: { emailRedirectTo: C.site + url('join/'), data: { display_name: d.display_name } } });
+          if (error) return $('#ae').textContent = error.message; if (!data.session) return checkEmail(d.email); }
+        m = await UV.me(true); route();
+      }); };
+  }
+  function checkEmail(email) {
+    setStep(1);
+    $('#view').innerHTML = `<div class="card pad-lg stack"><h2 style="font-size:28px">Check your email</h2><p>We sent a confirmation link to <strong>${esc(email || 'your email address')}</strong>. Open it on this device to continue.</p>
+      <p class="small muted">Nothing arrived after a few minutes? Check your spam folder, or send it again.</p><div class="row"><button class="btn" id="rs">Send again</button><a class="btn ghost" href="${url('login/')}">I have confirmed. Sign in</a></div><p class="small" id="rsm"></p></div>`;
+    $('#rs').onclick = e => busy(e.target, async () => { const em = email || (m && m.email); if (!em) return; const { error } = await sb.auth.resend({ type: 'signup', email: em, options: { emailRedirectTo: C.site + url('join/') } }); $('#rsm').textContent = error ? error.message : 'Sent. Check your inbox.'; });
+  }
+  async function businessView() {
+    setStep(2);
+    const cats = await categories();
+    const owned = (m.businesses || []).filter(b => b.role === 'owner');
+    $('#view').innerHTML = `${owned.length ? `<div class="notice">You already have ${owned.map(b => `<strong>${esc(b.name)}</strong>`).join(', ')}. <a href="${url('dashboard/')}">Go to your dashboard</a>, or register another business below.</div>` : ''}
+      <form class="card pad-lg form" id="bf" novalidate><h2 style="font-size:28px">About your business</h2>
+      <label class="f">Business name<input name="name" required minlength="2" maxlength="90"></label>
+      <label class="f">Web address <span class="hint">Letters, numbers and dashes</span><div class="row" style="flex-wrap:nowrap;gap:0"><span class="muted small" style="white-space:nowrap;padding-right:6px">mret.co.za/universe/business/</span><input name="slug" required pattern="[a-z0-9]+(-[a-z0-9]+)*" minlength="3" maxlength="60"></div><span class="small" id="slugMsg" aria-live="polite"></span></label>
+      <label class="f">One-line description <span class="hint">Optional. What you do, in a sentence.</span><input name="tagline" maxlength="140"></label>
+      <label class="f">Industry<select name="category" required><option value="">Choose…</option>${cats.map(c => `<option value="${c.slug}">${esc(c.name)}</option>`).join('')}</select></label>
+      <div class="two"><label class="f">Province<select name="province" required><option value="">Choose…</option>${PROVINCES.map(p => `<option>${p}</option>`).join('')}</select></label><label class="f">City or town<input name="city" required maxlength="60"></label></div>
+      <label class="f">Suburb <span class="hint">Optional</span><input name="suburb" maxlength="60"></label>
+      <div class="two"><label class="f">WhatsApp number<input name="whatsapp" type="tel" maxlength="20" placeholder="082 123 4567"></label><label class="f">Phone <span class="hint">Optional</span><input name="phone" type="tel" maxlength="20"></label></div>
+      <div class="two"><label class="f">Business email <span class="hint">Optional</span><input name="email" type="email" maxlength="120"></label><label class="f">Existing website <span class="hint">Optional</span><input name="website" type="url" maxlength="200" placeholder="https://"></label></div>
+      <div class="two"><label class="f">Team size<select name="size_range"><option value="">Prefer not to say</option><option value="solo">Just me</option><option>2-5</option><option>6-20</option><option>21-50</option><option>51-200</option><option>200+</option></select></label>
+        <label class="f">Year started <span class="hint">Optional</span><input name="founded_year" type="number" min="1900" max="${new Date().getFullYear()}"></label></div>
+      <hr class="divider"><div class="stack">
+      <label class="check"><input type="checkbox" name="accept_terms" required> <span>I accept the <a href="${url('terms/')}" target="_blank">terms of use</a> and have read the <a href="${url('privacy/')}" target="_blank">privacy notice</a>. I confirm I may represent this business.</span></label>
+      <label class="check"><input type="checkbox" name="newsletter"> <span>Send me The Universe Times (optional, unsubscribe any time).</span></label>
+      <label class="check"><input type="checkbox" name="product_research"> <span>Invite me to help shape and test new MRET tools (optional).</span></label></div>
+      <p class="tiny muted">Founding membership is free recognition for early members. It is not equity, ownership or an investment.</p>
+      <p class="err" id="be" role="alert"></p><button class="btn gold" type="submit">Submit application</button></form>`;
+    const f = $('#bf'); let slugTouched = false, st;
+    const slugify = s => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+    const check = () => { clearTimeout(st); const v = f.slug.value; $('#slugMsg').textContent = ''; if (v.length < 3) return;
+      st = setTimeout(async () => { const ok = await rpc('uv_slug_available', { s: v }).catch(() => null); $('#slugMsg').innerHTML = ok ? '<span class="okmsg">Available</span>' : '<span class="err">Taken or not allowed. Try another.</span>'; }, 300); };
+    f.name.oninput = () => { if (!slugTouched) { f.slug.value = slugify(f.name.value); check(); } };
+    f.slug.oninput = () => { slugTouched = true; f.slug.value = slugify(f.slug.value); check(); };
+    f.onsubmit = async e => { e.preventDefault(); $('#be').textContent = '';
+      if (!f.reportValidity()) return; const d = formData(f);
+      if (!d.whatsapp && !d.phone && !d.email) return $('#be').textContent = 'Please add at least one way for customers to reach you.';
+      d.accept_terms = f.accept_terms.checked; d.newsletter = f.newsletter.checked; d.product_research = f.product_research.checked;
+      d.display_name = (m.profile && m.profile.display_name) || null; d.referral_code = code;
+      const first = store.get('uv.first', {}), utm = store.get('uv.utm', {}); d.acquisition = Object.assign({ source: utm.utm_source || (code ? 'referral' : first.referrer || 'direct'), landing: first.path }, utm);
+      await busy(e.submitter, async () => { try { const r = await rpc('uv_register_business', { p: d }); store.set('uv.ref', null); done(r, d.name); } catch (x) { $('#be').textContent = x.message; } }); };
+  }
+  function done(r, name) {
+    setStep(3);
+    $('#view').innerHTML = `<div class="card pad-lg stack"><span class="chip ${r.status === 'waitlist' ? 'warn' : 'gold'}">${r.status === 'waitlist' ? 'On the waiting list' : 'Application received'}</span>
+      <h2 style="font-size:30px">Welcome, ${esc(name)}.</h2>
+      <p>${r.status === 'waitlist' ? 'The pilot community is full right now, so your application is on the waiting list. We will let you know as soon as a place opens.' : 'MRET will review your application, usually within a few working days. When it is approved you receive your founding number.'}</p>
+      <p>While you wait, start building your business home: add your services, photos and hours. You can publish as soon as you are approved.</p>
+      <div class="row"><a class="btn gold" href="${url('dashboard/?b=' + r.id + '#website')}">Build my business home</a><a class="btn" href="${url('dashboard/')}">Go to dashboard</a></div></div>`;
+  }
+  function route() {
+    if (!m) return accountView(new URLSearchParams(location.search).get('mode') === 'in' ? 'in' : 'up');
+    if (!m.email_confirmed) return checkEmail(m.email);
+    businessView();
+  }
+  sb.auth.onAuthStateChange(async ev => { if (ev === 'SIGNED_IN' && !m) { m = await UV.me(true); route(); } });
+  route();
+})();
+</script>
+</body>
+</html>

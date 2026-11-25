@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About MRET Universe</title>
+<meta name="description" content="Why MRET Universe exists, how it works, and the founder behind it.">
+<meta property="og:title" content="About MRET Universe"><meta property="og:description" content="Why MRET Universe exists, how it works, and the founder behind it."><meta property="og:site_name" content="MRET Universe">
+<meta name="theme-color" content="#0A0A0B">
+<link rel="icon" href="/universe/assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/universe/assets/uv.css">
+<script src="/universe/assets/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/universe/assets/uv.js"></script>
+</head>
+<body>
+<main id="main">
+<section class="hero"><div class="wrap" style="position:relative"><p class="eyebrow">About</p><h1>Infrastructure for entrepreneurship.</h1>
+  <p class="lead">Some entrepreneurs have excellent businesses but no website, no visibility and no network. MRET Universe gives them a place to establish themselves, be discovered, collaborate and grow, and gives customers a trustworthy place to find them.</p></div><div id="orb"></div></section>
+<section class="section alt"><div class="wrap grid g2">
+  <div><h2>How we work</h2><p class="muted">Instead of building products and searching for customers, we build a community, understand its members, identify their problems and build solutions for a market that already exists.</p></div>
+  <ol class="stack" style="padding-left:20px;margin:0"><li><strong>Acquisition before monetisation.</strong> Basic membership is free. No payment details to join.</li><li><strong>Collaboration alongside healthy competition.</strong> Many businesses per industry; rankings are transparent.</li>
+  <li><strong>Technology that solves validated problems.</strong> Universe Labs decides what gets built.</li><li><strong>Responsible first-party data.</strong> We never sell identifiable personal information.</li><li><strong>Long-term relationships.</strong> We earn trust before we sell anything.</li><li><strong>Value for every participant.</strong> Entrepreneurs, customers and MRET.</li></ol></div></section>
+<section class="section"><div class="wrap"><h2>The divisions</h2><p class="muted">The whole ecosystem is designed from the start. Divisions open when they are ready, not before.</p><div class="scroll-x"><table class="tbl" id="divs"></table></div></div></section>
+<section class="section ink" id="founder"><div class="wrap grid g2"><div><p class="eyebrow">The founder</p><h2>Uhuru Matlhaji</h2><p class="muted">Founder of MRET and MRET Universe. Uhuru works across residential real estate, technology training, AI and business systems in South Africa, and builds the software MRET uses to run property and business operations.</p></div>
+  <div><p class="eyebrow">Founder’s manifesto</p><div class="stack" style="font-size:17px">
+  <p>MRET Universe exists because entrepreneurship should not be a journey travelled alone.</p><p>We believe every entrepreneur deserves a place to belong, build, connect and grow. We believe collaboration can create opportunities that competition alone cannot.</p>
+  <p>We are not simply building websites; we are building infrastructure for entrepreneurship. We are not simply collecting information; we are developing intelligence that enables better decisions. We are not simply acquiring customers; we are establishing a community.</p>
+  <p class="serif" style="font-size:26px;color:var(--gold)">Every entrepreneur deserves a home.</p></div></div></div></section>
+</main>
+<script>
+(async () => { await UV.page({ nav: 'about/' }); UV.$('#orb').outerHTML = UV.orbitSvg;
+  const f = await UV.q(UV.sb.from('uv_feature_flags').select('division,phase,enabled,description').order('phase')).catch(() => []);
+  const seen = {}; const rows = f.filter(x => (seen[x.division] ? false : (seen[x.division] = true)));
+  UV.$('#divs').innerHTML = '<tr><th>Division</th><th>What it does</th><th>Phase</th><th>Status</th></tr>' + rows.map(x => `<tr><td><strong>${UV.esc(x.division)}</strong></td><td class="muted">${UV.esc(x.description || '')}</td><td>${x.phase}</td><td>${x.enabled ? '<span class="chip ok">Open</span>' : '<span class="chip">Planned</span>'}</td></tr>`).join(''); })();
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Universe Labs · MRET Universe</title>
+<meta name="description" content="Tell MRET about the problems in your business, vote on the ones you share, and help decide what gets built.">
+<meta property="og:title" content="Universe Labs · MRET Universe"><meta property="og:description" content="Tell MRET about the problems in your business, vote on the ones you share, and help decide what gets built."><meta property="og:site_name" content="MRET Universe">
+<meta name="theme-color" content="#0A0A0B">
+<link rel="icon" href="/universe/assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/universe/assets/uv.css">
+<script src="/universe/assets/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/universe/assets/uv.js"></script>
+</head>
+<body>
+<main id="main">
+<section class="section tight"><div class="wrap grid g2" style="align-items:end">
+  <div><p class="eyebrow">Universe Labs</p><h1 style="font-size:clamp(36px,5vw,56px)">What slows your business down?</h1>
+    <p class="lead muted">Instead of guessing what software to build, MRET listens. When many businesses share a problem, we build one solution for all of them and invite you to test it first.</p></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn gold" id="newBtn">Submit a problem</button></div></div></section>
+<section class="section alt"><div class="wrap stack">
+  <div class="row"><div class="chips" id="sort"><button class="chip" aria-pressed="true" data-s="top">Most shared</button><button class="chip" aria-pressed="false" data-s="new">Newest</button></div>
+    <label class="sr" for="cat">Category</label><select id="cat" class="right" style="width:auto;min-height:38px"></select></div>
+  <div id="list" class="stack"><div class="skel" style="height:140px"></div></div>
+  <details class="card"><summary><strong>How an idea becomes a product</strong></summary><ol class="small muted" style="columns:2;margin-top:12px"><li>Problem submitted</li><li>Categorised</li><li>Similar problems grouped</li><li>Demand investigated</li><li>Demand validated</li><li>Solution proposed</li><li>Founder approval</li><li>Prototype developed</li><li>Beta testing</li><li>Product launched</li><li>Performance measured</li><li>Continuous improvement</li></ol>
+    <p class="small muted">Nothing is built or released without the founder’s approval, and nobody is charged for joining a beta.</p></details>
+</div></section>
+</main>
+<script>
+(async () => {
+  const { $, $$, esc, num, url, rpc, sb, q, qs, formData, busy, toast, ago } = UV;
+  const m = await UV.page({ nav: 'labs/', flag: 'labs' });
+  const CATS = { bookings: 'Bookings and appointments', invoicing: 'Invoicing', payments: 'Getting paid', marketing: 'Marketing', sales: 'Sales and leads', customers: 'Customer service', staff: 'Staff and scheduling', stock: 'Stock and suppliers', finance: 'Money and cash flow', admin: 'Admin and paperwork', website: 'Website and online presence', compliance: 'Compliance and legal', other: 'Something else' };
+  const STAGE = { submitted: 'Submitted', categorised: 'Categorised', grouped: 'Grouped', investigating: 'Investigating demand', validated: 'Demand validated', solution_proposed: 'Solution proposed', approved: 'Approved to build', prototype: 'Prototype', beta: 'Beta testing', launched: 'Launched', measured: 'Measuring', improving: 'Improving' };
+  $('#cat').innerHTML = '<option value="">All categories</option>' + Object.entries(CATS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+  let sort = 'top';
+  async function load() {
+    const rows = await rpc('uv_problems_list', { p_sort: sort, p_category: $('#cat').value || null }).catch(() => []);
+    $('#list').innerHTML = rows.length ? rows.map(p => `<article class="card"><div class="row"><span class="chip">${esc(CATS[p.category] || p.category)}</span><span class="chip gold">${esc(STAGE[p.stage] || p.stage)}</span><span class="tiny muted right">${esc(ago(p.created_at))}</span></div>
+      <h3 style="margin-top:10px">${esc(p.title)}</h3><p class="muted" style="white-space:pre-wrap">${esc(p.description)}</p><p class="tiny muted">${p.author ? `Shared by <a href="${UV.bizUrl(p.author.slug)}">${esc(p.author.name)}</a>` : 'Shared anonymously'}${p.industry ? ' · ' + esc(p.industry) : ''}</p>
+      <div class="row">${[['same', 'I have this problem', p.same_count], ['interest', 'I would use a solution', p.interest_count], ['beta', 'I want to beta test', p.beta_count]].map(([k, l, n]) => `<button class="chip" data-v="${p.id}:${k}" aria-pressed="${p.my_votes.includes(k)}">${l} · ${num(n)}</button>`).join('')}
+      <button class="btn sm ghost right" data-sg="${p.id}">Ideas (${num(p.suggestions)})</button></div></article>`).join('')
+      : '<div class="empty"><h3>No problems in this category yet.</h3><p>Be the first to tell MRET what slows you down.</p></div>';
+    $$('[data-v]').forEach(b => b.onclick = async () => { if (!m) return location.href = url('login/?next=/universe/labs/'); const [id, k] = b.dataset.v.split(':'); const on = b.getAttribute('aria-pressed') !== 'true';
+      try { await rpc('uv_vote_problem', { p_id: id, p_kind: k, p_on: on }); load(); } catch (e) { toast(e.message); } });
+    $$('[data-sg]').forEach(b => b.onclick = () => ideas(b.dataset.sg));
+  }
+  async function ideas(id) {
+    if (!m) return location.href = url('login/?next=/universe/labs/');
+    const list = await rpc('uv_suggestions', { p_id: id }).catch(() => []);
+    const d = UV.dialog('Ideas and solutions', `${list.length ? list.map(s => `<div class="card flat" style="margin-bottom:8px"><p style="margin:0;white-space:pre-wrap">${esc(s.body)}</p><p class="tiny muted" style="margin:6px 0 0">${esc(ago(s.created_at))}</p></div>`).join('') : '<p class="muted">No ideas yet.</p>'}
+      <form class="form" id="sf" style="margin-top:12px"><label class="f">How do you solve this today, or how should it be solved?<textarea name="body" required minlength="5" maxlength="2000"></textarea></label><button class="btn primary">Share idea</button></form>`);
+    UV.$('#sf', d).onsubmit = async e => { e.preventDefault(); await q(sb.from('uv_problem_suggestions').insert({ problem_id: id, user_id: m.id, body: formData(e.target).body }).select('id')).then(() => { d.close(); toast('Thank you'); load(); }, x => toast(x.message)); };
+  }
+  function submit() {
+    if (!m) return location.href = url('login/?next=' + encodeURIComponent('/universe/labs/?new=1'));
+    const biz = (m.businesses || []);
+    const d = UV.dialog('Submit a business problem', `<form class="form" id="pf">
+      <label class="f">In one line, what is the problem?<input name="title" required minlength="5" maxlength="140" placeholder="e.g. Clients forget their appointments"></label>
+      <label class="f">Describe it<textarea name="description" required minlength="10" maxlength="4000" placeholder="What happens, how often, and what it costs you."></textarea></label>
+      <div class="two"><label class="f">Category<select name="category">${Object.entries(CATS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></label>
+        <label class="f">How often?<select name="frequency"><option value="daily">Daily</option><option value="weekly" selected>Weekly</option><option value="monthly">Monthly</option><option value="occasionally">Occasionally</option></select></label></div>
+      <div class="two"><label class="f">How serious? (1 to 5)<input name="severity" type="range" min="1" max="5" value="3"></label><label class="f">How urgent? (1 to 5)<input name="urgency" type="range" min="1" max="5" value="3"></label></div>
+      <div class="two"><label class="f">Hours lost per month<input name="hours_lost_per_month" type="number" min="0" max="744"></label>
+        <label class="f">Estimated cost per month<select name="financial_impact_band"><option value="">Not sure</option><option value="none">None</option><option value="under_1k">Under R1,000</option><option value="1k_5k">R1,000 to R5,000</option><option value="5k_20k">R5,000 to R20,000</option><option value="20k_100k">R20,000 to R100,000</option><option value="over_100k">Over R100,000</option></select></label></div>
+      <label class="f">What do you use today? <span class="hint">Optional</span><input name="existing_solutions" maxlength="500"></label>
+      <label class="f">Why does that not work? <span class="hint">Optional</span><input name="limitations" maxlength="500"></label>
+      <label class="f">What would a great outcome look like? <span class="hint">Optional</span><input name="desired_outcome" maxlength="500"></label>
+      <label class="f">Would you pay for a solution? <span class="hint">Optional, per month</span><select name="willingness_to_pay_band"><option value="">Prefer not to say</option><option value="no">No</option><option value="under_100">Under R100</option><option value="100_300">R100 to R300</option><option value="300_1000">R300 to R1,000</option><option value="over_1000">Over R1,000</option></select></label>
+      ${biz.length ? `<label class="f">For which business?<select name="business_id"><option value="">Personal</option>${biz.map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join('')}</select></label>` : ''}
+      <label class="f">Who can see it?<select name="visibility"><option value="anonymous">Everyone, without my name (recommended)</option><option value="public">Everyone, with my business name</option><option value="private">Only MRET</option></select></label>
+      <label class="check"><input type="checkbox" name="beta_interest"> <span>I would like to beta test a solution</span></label>
+      <p class="err" id="pe"></p><button class="btn gold">Submit problem</button></form>`);
+    UV.$('#pf', d).onsubmit = async e => { e.preventDefault(); const f = formData(e.target); const row = { user_id: m.id, title: f.title, description: f.description, category: f.category, frequency: f.frequency, severity: +f.severity, urgency: +f.urgency,
+        hours_lost_per_month: f.hours_lost_per_month ? +f.hours_lost_per_month : null, financial_impact_band: f.financial_impact_band || null, existing_solutions: f.existing_solutions || null, limitations: f.limitations || null,
+        desired_outcome: f.desired_outcome || null, willingness_to_pay_band: f.willingness_to_pay_band || null, business_id: f.business_id || null, visibility: f.visibility, beta_interest: !!e.target.beta_interest.checked };
+      await busy(e.submitter, async () => { try { await q(sb.from('uv_problems').insert(row).select('id')); d.close(); toast('Thank you. MRET reads every submission.'); history.replaceState(null, '', location.pathname); load(); } catch (x) { UV.$('#pe', d).textContent = x.message; } }); };
+  }
+  $$('#sort button').forEach(b => b.onclick = () => { sort = b.dataset.s; $$('#sort button').forEach(x => x.setAttribute('aria-pressed', x === b)); load(); });
+  $('#cat').onchange = load; $('#newBtn').onclick = submit;
+  if (qs.get('new')) submit();
+  load();
+})();
+</script>
+</body>
+</html>

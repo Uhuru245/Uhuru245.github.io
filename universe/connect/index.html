@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Universe Connect · MRET Universe</title>
+<meta name="description" content="Find complementary businesses and propose collaborations, referral partnerships and supplier relationships.">
+<meta property="og:title" content="Universe Connect · MRET Universe"><meta property="og:description" content="Find complementary businesses and propose collaborations, referral partnerships and supplier relationships."><meta property="og:site_name" content="MRET Universe">
+<meta name="theme-color" content="#0A0A0B">
+<link rel="icon" href="/universe/assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/universe/assets/uv.css">
+<script src="/universe/assets/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/universe/assets/uv.js"></script>
+</head>
+<body>
+<main id="main">
+<section class="section tight"><div class="wrap grid g2" style="align-items:center">
+  <div><p class="eyebrow">Universe Connect</p><h1 style="font-size:clamp(36px,5vw,56px)">Grow together.</h1>
+    <p class="lead muted">A makeup artist needs photographers. A builder needs electricians. A caterer needs venues. Connect finds the businesses that complement yours and lets you propose working together.</p></div>
+  <div class="card stack"><h3>How it works</h3><ol class="small" style="margin:0;padding-left:18px"><li>See suggested businesses in complementary industries, nearest first.</li><li>Send a collaboration, referral or supplier request with a short message.</li><li>If they accept, you both see each other’s contact details.</li><li>Optionally report what came of it, so MRET can measure real outcomes.</li></ol>
+    <p class="tiny muted">No mass messaging: each business can send up to 20 requests a day, and anyone can block a business.</p></div></div></section>
+<section class="section alt"><div class="wrap" id="body"><div class="skel" style="height:200px"></div></div></section>
+</main>
+<script>
+(async () => {
+  const { $, $$, esc, url, rpc, categories, formData, busy, toast, bizCard } = UV;
+  const m = await UV.page({ nav: 'connect/', flag: 'connect' });
+  const mine = m && (m.businesses || []).filter(b => b.status === 'approved' && ['owner', 'manager'].includes(b.role));
+  if (!m || !mine.length) {
+    $('#body').innerHTML = `<div class="empty"><h3>${m ? 'Connect opens once your business is approved.' : 'Connect is for MRET Universe businesses.'}</h3><p>${m ? 'MRET is reviewing your application. You will be able to connect as soon as it is approved.' : 'Join free, and once approved you can find collaborators here.'}</p>${m ? `<a class="btn" href="${url('dashboard/')}">Go to dashboard</a>` : `<a class="btn gold" href="${url('join/')}">Join the Founding 1,000</a> <a class="btn" href="${url('login/?next=/universe/connect/')}">Sign in</a>`}</div>`; return; }
+  let from = mine[0].id; const cats = await categories();
+  $('#body').innerHTML = `${mine.length > 1 ? `<label class="f" style="max-width:320px">Connecting as<select id="from">${mine.map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join('')}</select></label>` : ''}
+    <h2 style="font-size:28px;margin-top:10px">Suggested for ${esc(mine[0].name)}</h2><div class="grid g3" id="rec"></div>
+    <h2 style="font-size:28px;margin-top:32px">Search businesses</h2><form class="search" id="sf" style="box-shadow:none"><input name="q" placeholder="e.g. florist, videographer, supplier"><select name="category"><option value="">All industries</option>${cats.map(c => `<option value="${c.slug}">${esc(c.name)}</option>`).join('')}</select><button class="btn primary">Search</button></form>
+    <div class="grid g3" id="res" style="margin-top:16px"></div>`;
+  const card = b => `<div class="card stack"><a href="${UV.bizUrl(b.slug)}" target="_blank"><strong>${esc(b.name)}</strong></a><p class="small muted" style="margin:0">${esc(b.category ? b.category.name : '')}${b.city ? ' · ' + esc(b.city) : ''}</p>${b.reason ? `<p class="small" style="margin:0">${esc(b.reason)}</p>` : b.tagline ? `<p class="small" style="margin:0">${esc(b.tagline)}</p>` : ''}<button class="btn sm" data-cn="${esc(b.slug)}" data-nm="${esc(b.name)}">Propose a collaboration</button></div>`;
+  async function rec() { const r = await rpc('uv_recommend', { p_business: from }).catch(() => []); $('#rec').innerHTML = r.length ? r.map(card).join('') : '<p class="muted">Suggestions appear as more businesses join your area and industries.</p>'; wire(); }
+  function wire() { $$('[data-cn]').forEach(b => b.onclick = () => {
+    const d = UV.dialog('Contact ' + b.dataset.nm, `<form class="form" id="cf"><label class="f">What would you like?<select name="kind"><option value="collaboration">Collaborate on work together</option><option value="referral">Refer customers to each other</option><option value="supplier">Buy from or supply to them</option><option value="connect">Simply connect</option></select></label><label class="f">Message<textarea name="message" required maxlength="1000"></textarea></label><p class="tiny muted">Contact details are shared only if they accept.</p><p class="err" id="ce"></p><button class="btn primary">Send request</button></form>`);
+    UV.$('#cf', d).onsubmit = async e => { e.preventDefault(); const f = formData(e.target); await busy(e.submitter, async () => { try { await rpc('uv_connect', { p_from: from, p_to_slug: b.dataset.cn, p_kind: f.kind, p_message: f.message }); d.close(); toast('Request sent'); b.disabled = true; b.textContent = 'Request sent'; } catch (x) { UV.$('#ce', d).textContent = x.message; } }); }; }); }
+  if ($('#from')) $('#from').onchange = e => { from = e.target.value; rec(); };
+  $('#sf').onsubmit = async e => { e.preventDefault(); const f = formData(e.target); const r = await rpc('uv_search', { p_q: f.q || null, p_category: f.category || null, p_anon: UV.anon() }).catch(() => ({ results: [] }));
+    const own = new Set(mine.map(x => x.slug)); const list = r.results.filter(x => !own.has(x.slug)); $('#res').innerHTML = list.length ? list.map(card).join('') : '<p class="muted">No businesses found.</p>'; wire(); };
+  rec();
+})();
+</script>
+</body>
+</html>

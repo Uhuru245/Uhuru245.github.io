@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MRET Universe · Every entrepreneur deserves a home</title>
+<meta name="description" content="Discover South African businesses, create a free digital business home, collaborate with other entrepreneurs and help shape the tools MRET builds. Join the Founding 1,000.">
+<meta property="og:title" content="MRET Universe · Every entrepreneur deserves a home"><meta property="og:description" content="Discover South African businesses, create a free digital business home, collaborate with other entrepreneurs and help shape the tools MRET builds. Join the Founding 1,000."><meta property="og:site_name" content="MRET Universe">
+<meta name="theme-color" content="#0A0A0B">
+<link rel="icon" href="/universe/assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/universe/assets/uv.css">
+<script src="/universe/assets/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/universe/assets/uv.js"></script>
+</head>
+<body>
+<main id="main">
+<section class="hero">
+  <div class="wrap" style="position:relative">
+    <p class="eyebrow">MRET Universe · Pilot</p>
+    <h1>Every entrepreneur deserves a home.</h1>
+    <p class="lead">Discover businesses. Establish your digital presence. Collaborate with entrepreneurs. Solve real business challenges. Grow within an ecosystem built for opportunity.</p>
+    <form class="search" id="hs" role="search" autocomplete="off">
+      <label class="sr" for="hq">Search businesses</label>
+      <input id="hq" name="q" placeholder="Try “photographer”, “bridal makeup” or “electrician”" aria-autocomplete="list" aria-controls="hsug">
+      <button class="btn primary" type="submit" aria-label="Search">Search</button>
+      <div class="suggest hide" id="hsug" role="listbox"></div>
+    </form>
+    <div class="row" style="margin-top:22px"><a class="btn gold" href="/universe/join/">Join the Founding 1,000</a><a class="btn" href="/universe/discover/">Discover businesses</a></div>
+  </div>
+  <div id="orb"></div>
+</section>
+
+<section class="section alt">
+  <div class="wrap">
+    <p class="eyebrow">One universe</p>
+    <h2 style="max-width:22ch">Not a directory. Infrastructure for entrepreneurship.</h2>
+    <p class="muted" style="max-width:62ch">MRET Universe connects entrepreneurs, customers, information and opportunities in one place. Six divisions open in the pilot; the rest open as they are ready.</p>
+    <div class="grid g3" style="margin-top:28px" id="divs"></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="row"><div><p class="eyebrow">Browse by industry</p><h2>Find who you need.</h2></div><a class="btn right" href="/universe/discover/">All businesses</a></div>
+    <div class="chips" id="cats" style="margin-top:18px"></div>
+  </div>
+</section>
+
+<section class="section ink">
+  <div class="wrap grid g2" style="align-items:center">
+    <div>
+      <p class="eyebrow">The Founding 1,000</p>
+      <h2>The first thousand businesses build this with us.</h2>
+      <p class="muted">Founding members get a free digital business home, a founding membership number and certificate, early access to new tools and a voice in what MRET builds next. The first 100 form the pilot community.</p>
+      <div class="row"><a class="btn gold" href="/universe/founding-1000/">How it works</a><a class="btn" style="background:transparent;color:inherit;border-color:#3A3D44" href="/universe/join/">Apply now</a></div>
+    </div>
+    <div id="fc" class="card" style="background:#141519;border-color:#2A2D35;color:#F7F6F2"></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="row"><div><p class="eyebrow">Entrepreneurs</p><h2>Businesses in the Universe</h2></div><a class="btn right" href="/universe/discover/">Discover more</a></div>
+    <div class="grid g3" id="feat" style="margin-top:20px"></div>
+  </div>
+</section>
+
+<section class="section alt">
+  <div class="wrap grid g2">
+    <div class="card pad-lg"><p class="eyebrow">Universe Spaces</p><h3 class="serif" style="font-size:30px">A professional business home, free.</h3>
+      <p class="muted">Register once and your own page goes live at mret.co.za/universe/business/your-name: services, prices, gallery, hours, WhatsApp, enquiry form and a shareable QR code. Edit it yourself, preview it on a phone, publish when ready.</p>
+      <a class="btn" href="/universe/join/">Create your business home</a></div>
+    <div class="card pad-lg"><p class="eyebrow">Universe Connect</p><h3 class="serif" style="font-size:30px">Collaboration, not just competition.</h3>
+      <p class="muted">A makeup artist finds photographers, hairstylists and venues. A builder finds electricians and estate agents. Send a collaboration request; contact details are shared only when both sides agree.</p>
+      <a class="btn" href="/universe/connect/">How Connect works</a></div>
+    <div class="card pad-lg"><p class="eyebrow">Universe Labs</p><h3 class="serif" style="font-size:30px">Tell us what slows your business down.</h3>
+      <p class="muted">Entrepreneurs submit the problems they face and vote on the ones they share. When enough businesses have the same problem, MRET builds one solution for all of them, with you as beta testers.</p>
+      <a class="btn" href="/universe/labs/">See the problems</a></div>
+    <div class="card pad-lg"><p class="eyebrow">The Universe Times</p><h3 class="serif" style="font-size:30px">Stories of the people building here.</h3>
+      <p class="muted">Entrepreneur spotlights, industry insight and what Universe Labs is working on. Subscribe for free; unsubscribe any time.</p>
+      <a class="btn" href="/universe/press/">Read the Times</a></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <p class="eyebrow">Latest from The Universe Times</p>
+    <div class="grid g3" id="news" style="margin-top:16px"></div>
+  </div>
+</section>
+
+<section class="section alt">
+  <div class="wrap grid g2" style="align-items:start">
+    <div><p class="eyebrow">Technology solutions</p><h2>Tools built around real demand.</h2>
+      <p class="muted">MRET already builds software for property and business operations. Universe Tools will bring those products, and new ones validated in Labs, to members. It opens in a later phase.</p></div>
+    <div><p class="eyebrow">The founder</p><h2>Uhuru Matlhaji</h2>
+      <p class="muted">MRET Universe is founded by Uhuru Matlhaji, an entrepreneur working across real estate, technology training and business systems in South Africa. The idea is simple: instead of building products and searching for customers, build a community, understand its problems and solve them together.</p>
+      <a class="btn" href="/universe/about/#founder">Read the founder’s note</a></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap" style="max-width:820px">
+    <p class="eyebrow">Questions</p><h2>Frequently asked</h2>
+    <details class="faq"><summary>What does it cost?</summary><p class="muted">Nothing. A basic digital business home is free, and you never enter payment details to join. Optional premium features may come later; they will always be optional.</p></details>
+    <details class="faq"><summary>Is founding membership an investment?</summary><p class="muted">No. Founding membership is recognition for being early. It does not represent equity, ownership, investment rights or guaranteed returns.</p></details>
+    <details class="faq"><summary>Can more than one business in my industry join?</summary><p class="muted">Yes. MRET Universe is not exclusive. Many photographers, restaurants or electricians can join; customers get choice and businesses get collaboration opportunities. Search ranking is based on relevance, location and profile completeness, never on who owns a business.</p></details>
+    <details class="faq"><summary>What happens to my information?</summary><p class="muted">Your public business details appear on your page because you publish them. Everything else stays private. MRET uses first-party, aggregated activity to understand what customers look for; it never sells identifiable personal information. Read the <a href="/universe/privacy/">privacy notice</a>.</p></details>
+    <details class="faq"><summary>I already have a website. Should I join?</summary><p class="muted">Yes. Link your website from your business home so customers who discover you here can find it.</p></details>
+    <details class="faq"><summary>Who approves businesses?</summary><p class="muted">MRET reviews each application to keep the Universe trustworthy. Approval usually takes a few working days during the pilot.</p></details>
+  </div>
+</section>
+
+<section class="section ink">
+  <div class="wrap" style="text-align:center;max-width:760px">
+    <h2>Your business deserves a home.</h2>
+    <p class="muted">Join free, publish your page, and become one of the first thousand founding businesses.</p>
+    <div class="row" style="justify-content:center"><a class="btn gold" href="/universe/join/">Join the Founding 1,000</a><a class="btn" style="background:transparent;color:inherit;border-color:#3A3D44" href="/universe/press/#subscribe">Subscribe to the Times</a></div>
+  </div>
+</section>
+</main>
+<script>
+(async () => {
+  const { $, esc, num, url, rpc, q, sb, categories, bizCard, track } = UV;
+  await UV.page({ nav: '' });
+  $('#orb').outerHTML = UV.orbitSvg;
+  const DIVS = [['Universe Spaces', 'Digital business homes with your own page, editor and QR code.', 'home'], ['Universe Discover', 'Search businesses by service, industry and place.', 'search'],
+    ['Universe Connect', 'Find complementary businesses and propose collaborations.', 'link'], ['Universe Labs', 'Report business problems and vote on what MRET builds.', 'bulb'],
+    ['Universe Press', 'The Universe Times: stories, spotlights and insight.', 'paper'], ['Universe Intelligence', 'Responsible first-party insight into real demand.', 'chart']];
+  $('#divs').innerHTML = DIVS.map(([t, d, i]) => `<div class="feature card"><span class="ic">${UV.ICON[i]}</span><h3 style="margin:0">${t}</h3><p class="muted small" style="margin:0">${d}</p></div>`).join('');
+  // search with suggestions
+  const inp = $('#hq'), box = $('#hsug'); let t;
+  inp.addEventListener('input', () => { clearTimeout(t); t = setTimeout(async () => {
+    const v = inp.value.trim(); if (v.length < 2) return box.classList.add('hide');
+    const s = await rpc('uv_suggest', { p_q: v }).catch(() => []);
+    box.innerHTML = s.map(x => `<button type="button" role="option" data-t="${x.type}" data-v="${esc(x.value)}">${esc(x.label)}<span class="k">${x.type === 'category' ? 'Industry' : 'Business'}</span></button>`).join('');
+    box.classList.toggle('hide', !s.length);
+  }, 180); });
+  box.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; location.href = b.dataset.t === 'category' ? url('discover/?category=' + b.dataset.v) : UV.bizUrl(b.dataset.v); });
+  document.addEventListener('click', e => { if (!e.target.closest('#hs')) box.classList.add('hide'); });
+  $('#hs').onsubmit = e => { e.preventDefault(); location.href = url('discover/?q=' + encodeURIComponent(inp.value.trim())); };
+  categories().then(cs => $('#cats').innerHTML = cs.map(c => `<a class="chip" href="${url('discover/?category=' + c.slug)}">${esc(c.name)}</a>`).join('')).catch(() => {});
+  // genuine numbers only
+  rpc('uv_public_stats').then(s => {
+    const c = s.campaign || {}, n = s.founding_members || 0, target = c.founding_target || 1000, pilot = c.pilot_target || 100;
+    $('#fc').innerHTML = `<div class="counter" style="color:var(--gold)">${num(n)}</div><p style="margin:4px 0 14px">of ${num(target)} founding businesses approved</p>
+      <div class="meter" style="background:#24262C;border-color:#2A2D35"><i style="width:${Math.min(100, 100 * n / target)}%"></i></div>
+      <p class="small muted" style="margin-top:12px">${n < pilot ? `Pilot community: ${num(n)} of the first ${num(pilot)} places taken.` : 'The pilot community is complete. Founding places remain.'}${s.published ? ` ${num(s.published)} business homes are live across ${num(s.industries)} industr${s.industries === 1 ? 'y' : 'ies'}.` : ''}</p>`;
+  }).catch(() => $('#fc').innerHTML = '<p>The live counter is unavailable right now.</p>');
+  rpc('uv_search', { p_page: 1 }).then(r => {
+    $('#feat').innerHTML = r.results.length ? r.results.slice(0, 6).map(bizCard).join('') : `<div class="empty" style="grid-column:1/-1"><h3>The first business homes are being built.</h3><p>Be one of the first entrepreneurs customers find here.</p><a class="btn gold" href="${url('join/')}">Create yours</a></div>`;
+  }).catch(() => {});
+  q(sb.from('uv_articles').select('slug,title,excerpt,category,cover_url,publish_at,created_at').eq('status', 'published').order('publish_at', { ascending: false, nullsFirst: false }).limit(3)).then(a => {
+    $('#news').innerHTML = a.length ? a.map(x => `<a class="card" style="text-decoration:none" href="${url('press/?a=' + x.slug)}">${x.cover_url ? `<img src="${esc(x.cover_url)}" alt="" style="border-radius:10px;aspect-ratio:16/9;object-fit:cover;margin-bottom:12px" loading="lazy">` : ''}<p class="eyebrow">${esc(x.category.replace('_', ' '))}</p><h3 class="serif" style="font-size:24px">${esc(x.title)}</h3><p class="muted small">${esc(x.excerpt || '')}</p></a>`).join('')
+      : `<div class="empty" style="grid-column:1/-1"><h3>The first edition is on its way.</h3><p>Subscribe to receive it.</p><a class="btn" href="${url('press/#subscribe')}">Subscribe</a></div>`;
+  }).catch(() => {});
+  document.querySelectorAll('a[href="/universe/join/"]').forEach(a => a.addEventListener('click', () => track('join_cta', { from: 'home' })));
+})();
+</script>
+</body>
+</html>

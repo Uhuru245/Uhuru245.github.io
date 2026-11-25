@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Founding 1,000 · MRET Universe</title>
+<meta name="description" content="The first 1,000 approved businesses become founding members of MRET Universe: a free digital business home, a founding number and certificate, and a voice in what MRET builds.">
+<meta property="og:title" content="The Founding 1,000 · MRET Universe"><meta property="og:description" content="The first 1,000 approved businesses become founding members of MRET Universe: a free digital business home, a founding number and certificate, and a voice in what MRET builds."><meta property="og:site_name" content="MRET Universe">
+<meta name="theme-color" content="#0A0A0B">
+<link rel="icon" href="/universe/assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/universe/assets/uv.css">
+<script src="/universe/assets/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/universe/assets/uv.js"></script>
+</head>
+<body>
+<main id="main">
+<section class="hero" id="campaign">
+  <div class="wrap" style="position:relative">
+    <p class="eyebrow">The Founding 1,000</p>
+    <h1>Be one of the first thousand.</h1>
+    <p class="lead">The first 1,000 approved businesses become recognised founding members of MRET Universe. The first 100 form the pilot community that shapes everything after.</p>
+    <div class="grid g2" style="margin-top:28px;align-items:end">
+      <div><div class="counter" id="n">–</div><p class="muted" id="nl">founding businesses approved</p><div class="meter" style="max-width:520px"><i id="bar" style="width:0"></i></div><p class="small muted" id="pilot" style="margin-top:10px"></p></div>
+      <div class="row"><a class="btn gold" href="/universe/join/" data-cta>Apply to join</a><a class="btn" href="#directory">See the founding members</a></div>
+    </div>
+  </div>
+  <div id="orb"></div>
+</section>
+<section class="section alt">
+  <div class="wrap">
+    <h2>What founding members receive</h2>
+    <div class="grid g3" style="margin-top:20px" id="benefits"></div>
+    <p class="notice" style="margin-top:24px">Founding membership recognises early members. It does not represent equity, company ownership, investment rights or guaranteed commercial returns. Membership stays free.</p>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap grid g2">
+    <div><h2>How it works</h2><p class="muted">Joining takes about five minutes. You will need your business name, industry, area and a contact number.</p></div>
+    <ol class="stack" style="padding-left:20px;margin:0">
+      <li><strong>Create your account</strong> and confirm your email address.</li>
+      <li><strong>Tell us about your business.</strong> Choose your web address, industry and area.</li>
+      <li><strong>MRET reviews your application</strong> to keep the Universe trustworthy.</li>
+      <li><strong>On approval you receive your founding number</strong>, assigned in the order businesses are approved, and your certificate.</li>
+      <li><strong>Build and publish your business home</strong>, share it, and start receiving enquiries.</li>
+    </ol>
+  </div>
+</section>
+<section class="section alt" id="directory">
+  <div class="wrap"><div class="row"><div><p class="eyebrow">Directory</p><h2>Founding members</h2></div></div>
+    <div class="grid g3" id="dir" style="margin-top:16px"></div><div class="row" style="justify-content:center;margin-top:16px"><button class="btn hide" id="more">Show more</button></div></div>
+</section>
+</main>
+<script>
+(async () => {
+  const { $, esc, num, url, rpc, qs, ICON, founding, date } = UV;
+  await UV.page({ nav: 'founding-1000/', flag: 'founding_campaign' });
+  const cert = qs.get('cert');
+  if (cert) return showCert(cert);
+  $('#orb').outerHTML = UV.orbitSvg;
+  const B = [['home', 'A free digital business home', 'Your own page with services, gallery, hours, WhatsApp and an enquiry form.'], ['star', 'A founding membership number', 'Assigned in approval order, shown on your page and certificate.'],
+    ['paper', 'A downloadable certificate', 'And a shareable membership card for your social media.'], ['search', 'Directory visibility', 'Customers find you through Universe Discover.'],
+    ['link', 'Collaboration opportunities', 'Find complementary businesses through Universe Connect.'], ['bulb', 'A voice in Universe Labs', 'Tell MRET what to build and test it first.'],
+    ['chart', 'Profile analytics', 'See views, search appearances, enquiries and WhatsApp clicks.'], ['shield', 'Early access to MRET tools', 'Selected software before public release.'],
+    ['flag', 'Editorial features', 'Eligibility for spotlights in The Universe Times.']];
+  $('#benefits').innerHTML = B.map(([i, t, d]) => `<div class="feature card"><span class="ic">${ICON[i]}</span><h3 style="margin:0">${t}</h3><p class="muted small" style="margin:0">${d}</p></div>`).join('');
+  const s = await rpc('uv_public_stats').catch(() => null);
+  if (s) { const c = s.campaign || {}, n = s.founding_members || 0, t = c.founding_target || 1000, p = c.pilot_target || 100;
+    $('#n').textContent = num(n); $('#nl').textContent = `of ${num(t)} founding businesses approved`; requestAnimationFrame(() => $('#bar').style.width = Math.min(100, 100 * n / t) + '%');
+    $('#pilot').textContent = n < p ? `${num(Math.max(0, p - n))} pilot places remain.` : 'The pilot community is complete; founding places remain.';
+    if (c.founding_open === false || n >= t) { $('#pilot').textContent = 'The Founding 1,000 is complete. You can still join MRET Universe free.'; } }
+  let page = 1;
+  async function load() { const r = await rpc('uv_founding_directory', { p_page: page }).catch(() => ({ results: [], total: 0 }));
+    if (page === 1 && !r.results.length) $('#dir').innerHTML = '<div class="empty" style="grid-column:1/-1"><h3>Founding member number 0001 is still available.</h3><p>Published founding members appear here.</p></div>';
+    $('#dir').insertAdjacentHTML('beforeend', r.results.map(UV.bizCard).join('')); $('#more').classList.toggle('hide', page * 24 >= r.total); }
+  $('#more').onclick = () => { page++; load(); }; load();
+  UV.$$('[data-cta]').forEach(a => a.onclick = () => UV.track('join_cta', { from: 'founding' }));
+
+  async function showCert(slug) {
+    const b = await rpc('uv_business_public', { p_slug: slug }).catch(() => null);
+    if (!b || !b.founding_no) { $('#main').innerHTML = `<div class="wrap app"><div class="empty"><h3>Certificate not found.</h3><a class="btn" href="${url('founding-1000/')}">The Founding 1,000</a></div></div>`; return; }
+    UV.track('certificate_viewed', {}, slug);
+    document.title = `${b.name} · Founding member ${String(b.founding_no).padStart(4, '0')} · MRET Universe`;
+    const no = String(b.founding_no).padStart(4, '0');
+    $('#main').innerHTML = `<div class="wrap app"><div class="cert" id="certEl"><div class="rim"></div><div style="color:var(--gold);width:44px;margin:0 auto">${ICON.mark}</div>
+      <p class="eyebrow" style="color:var(--gold)">MRET Universe · The Founding 1,000</p><p style="margin:0;color:#A7ABB3">This certifies that</p><div class="nm">${esc(b.name)}</div>
+      <p style="margin:0;color:#A7ABB3">is founding member</p><div class="no">No. ${no}</div><p class="small" style="color:#A7ABB3;margin:0">Approved ${esc(date(b.founding_at))}${b.city ? ' · ' + esc(b.city) : ''}</p>
+      <p class="tiny" style="color:#7D828B;margin-top:10px">Founding membership is recognition of early membership and does not represent equity, ownership or investment rights.</p></div>
+      <div class="row noprint" style="justify-content:center"><button class="btn gold" id="png">Download image</button><button class="btn" id="card">Download social card</button><button class="btn" onclick="print()">Print</button><button class="btn" id="sh">${ICON.share} Share</button><a class="btn ghost" href="${UV.bizUrl(b.slug)}">View business</a></div></div>`;
+    const fonts = document.fonts ? document.fonts.ready : Promise.resolve();
+    async function draw(w, h, social) {
+      await fonts; const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d');
+      x.fillStyle = '#0A0A0B'; x.fillRect(0, 0, w, h); x.strokeStyle = 'rgba(198,166,106,.55)'; x.lineWidth = 2; x.strokeRect(w * .03, h * .04, w * .94, h * .92);
+      x.strokeStyle = 'rgba(198,166,106,.25)'; x.lineWidth = 1.5; x.beginPath(); x.ellipse(w * .82, h * .9, w * .4, h * .16, -0.42, 0, Math.PI * 2); x.stroke();
+      x.textAlign = 'center'; const cx = w / 2; let y = h * (social ? .2 : .22);
+      x.fillStyle = '#C6A66A'; x.font = `600 ${Math.round(h * .026)}px Inter, sans-serif`; x.fillText('MRET UNIVERSE  ·  THE FOUNDING 1,000', cx, y);
+      x.fillStyle = '#A7ABB3'; x.font = `400 ${Math.round(h * .032)}px Inter, sans-serif`; y += h * .1; x.fillText(social ? 'Proud to be' : 'This certifies that', cx, y);
+      x.fillStyle = '#F7F6F2'; let fs = Math.round(h * .085); x.font = `400 ${fs}px "Instrument Serif", Georgia, serif`; while (x.measureText(b.name).width > w * .84 && fs > 20) { fs -= 2; x.font = `400 ${fs}px "Instrument Serif", Georgia, serif`; }
+      y += h * .12; x.fillText(b.name, cx, y);
+      x.fillStyle = '#A7ABB3'; x.font = `400 ${Math.round(h * .032)}px Inter, sans-serif`; y += h * .09; x.fillText(social ? 'founding member' : 'is founding member', cx, y);
+      x.fillStyle = '#C6A66A'; x.font = `400 ${Math.round(h * .15)}px "Instrument Serif", Georgia, serif`; y += h * .17; x.fillText('No. ' + no, cx, y);
+      x.fillStyle = '#7D828B'; x.font = `400 ${Math.round(h * .024)}px Inter, sans-serif`; y += h * .09; x.fillText(social ? 'mret.co.za/universe' : 'Approved ' + date(b.founding_at) + '  ·  mret.co.za/universe', cx, y);
+      const a = document.createElement('a'); a.download = `${b.slug}-founding-${no}${social ? '-card' : ''}.png`; a.href = c.toDataURL('image/png'); a.click();
+    }
+    $('#png').onclick = () => draw(2000, 1414, false);
+    $('#card').onclick = () => draw(1080, 1080, true);
+    $('#sh').onclick = () => UV.share(`${b.name} is founding member No. ${no} of MRET Universe`, location.href);
+  }
+})();
+</script>
+</body>
+</html>
