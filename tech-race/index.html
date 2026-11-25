@@ -488,13 +488,15 @@ function authShell(inner) {
 function showAuth(mode, msg, kind) {
   mode = mode || 'signin';
   const tabs = '<div class="tabs" role="tablist"><button role="tab" data-mode="signin" aria-selected="' + (mode === 'signin') + '">Sign in</button><button role="tab" data-mode="request" aria-selected="' + (mode === 'request') + '">Request access</button></div>';
-  const m = msg ? '<div class="alert ' + (kind || 'info') + '" role="status">' + esc(msg) + '</div>' : '';
+  const m = (msg ? '<div class="alert ' + (kind || 'info') + '" role="status">' + esc(msg) + '</div>' : '')
+    + (mode === 'signin' && ACC.list().length ? '<div class="card" style="padding:12px 14px"><div class="small muted" style="margin-bottom:8px">Already signed in on this device</div>' + ACC.list().map(a => '<button type="button" class="btn sm" style="width:100%;justify-content:space-between;margin-bottom:6px" data-accgo="' + esc(a.id) + '"><span>Continue as ' + esc(a.name) + '</span><span class="muted">' + esc(a.role) + '</span></button>').join('') + '</div>' : '');
   let body = '';
   if (mode === 'signin') body = '<form class="form" id="fAuth"><label class="f">Email<input type="email" id="aEmail" autocomplete="email" required></label><label class="f">Password<input type="password" id="aPw" autocomplete="current-password" required></label><button class="btn red big">Start your engine</button><label class="check small" style="justify-content:center;color:var(--ink-3)"><input type="checkbox" id="aSnd"' + (store.get('tr.sound') === 'off' ? '' : ' checked') + '> Engine sound</label><button type="button" class="btn link" id="aForgot">Forgot your password?</button></form>';
   if (mode === 'request') body = '<p class="small muted" style="margin-top:0">Agents are normally invited by the MCTT. If you have not been invited, request access here. The MCTT approves every request.</p><form class="form" id="fAuth"><label class="f">Full name<input type="text" id="aName" autocomplete="name" required maxlength="80"></label><label class="f">Email<input type="email" id="aEmail" autocomplete="email" required></label><label class="f">Mobile number<input type="tel" id="aMobile" autocomplete="tel"></label><label class="f">Date you joined Keller Williams <span class="hint">optional</span><input type="date" id="aJoin"></label><label class="f">Choose a password<span class="hint">At least 10 characters, with letters and numbers.</span><input type="password" id="aPw" autocomplete="new-password" required></label><button class="btn red big">Request access</button></form>';
   if (mode === 'forgot') body = '<form class="form" id="fAuth"><label class="f">Email<input type="email" id="aEmail" autocomplete="email" required></label><button class="btn red big">Email me a reset link</button><button type="button" class="btn link" data-mode="signin">Back to sign in</button></form>';
   authShell('<h1>' + (mode === 'forgot' ? 'Reset password' : mode === 'request' ? 'Join the race' : 'Welcome back') + '</h1>' + (mode === 'forgot' ? '' : tabs) + m + body + '<p class="small muted" style="margin-top:22px">Your details are used only to run your technology training at KW Edge. <a href="#privacy" id="aPriv">Privacy notice</a></p>');
   document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => showAuth(b.dataset.mode));
+  document.querySelectorAll('[data-accgo]').forEach(b => b.onclick = () => accSwitch(b.dataset.accgo));
   const fg = $('aForgot'); if (fg) fg.onclick = () => showAuth('forgot');
   const snd = $('aSnd'); if (snd) snd.onchange = () => store.set('tr.sound', snd.checked ? null : 'off');
   $('aPriv').onclick = e => { e.preventDefault(); privacyDlg(); };
@@ -532,8 +534,19 @@ async function handleHash() {
 function privacyDlg() {
   dlg('Privacy notice', '<div class="small"><p><b>What we keep:</b> your name, email, mobile number, market centre, team, the date you joined Keller Williams, an optional profile photo, your learning progress, evidence you submit, reviews and points.</p><p><b>Why:</b> to run and measure your technology training at KW Edge.</p><p><b>Who sees it:</b> you; your MCTT and platform administrators for the parts their role needs; market centre leadership sees progress figures. Colleagues see only your leaderboard entry: name, approved photo, XP, level, verified milestones and badges. Never your submissions, contacts or coaching notes.</p><p><b>Client information:</b> never upload clients\' personal information. Hide names, numbers and addresses in screenshots.</p><p><b>Your rights:</b> ask your MCTT to see, correct or delete your information. This notice follows POPIA principles; it is not legal advice.</p></div>');
 }
+/* ---------- two accounts on one device (for example the organiser and an agent login): switch without typing a password again ---------- */
+const ACC = { list: () => { try { const l = JSON.parse(store.get('tr.accounts') || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; } }, save: l => store.set('tr.accounts', l.length ? JSON.stringify(l) : null) };
+const roleLabel = () => isAdmin() ? 'Organiser' : has('leader') ? 'Leader' : 'Agent';
+function accRemember() { if (!S.me || !S.token) return; const l = ACC.list().filter(a => a.id !== S.me.id && a.token !== S.token); l.unshift({ id: S.me.id, name: S.me.name, email: S.me.email, role: roleLabel(), token: S.token }); ACC.save(l.slice(0, 4)); }
+function accOthers() { return ACC.list().filter(a => S.me && a.id !== S.me.id); }
+function accSwitch(id) {
+  const a = ACC.list().find(x => x.id === id); if (!a) return;
+  S.token = a.token; store.set('tr.token', a.token); S.me = null; S.data = null; S.ov = null; S.khd = null; S.khg = null; S.khPrevC = {}; S.filters = {};
+  history.replaceState(null, '', location.pathname); toast('Switched to ' + a.name + ' (' + a.role + ')'); boot();
+}
+function accAdd() { history.replaceState(null, '', location.pathname); S.token = null; S.me = null; store.set('tr.token', null); showAuth('signin', 'Sign in with your other account. Both stay signed in on this device and you can switch between them.', 'info'); }
 function signedIn(tok) { S.token = tok; store.set('tr.token', tok); boot(); }
-function signOut(msg) { S.token = null; S.me = null; store.set('tr.token', null); showAuth('signin', msg, msg ? 'info' : null); }
+function signOut(msg) { if (S.token) ACC.save(ACC.list().filter(a => a.token !== S.token)); S.token = null; S.me = null; store.set('tr.token', null); showAuth('signin', msg, msg ? 'info' : null); }
 
 /* ---------- shell ---------- */
 function navItems() {
@@ -547,10 +560,11 @@ function navItems() {
   const seen = {}; return items.filter(i => i[0] === 'sep' || (!seen[i[0]] && (seen[i[0]] = 1)));
 }
 function shell() {
-  $('app').innerHTML = '<header class="top"><a class="brand" href="#" id="toHome">' + BRAND() + '</a><span class="who">' + esc(S.me.name) + '</span>' + (navItems().some(i => i[0] === 'tv') ? '<button class="tv" id="tvB" title="Office display"><i></i><span>Office display</span></button>' : '') + '<button class="tb" id="thB" aria-label="Switch light or dark theme">' + THEME_SVG + '</button><button class="bell" id="bell" aria-label="Notifications"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg><b id="unread" hidden></b></button></header><div class="shell"><nav class="side" id="side" aria-label="Main"></nav><main class="main" id="main" tabindex="-1"></main></div><nav class="bottom" id="bottom" aria-label="Main"></nav>';
+  $('app').innerHTML = '<header class="top"><a class="brand" href="#" id="toHome">' + BRAND() + '</a><span class="who">' + esc(S.me.name) + '</span>' + (navItems().some(i => i[0] === 'tv') ? '<button class="tv" id="tvB" title="Office display"><i></i><span>Office display</span></button>' : '') + (accOthers().length ? '<button class="tv" id="swB" title="Switch account"><span>' + esc(roleLabel()) + ' view</span> &#8644;</button>' : '') + '<button class="tb" id="thB" aria-label="Switch light or dark theme">' + THEME_SVG + '</button><button class="bell" id="bell" aria-label="Notifications"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg><b id="unread" hidden></b></button></header><div class="shell"><nav class="side" id="side" aria-label="Main"></nav><main class="main" id="main" tabindex="-1"></main></div><nav class="bottom" id="bottom" aria-label="Main"></nav>';
   $('toHome').onclick = e => { e.preventDefault(); go(isAgent() ? 'home' : 'centre'); };
   $('bell').onclick = () => notesDlg();
   $('thB').onclick = toggleTheme;
+  const sw = $('swB'); if (sw) sw.onclick = () => { const o = accOthers(); if (o.length === 1) return accSwitch(o[0].id); dlg('Switch account', o.map(a => '<button class="btn" style="width:100%;justify-content:space-between;margin-bottom:8px" data-acc="' + esc(a.id) + '"><span>' + esc(a.name) + '</span><span class="small muted">' + esc(a.role) + '</span></button>').join(''), null, d => d.querySelectorAll('[data-acc]').forEach(b => b.onclick = () => { d.close(); accSwitch(b.dataset.acc); })); };
   const tvb = $('tvB'); if (tvb) tvb.onclick = () => go('tv');
 }
 function renderNav() {
@@ -590,6 +604,7 @@ async function boot() {
   f1Arm();
   if (!$('main')) $('app').innerHTML = '<div class="loading" role="status" style="justify-content:center;min-height:60vh"><span class="spin" aria-hidden="true"></span>Starting your engine...</div>';
   try { await refresh(); } catch (e) { if (e.code !== 'signin') showAuth('signin', e.message, 'bad'); return; }
+  accRemember();
   shell();
   const h = (location.hash || '').slice(1).split(':'); S.view = VIEWS[h[0]] && navItems().some(i => i[0] === h[0]) || h[0] === 'challenge' ? h[0] : (isAgent() ? 'home' : 'centre'); S.arg = h[1] || null;
   render();
@@ -1151,13 +1166,18 @@ VIEWS.me = async () => {
     + (isAgent() ? '<div class="card"><h2>Badges and certificates</h2><p class="small muted" style="margin-top:0">Every badge comes with a certificate signed by your MCTT. Open it to print or save as PDF.</p><div class="badges">' + (earned.length ? earned.map(b => '<div style="flex:1 1 220px">' + badgeHtml(b) + '<button class="btn sm" style="margin-top:6px" data-cert="' + b.id + '">Certificate</button></div>').join('') : '<p class="small muted">Your badges appear here.</p>') + '</div>' + (d.stats.onboarding.total && d.stats.onboarding.done >= d.stats.onboarding.total ? '<button class="btn red" data-cert="onboarding" style="margin-top:12px">Onboarding completion certificate</button>' : '') + '</div>' : '')
     + '<div class="card"><h2>Profile</h2><form class="form" id="pf"><div class="grid g2"><label class="f">Full name<input type="text" id="pName" value="' + esc(m.name) + '" maxlength="80"></label><label class="f">Mobile number<input type="tel" id="pMob" value="' + esc(m.mobile || '') + '"></label><label class="f">Date you joined Keller Williams<input type="date" id="pJoin" value="' + esc(m.kw_join_date || '') + '"></label><label class="f">Profile photo <span class="hint">optional, under 1 MB</span><input type="file" id="pPhoto" accept="image/png,image/jpeg,image/webp"></label></div><label class="check"><input type="checkbox" id="pShow"' + (m.show_photo ? ' checked' : '') + '> Show my photo on the leaderboard</label><label class="check"><input type="checkbox" id="pMail"' + (m.notify_email ? ' checked' : '') + '> Email me about reviews, badges and new challenges (in-app notifications always stay on)</label><button class="btn dark">Save profile</button></form></div>'
     + '<div class="card"><h2>Password</h2><form class="form" id="pw"><div class="grid g2"><label class="f">Current password<input type="password" id="pwCur" autocomplete="current-password"></label><label class="f">New password<input type="password" id="pwNew" autocomplete="new-password"></label></div><button class="btn">Change password</button></form></div>'
+    + '<div class="card"><h2>Accounts on this device</h2><p class="small muted" style="margin-top:0">Stay signed in as the organiser and as an agent at the same time, and switch with one click. Each account keeps its own password and role.</p>'
+    + ACC.list().map(a => '<div class="row" style="justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap"><div><b>' + esc(a.name) + '</b> <span class="tag">' + esc(a.role) + '</span><div class="small muted">' + esc(a.email || '') + '</div></div>' + (S.me && a.id === S.me.id ? '<span class="small muted">Signed in now</span>' : '<button class="btn sm red" data-acc="' + esc(a.id) + '">Switch to this account</button>') + '</div>').join('')
+    + '<button class="btn" id="accAdd" style="margin-top:12px">Add another account</button></div>'
     + '<p class="small"><a href="#privacy" id="mePriv">Privacy notice</a></p>';
 };
 VIEWS.me.after = () => {
   document.querySelectorAll('[data-cert]').forEach(b => b.onclick = () => showCert(b.dataset.cert));
-  $('out').onclick = () => signOut('Signed out.'); $('mePriv').onclick = e => { e.preventDefault(); privacyDlg(); };
+  $('out').onclick = () => signOut('Signed out.');
+  document.querySelectorAll('main [data-acc]').forEach(b => b.onclick = () => accSwitch(b.dataset.acc));
+  $('accAdd').onclick = accAdd; $('mePriv').onclick = e => { e.preventDefault(); privacyDlg(); };
   $('pf').onsubmit = async e => { e.preventDefault(); try { const f = $('pPhoto').files[0]; let photo = null; if (f) { if (f.size > 1e6) throw new Error('Photos must be under 1 MB.'); photo = { mime: f.type, b64: await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.readAsDataURL(f); }) }; } await api('trUpdateMe', { name: $('pName').value, mobile: $('pMob').value, kw_join_date: $('pJoin').value, show_photo: $('pShow').checked, notify_email: $('pMail').checked, photo }); toast('Profile saved'); render(); } catch (x) { toast(x.message); } };
-  $('pw').onsubmit = async e => { e.preventDefault(); try { const j = await api('trPassword', { current: $('pwCur').value, password: $('pwNew').value }); S.token = j.token; store.set('tr.token', j.token); toast('Password changed. Other devices are signed out.'); $('pwCur').value = $('pwNew').value = ''; } catch (x) { toast(x.message); } };
+  $('pw').onsubmit = async e => { e.preventDefault(); try { const j = await api('trPassword', { current: $('pwCur').value, password: $('pwNew').value }); S.token = j.token; store.set('tr.token', j.token); accRemember(); toast('Password changed. Other devices are signed out.'); $('pwCur').value = $('pwNew').value = ''; } catch (x) { toast(x.message); } };
 };
 
 /* ---------- certificates, signed by the MCTT ---------- */
@@ -1170,6 +1190,45 @@ async function showCert(kind, user) {
 }
 
 /* ---------- MCTT and leadership ---------- */
+/* ---------- help an agent: a message is prepared from their real status; you send it yourself from WhatsApp or your email ---------- */
+const waNum = m => { let d = String(m || '').replace(/\D/g, ''); if (d.startsWith('0')) d = '27' + d.slice(1); return d.length >= 11 ? d : ''; };
+function helpDraft(a, asg) {
+  const first = String(a.name || '').split(' ')[0] || 'there', mine = (S.me && S.me.name || '').split(' ')[0] || 'Your MCTT';
+  const over = (asg || []).filter(x => x.status === 'overdue'), fix = (asg || []).filter(x => x.status === 'needs_improvement');
+  const days = a.lastActive ? Math.floor((Date.now() - new Date(a.lastActive).getTime()) / 864e5) : null;
+  const lines = ['Hi ' + first + ','];
+  if (fix.length) lines.push('Thanks for your submission on "' + fix[0].title + '". I asked for a small change, and I would love to help you get it verified. It usually takes less than 10 minutes once we look at it together.');
+  else if (over.length) lines.push('I see ' + (over.length === 1 ? '"' + over[0].title + '" is' : over.length + ' Tech Race challenges are') + ' waiting for you. No stress, let us get you moving again.');
+  else if (days == null) lines.push('I noticed you have not started the Tech Race yet. It takes about 15 minutes to get going and I am happy to walk you through it.');
+  else lines.push('I have not seen you on the Tech Race for ' + days + ' days. Is anything getting in the way? I am happy to help.');
+  const s = S.data && S.data.settings || {};
+  lines.push(s.checkin_url ? 'Book a 15-minute Tech Check-In with me here: ' + s.checkin_url : 'Reply with a time that suits you and I will sit with you for 15 minutes.');
+  lines.push('The race is here: https://www.mret.co.za/tech-race/');
+  lines.push(mine + '\nMCTT, KW Edge');
+  return lines.join('\n\n');
+}
+async function helpDlg(id) {
+  let j; try { j = await api('trAgent', { id }); } catch (e) { return toast(e.message); }
+  const a = j.agent, wa = waNum(a.mobile), draft = helpDraft(a, j.assignments);
+  const why = [a.overdue ? a.overdue + ' overdue' : '', (j.assignments || []).some(x => x.status === 'needs_improvement') ? 'changes requested' : '', a.lastActive ? 'last active ' + fmtD(a.lastActive) : 'never active'].filter(Boolean).join(' · ');
+  dlg('Help ' + a.name, '<p class="small muted" style="margin-top:0">' + esc(why) + '. Edit the message, then choose how to send it. Nothing is sent until you press send in WhatsApp or your email app.</p><label class="f">Message<textarea id="hMsg" rows="10">' + esc(draft) + '</textarea></label>'
+    + (wa ? '' : '<p class="small muted">No mobile number on file, so WhatsApp is not available. Email still works.</p>'),
+    '<button class="btn" data-close>Close</button><button class="btn" id="hCopy">Copy</button><button class="btn" id="hMail">Email</button>' + (wa ? '<button class="btn red" id="hWa">WhatsApp</button>' : ''), () => {
+      const msg = () => $('hMsg').value;
+      if ($('hWa')) $('hWa').onclick = () => window.open('https://wa.me/' + wa + '?text=' + encodeURIComponent(msg()), '_blank', 'noopener');
+      $('hMail').onclick = () => { location.href = 'mailto:' + encodeURIComponent(a.email) + '?subject=' + encodeURIComponent('Your Tech Race: can I help?') + '&body=' + encodeURIComponent(msg()); };
+      $('hCopy').onclick = async () => { try { await navigator.clipboard.writeText(msg()); toast('Message copied'); } catch (e) { $('hMsg').select(); toast('Press copy on your keyboard'); } };
+    });
+}
+function helpAllDlg() {
+  const list = (S.ov && S.ov.agents || []).filter(a => a.needsHelp && a.email), mine = (S.me && S.me.name || '').split(' ')[0] || 'Your MCTT', s = S.data && S.data.settings || {};
+  const body = 'Hi everyone,\n\nI am setting aside time this week to help anyone who is stuck on the Tech Race. ' + (s.checkin_url ? 'Book 15 minutes with me here: ' + s.checkin_url : 'Reply with a time that suits you.') + '\n\nThe race is here: https://www.mret.co.za/tech-race/\n\n' + mine + '\nMCTT, KW Edge';
+  dlg('Email everyone who needs help', '<p class="small muted" style="margin-top:0">' + list.length + ' agents, added as BCC so they do not see each other\'s addresses: ' + esc(list.map(a => a.name).join(', ')) + '. Nothing is sent until you press send in your email app.</p><label class="f">Message<textarea id="hAll" rows="9">' + esc(body) + '</textarea></label>',
+    '<button class="btn" data-close>Close</button><button class="btn red" id="hAllGo">Open in my email</button>', () => {
+      $('hAllGo').onclick = () => { location.href = 'mailto:?bcc=' + list.map(a => encodeURIComponent(a.email)).join(',') + '&subject=' + encodeURIComponent('Tech Race: help this week') + '&body=' + encodeURIComponent($('hAll').value); };
+    });
+}
+
 async function getOv() { S.ov = await api('trOverview'); return S.ov; }
 const pctBar = p => '<div class="bar" style="min-width:80px"><i style="width:' + p + '%"></i></div>';
 VIEWS.centre = async () => {
@@ -1183,14 +1242,17 @@ VIEWS.centre = async () => {
           + podHtml(bd.slice(0, 3).map(r => ({ id: r.id, rank: r.rank, tied: r.tied, name: r.name, score: r.xp, unit: 'XP this week', mv: mvHtml(r.rank, r.lastWeekRank || null, true) }))); })()
     + '<div class="grid g4" style="margin-bottom:12px">' + kp('Enrolled', k.enrolled, k.pendingJoin ? k.pendingJoin + ' waiting for approval' : '') + kp('Active last 7 days', k.participating7, 'of ' + k.active + ' active') + kp('Onboarding complete', k.completed, 'average ' + k.completionPct + '% verified') + kp('Awaiting your review', k.awaiting, '') + kp('Overdue tasks', k.overdue, '') + kp('Need assistance', k.needHelp, 'overdue, inactive or changes requested') + Object.values(o.byTrack).map(t => kp(esc(t.name), t.pct + '%', t.verified + ' of ' + t.total + ' verified')).join('') + '</div>'
     + (!o.readOnly && o.agents.some(a => a.status === 'roster') ? '<div class="alert info no-print"><b>' + o.agents.filter(a => a.status === 'roster').length + ' agents imported but not yet invited.</b> Nobody has been emailed. <button class="btn sm red" id="sendInv" style="margin-left:8px">Send invitations</button></div>' : (!o.readOnly && o.agents.some(a => a.status === 'invited') ? '<div class="alert info no-print"><b>' + o.agents.filter(a => a.status === 'invited').length + ' agents invited but not yet joined.</b> <button class="btn sm" id="sendInv" style="margin-left:8px">Resend invitations</button></div>' : ''))
+    + (o.agents.some(a => a.needsHelp) ? '<div class="alert warn no-print" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:220px"><b>' + o.agents.filter(a => a.needsHelp).length + ' agent' + (o.agents.filter(a => a.needsHelp).length === 1 ? ' needs' : 's need') + ' help.</b> Press Help next to a name for a message ready to send by WhatsApp or email.</span><button class="btn sm" id="helpAll">Email all of them</button></div>' : '')
     + '<div class="card"><h2>Agents</h2><div class="filters no-print"><input type="text" id="fQ" placeholder="Search name or email" value="' + esc(f.q || '') + '"><select id="fTeam">' + opt(o.teams, f.team, 'All teams') + '</select><select id="fCohort">' + opt(o.cohorts, f.cohort, 'All cohorts') + '</select><select id="fStatus"><option value="">All statuses</option>' + [['active', 'Active'], ['roster', 'Not yet invited'], ['pending', 'Waiting for approval'], ['invited', 'Invited'], ['help', 'Needs assistance'], ['inactive', 'Inactive 7+ days'], ['suspended', 'Suspended']].map(x => '<option value="' + x[0] + '"' + (f.status === x[0] ? ' selected' : '') + '>' + x[1] + '</option>').join('') + '</select></div>'
-    + '<div class="tablebox"><table><thead><tr><th>Agent</th><th>Status</th><th>Onboarding</th><th>XP</th><th>Overdue</th><th>Review</th><th>Last active</th></tr></thead><tbody>' + (list.map(a => '<tr class="click" data-agent="' + a.id + '"><td><b>' + esc(a.name) + '</b>' + (a.needsHelp ? ' <span class="tag needs_improvement">help</span>' : '') + '<div class="small muted">' + esc(a.email) + (a.team ? ' · ' + esc(a.team) : '') + '</div></td><td>' + esc(a.status) + '</td><td>' + pctBar(a.pct) + '<span class="small">' + a.verified + '/' + a.verifiedTotal + '</span></td><td class="num">' + a.xp + '<div class="small muted">' + esc(a.level) + '</div></td><td class="num">' + (a.overdue || '') + '</td><td class="num">' + (a.pending || '') + '</td><td class="small">' + (a.lastActive ? fmtD(a.lastActive) : 'never') + '</td></tr>').join('') || '<tr><td colspan="7">' + empty('No agents match.') + '</td></tr>') + '</tbody></table></div></div>'
+    + '<div class="tablebox"><table><thead><tr><th>Agent</th><th>Status</th><th>Onboarding</th><th>XP</th><th>Overdue</th><th>Review</th><th>Last active</th></tr></thead><tbody>' + (list.map(a => '<tr class="click" data-agent="' + a.id + '"><td><b>' + esc(a.name) + '</b>' + (a.needsHelp ? ' <span class="tag needs_improvement">help</span> <button class="btn sm red no-print" data-help="' + a.id + '" style="margin-left:6px;min-height:28px">Help</button>' : '') + '<div class="small muted">' + esc(a.email) + (a.team ? ' · ' + esc(a.team) : '') + '</div></td><td>' + esc(a.status) + '</td><td>' + pctBar(a.pct) + '<span class="small">' + a.verified + '/' + a.verifiedTotal + '</span></td><td class="num">' + a.xp + '<div class="small muted">' + esc(a.level) + '</div></td><td class="num">' + (a.overdue || '') + '</td><td class="num">' + (a.pending || '') + '</td><td class="small">' + (a.lastActive ? fmtD(a.lastActive) : 'never') + '</td></tr>').join('') || '<tr><td colspan="7">' + empty('No agents match.') + '</td></tr>') + '</tbody></table></div></div>'
     + '<div class="card"><h2>This week\'s race</h2>' + (o.board.length ? '<table><thead><tr><th>#</th><th>Agent</th><th>XP this week</th><th>Last week</th></tr></thead><tbody>' + o.board.map(r => '<tr><td>' + (r.tied ? '=' : '') + r.rank + '</td><td>' + esc(r.name) + '</td><td class="num">' + r.xp + '</td><td class="small">' + (r.lastWeekRank ? '#' + r.lastWeekRank + (r.lastWeekRank > r.rank ? ' &uarr;' : r.lastWeekRank < r.rank ? ' &darr;' : '') : 'new') + '</td></tr>').join('') + '</tbody></table>' : empty('No points yet this week.')) + '</div>';
 };
 VIEWS.centre.after = () => {
   const set = (id, k) => { const el = $(id); el.onchange = el.oninput = () => { S.filters[k] = el.value; clearTimeout(el._t); el._t = setTimeout(render, el.tagName === 'INPUT' ? 300 : 0); }; };
   set('fQ', 'q'); set('fTeam', 'team'); set('fCohort', 'cohort'); set('fStatus', 'status');
   document.querySelectorAll('[data-agent]').forEach(tr => tr.onclick = () => go('agent', tr.dataset.agent));
+  document.querySelectorAll('[data-help]').forEach(b => b.onclick = e => { e.stopPropagation(); helpDlg(b.dataset.help); });
+  const hb = $('helpAll'); if (hb) hb.onclick = helpAllDlg;
   const inv = $('inv'); if (inv) inv.onclick = inviteDlg;
   const imp = $('imp'); if (imp) imp.onclick = importDlg;
   const si = $('sendInv'); if (si) si.onclick = sendInvDlg;
@@ -1200,7 +1262,7 @@ VIEWS.agent = async () => {
   const j = await api('trAgent', { id: S.arg }), a = j.agent, o = S.ov || await getOv();
   const opt = (arr, sel, blank) => '<option value="">' + blank + '</option>' + arr.map(x => '<option value="' + esc(x.id) + '"' + (sel === x.id ? ' selected' : '') + '>' + esc(x.name || x.title) + '</option>').join('');
   return '<div class="ph"><div><button class="btn link" data-go="centre">&larr; Command Centre</button><h1 style="margin-top:6px">' + esc(a.name) + '</h1><p>' + esc(a.email) + (a.mobile ? ' · ' + esc(a.mobile) : '') + ' · ' + esc(a.status) + (a.verified_email ? '' : ' · email not verified') + '</p></div>'
-    + (j.readOnly ? '' : '<div class="row no-print" style="flex-wrap:wrap">' + (a.status === 'pending' ? '<button class="btn red" id="appr">Approve access</button><button class="btn" id="decl">Decline</button>' : '') + '<button class="btn" id="asg">Assign challenge</button><button class="btn" id="adj">Adjust points</button>' + (a.pct === 100 ? '<button class="btn" id="cert">Certificate</button>' : '') + (a.status === 'active' ? '<button class="btn" id="susp">Suspend</button>' : a.status === 'suspended' ? '<button class="btn" id="react">Reactivate</button>' : '') + '</div>') + '</div>'
+    + (j.readOnly ? '' : '<div class="row no-print" style="flex-wrap:wrap">' + (a.status === 'pending' ? '<button class="btn red" id="appr">Approve access</button><button class="btn" id="decl">Decline</button>' : '') + '<button class="btn red" id="help">Help this agent</button><button class="btn" id="asg">Assign challenge</button><button class="btn" id="adj">Adjust points</button>' + (a.pct === 100 ? '<button class="btn" id="cert">Certificate</button>' : '') + (a.status === 'active' ? '<button class="btn" id="susp">Suspend</button>' : a.status === 'suspended' ? '<button class="btn" id="react">Reactivate</button>' : '') + '</div>') + '</div>'
     + '<div class="grid g4" style="margin-bottom:12px"><div class="kpi"><div class="l">Onboarding</div><div class="v">' + a.pct + '%</div><div class="s">' + a.verified + ' of ' + a.verifiedTotal + ' verified</div></div><div class="kpi"><div class="l">XP</div><div class="v">' + a.xp + '</div><div class="s">' + esc(a.level) + '</div></div><div class="kpi"><div class="l">Overdue</div><div class="v">' + a.overdue + '</div></div><div class="kpi"><div class="l">Last active</div><div class="v" style="font-size:20px">' + (a.lastActive ? fmtD(a.lastActive) : 'never') + '</div></div></div>'
     + (j.readOnly ? '' : '<div class="card no-print"><h2>Placement</h2><div class="grid g4"><label class="f">Team<select id="aTeam">' + opt(o.teams, a.team_id, 'No team') + '</select></label><label class="f">Cohort<select id="aCoh">' + opt(o.cohorts, a.cohort_id, 'No cohort') + '</select></label><label class="f">Onboarding start<input type="date" id="aStart" value="' + esc(a.onboarding_start || '') + '"></label><div style="align-self:end"><button class="btn dark" id="aSave">Save</button></div></div></div>')
     + '<div class="card"><h2>Challenges</h2><div class="tablebox"><table><thead><tr><th>Challenge</th><th>Opens</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody>' + j.assignments.map(x => '<tr><td>' + esc(x.title) + (x.remedial ? ' <span class="tag">extra</span>' : '') + (x.note ? '<div class="small muted">' + esc(x.note) + '</div>' : '') + '</td><td class="small">' + fmtD(x.start_date) + '</td><td class="small">' + fmtD(x.due_date) + '</td><td>' + tag(x.status) + '</td><td>' + (j.readOnly || x.status === 'verified' ? '' : '<button class="btn sm" data-ext="' + x.id + '">Change dates</button>') + '</td></tr>').join('') + '</tbody></table></div></div>'
@@ -1209,6 +1271,7 @@ VIEWS.agent = async () => {
 VIEWS.agent.after = () => {
   const id = S.arg; document.querySelectorAll('main [data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
   const on = (i, fn) => { const b = $(i); if (b) b.onclick = fn; };
+  on('help', () => helpDlg(id));
   on('appr', async () => { await api('trApprove', { id }); toast('Approved. Their six-week journey has started.'); render(); });
   on('decl', async () => { await api('trApprove', { id, decline: true }); toast('Request declined.'); go('centre'); });
   on('susp', async () => { if (!confirm('Suspend this agent? They are signed out immediately.')) return; await api('trAgentUpdate', { id, fields: { status: 'suspended' } }); render(); });
