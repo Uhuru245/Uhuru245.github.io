@@ -186,10 +186,14 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--card-2); }
 .lb li { display: grid; grid-template-columns: 64px 46px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line); cursor: pointer; position: relative; transition: background .15s; }
 .lb li:hover { background: var(--card-2); }
 .lb li::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; background: transparent; }
-.lb li:nth-child(1)::before { background: var(--gold); } .lb li:nth-child(2)::before { background: var(--silver); } .lb li:nth-child(3)::before { background: var(--bronze); }
+.lb li.r1::before { background: var(--gold); } .lb li.r2::before { background: var(--silver); } .lb li.r3::before { background: var(--bronze); }
 .lb li.me { background: var(--red-bg); } .lb li.me::after { content: 'YOU'; position: absolute; right: 8px; top: 6px; font: 700 9px var(--sans); letter-spacing: .2em; color: var(--red-ink); }
 .lb .rk { font: italic 800 34px/1 var(--race); text-align: center; color: var(--ink); font-variant-numeric: tabular-nums; }
-.lb li:nth-child(1) .rk { color: var(--gold); } .lb li:nth-child(2) .rk { color: var(--silver); } .lb li:nth-child(3) .rk { color: var(--bronze); }
+.lb li.r1 .rk { color: var(--gold); } .lb li.r2 .rk { color: var(--silver); } .lb li.r3 .rk { color: var(--bronze); }
+.lb li.pace { background: repeating-linear-gradient(-60deg, rgba(120, 170, 255, .06) 0 10px, transparent 10px 20px); outline: 1px dashed var(--blue); outline-offset: -1px; cursor: default; }
+.lb li.pace::before { background: var(--blue); } .lb li.pace .rk { font-size: 15px; color: var(--blue); letter-spacing: .08em; } .lb li.pace .av { background: var(--blue); color: #08090b; }
+.pacetag { display: inline-block; margin-left: 8px; padding: 3px 7px; font: 700 9.5px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase; background: var(--blue); color: #08090b; vertical-align: 2px; }
+.tvw .tvl li.pace { background: repeating-linear-gradient(-60deg, rgba(120, 170, 255, .08) 0 10px, transparent 10px 20px); } .tvw .tvl li.pace b.p { color: #9cc3ff; font-size: 1em; letter-spacing: .1em; } .tvw .tvl li.pace .av { background: #9cc3ff; color: #08090b; }
 .av { width: 46px; height: 46px; background: var(--carbon); color: #fff; display: grid; place-items: center; font: italic 800 17px var(--race); overflow: hidden; clip-path: polygon(18% 0, 100% 0, 82% 100%, 0 100%); flex: none; }
 .av img { width: 100%; height: 100%; object-fit: cover; }
 .lb .xp { font: italic 800 28px/1 var(--race); text-align: right; font-variant-numeric: tabular-nums; }
@@ -719,7 +723,7 @@ function podHtml(top, attr) {
 VIEWS.race = async () => {
   const b = await api('trBoard', { period: S.board }), meId = S.me.id, rec = b.recognition;
   const seg = '<div class="seg" role="group" aria-label="Leaderboard period">' + [['week', 'Weekly race'], ['month', 'Monthly race'], ['all', 'All-time champions']].map(([k, l]) => '<button data-board="' + k + '" aria-pressed="' + (S.board === k) + '">' + l + '</button>').join('') + '</div>';
-  const rows = b.rows.map(r => '<li data-prof="' + r.id + '"' + (r.id === meId ? ' class="me"' : '') + ' tabindex="0" role="button"><span class="rk">' + (r.tied ? '=' : '') + r.rank + '</span><span class="av"' + (r.photo ? ' data-photo="' + r.id + '"' : '') + '>' + esc(initials(r.name)) + '</span><div><b>' + esc(r.name) + '</b><div class="small muted">' + esc(r.level) + ' · ' + r.verified + '/' + r.verifiedTotal + ' verified · ' + r.badges + ' badge' + (r.badges === 1 ? '' : 's') + (r.team ? ' · ' + esc(r.team) : '') + '</div></div><span class="xp num">' + r.xp + '<span class="small muted" style="font:500 12px var(--sans)"> XP</span>' + mvHtml(r.rank, r.lastWeekRank, S.board === 'week' && b.rows.some(x => 'lastWeekRank' in x)) + '</span></li>').join('');
+  const rows = b.rows.map(r => '<li data-prof="' + r.id + '" class="' + (r.rank <= 3 ? 'r' + r.rank : '') + (r.id === meId ? ' me' : '') + '" tabindex="0" role="button"><span class="rk">' + (r.tied ? '=' : '') + r.rank + '</span><span class="av"' + (r.photo ? ' data-photo="' + r.id + '"' : '') + '>' + esc(initials(r.name)) + '</span><div><b>' + esc(r.name) + '</b><div class="small muted">' + esc(r.level) + ' · ' + r.verified + '/' + r.verifiedTotal + ' verified · ' + r.badges + ' badge' + (r.badges === 1 ? '' : 's') + (r.team ? ' · ' + esc(r.team) : '') + '</div></div><span class="xp num">' + r.xp + '<span class="small muted" style="font:500 12px var(--sans)"> XP</span>' + mvHtml(r.rank, r.lastWeekRank, S.board === 'week' && b.rows.some(x => 'lastWeekRank' in x)) + '</span></li>').join('');
   const pod = podHtml(b.rows.slice(0, 3).map(r => ({ id: r.id, rank: r.rank, tied: r.tied, name: r.name, photo: r.photo, score: r.xp, unit: 'XP', me: r.id === meId })), x => 'data-prof="' + x.id + '"');
   return '<div class="ph"><div><h1>Championship standings</h1><p>' + (S.board === 'week' ? 'Points earned since Monday ' + fmtD(b.from) : S.board === 'month' ? 'Points earned this month' : 'Lifetime points') + '. Ties are shown with =.</p></div>' + seg + '</div>'
     + '<div class="podium"><div class="kpi"><div class="l">Most improved this week</div><div class="v" style="font-size:22px">' + (rec.improved ? esc(rec.improved.name) : 'Not yet') + '</div><div class="s">' + (rec.improved ? '+' + rec.improved.gain + ' XP above their recent average' : 'Earn XP this week to qualify') + '</div></div><div class="kpi"><div class="l">Most consistent</div><div class="v" style="font-size:22px">' + (rec.consistent ? esc(rec.consistent.name) : 'Not yet') + '</div><div class="s">' + (rec.consistent ? rec.consistent.weeks + ' week' + (rec.consistent.weeks === 1 ? '' : 's') + ' in a row' : '') + '</div></div></div>'
@@ -1016,6 +1020,20 @@ async function khGrowth(d) {
 }
 function monthLabel(k) { const M = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']; return M[Number(k.slice(5, 7)) - 1] + ' ' + k.slice(0, 4); }
 
+/* The organiser in the race as the pace car: shown at the place his own KW Homes figures would earn, but never ranked,
+   so no agent's position, badge or prize changes. Figures come from the organiser's own MAPP export (organiser.json). */
+async function khPace(P, race) {
+  if (!P || P.masked || !P.standings) return null;
+  const me = await khMeData(); if (!me || !Array.isArray(me.periods)) return null;
+  const hit = me.periods.filter(p => p.from === P.from && p.to === P.to)[0] || me.periods.filter(p => p.from === P.from && p.to <= P.to).sort((a, b) => a.to < b.to ? 1 : -1)[0];
+  if (!hit) return null;
+  const x = hit.data || {}, w = khMeWouldBe(P, x), pos = race === 'overall' ? w.overall : w[race]; if (!pos) return null;
+  return { pos, of: race === 'overall' ? w.overallOf : w[race + 'Of'], val: race === 'overall' ? khViews(x) : (x[race] || 0), unit: race === 'overall' ? 'KW Homes views' : khUnit[race], d: x, name: me.name || 'MCTT', to: hit.to, partial: hit.to !== P.to };
+}
+function khPaceRow(p, metrics) {
+  const tele = '<div class="tele">' + (metrics || []).filter(m => p.d[m[0]]).map(m => '<span><b>' + Number(p.d[m[0]]).toLocaleString('en-ZA') + '</b> ' + esc(m[1]) + '</span>').join('') + '</div>';
+  return '<li class="pace" title="The MCTT leads by example. Not ranked: agents keep their positions and prizes."><span class="rk">MCTT</span><span class="av">' + esc(initials(p.name)) + '</span><div><b>' + esc(p.name) + '</b><span class="pacetag">Pace car</span><div class="small muted">Would be P' + p.pos + ' of ' + p.of + '. Not ranked, so every agent keeps their place.' + (p.partial ? ' Figures to ' + fmtD(p.to) + '.' : '') + '</div>' + tele + '</div><span class="xp num">' + p.val.toLocaleString('en-ZA') + '<span class="small muted" style="font:500 12px var(--sans)"> ' + esc(p.unit) + '</span></span></li>';
+}
 /* the period before this one, only if it is complete and not masked, so movement is real */
 async function khPrev(scope, P, d) {
   if (!P || scope === 'growth') return null;
@@ -1070,7 +1088,10 @@ VIEWS.homes = async () => {
     if (prevList) prevList.forEach(x => { prevRank[keyOf(x)] = x.rank; });
     const mv = x => mvHtml(x.rank, prevRank[keyOf(x)], !!prevList);
     const tele = x => x.detail ? '<div class="tele">' + d.metrics.filter(m => x.detail[m[0]]).map(m => '<span><b>' + Number(x.detail[m[0]]).toLocaleString('en-ZA') + '</b> ' + esc(m[1]) + '</span>').join('') + '</div>' : '';
-    const rows = khList.slice(0, 50).map(x => '<li' + (x.user_id === d.me ? ' class="me"' : '') + '><span class="rk">' + x.rank + '</span><span class="av">' + esc(initials(x.name)) + '</span><div><b>' + esc(x.name) + '</b>' + tele(x) + '</div><span class="xp num">' + khScore(x).toLocaleString('en-ZA') + '<span class="small muted" style="font:500 12px var(--sans)"> ' + khUnit[k.race] + '</span>' + mv(x) + '</span></li>').join('');
+    const rowsA = khList.slice(0, 50).map(x => '<li class="' + (x.rank <= 3 ? 'r' + x.rank : '') + (x.user_id === d.me ? ' me' : '') + '"><span class="rk">' + x.rank + '</span><span class="av">' + esc(initials(x.name)) + '</span><div><b>' + esc(x.name) + '</b>' + tele(x) + '</div><span class="xp num">' + khScore(x).toLocaleString('en-ZA') + '<span class="small muted" style="font:500 12px var(--sans)"> ' + khUnit[k.race] + '</span>' + mv(x) + '</span></li>');
+    const pace = await khPace(P, k.race);
+    if (pace && pace.pos <= rowsA.length + 1) rowsA.splice(pace.pos - 1, 0, khPaceRow(pace, d.metrics));
+    const rows = rowsA.join('');
     const climbs = prevList ? khList.filter(x => prevRank[keyOf(x)] != null && prevRank[keyOf(x)] > x.rank).map(x => ({ x, g: prevRank[keyOf(x)] - x.rank })).sort((a, b) => b.g - a.g || a.x.rank - b.x.rank) : [];
     const lead = khList[0];
     const rc = '<div class="rc"><div class="kpi"><div class="l">Race leader</div><div class="v nm">' + (lead ? esc(lead.name) : 'No leader yet') + '</div><div class="s">' + (lead ? khScore(lead).toLocaleString('en-ZA') + ' ' + khUnit[k.race] : '') + '</div></div>'
@@ -1132,7 +1153,10 @@ VIEWS.tv = async () => {
   const P = kh && kh.week && !kh.week.masked ? kh.week : null, L = P ? (P.standings.overall || []) : [], N = L.length;
   const sc = x => 8 * (N + 1) - x.score, keyOf = x => x.user_id || 'n:' + x.name;
   const Q = P ? await khPrev('week', P, kh) : null, pr = {}; if (Q) (Q.standings.overall || []).forEach(x => { pr[keyOf(x)] = x.rank; });
-  const rows = L.slice(0, 10).map((x, i) => '<li style="animation-delay:' + (i * 60) + 'ms"><b class="p">' + x.rank + '</b><span class="av">' + esc(initials(x.name)) + '</span><span class="nm">' + esc(x.name) + '</span><span class="sc">' + sc(x).toLocaleString('en-ZA') + mvHtml(x.rank, pr[keyOf(x)], !!Q) + '</span></li>').join('');
+  const rowsT = L.slice(0, 10).map((x, i) => '<li style="animation-delay:' + (i * 60) + 'ms"><b class="p">' + x.rank + '</b><span class="av">' + esc(initials(x.name)) + '</span><span class="nm">' + esc(x.name) + '</span><span class="sc">' + sc(x).toLocaleString('en-ZA') + mvHtml(x.rank, pr[keyOf(x)], !!Q) + '</span></li>');
+  const pc = P ? await khPace(P, 'overall') : null;
+  if (pc && pc.pos <= 10) { rowsT.splice(pc.pos - 1, 0, '<li class="pace"><b class="p">MCTT</b><span class="av">' + esc(initials(pc.name)) + '</span><span class="nm">' + esc(pc.name) + ' <span class="pacetag">Pace car</span></span><span class="sc" style="font-size:1em">would be P' + pc.pos + '</span></li>'); if (rowsT.length > 11) rowsT.pop(); }
+  const rows = rowsT.join('');
   const xr = b ? b.rows.filter(r => r.xp > 0) : [], ld = xr[0], rec = b ? b.recognition : {};
   const xrows = xr.slice(0, 5).map((r, i) => '<li style="animation-delay:' + (i * 60) + 'ms"><b class="p">' + (r.tied ? '=' : '') + r.rank + '</b><span class="av"' + (r.photo ? ' data-photo="' + r.id + '"' : '') + '>' + esc(initials(r.name)) + '</span><span class="nm">' + esc(r.name) + '</span><span class="sc">' + r.xp + '</span></li>').join('');
   const now = new Date().toLocaleString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Johannesburg' });
