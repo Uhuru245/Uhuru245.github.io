@@ -216,3 +216,18 @@ mark.hl { background: rgba(184, 155, 96, .35); color: inherit; padding: 0 2px; b
 .section-edit { border: 1px solid var(--line); border-radius: var(--r); padding: 14px; margin-bottom: 12px; background: var(--surface); }
 .section-edit summary { cursor: pointer; font-weight: 600; }
 @media print { .side, .top, .tabbar, .panel, .no-print { display: none !important; } .shell { display: block; } .lesson { border: 0; padding: 0; } body { background: #fff; } }
+
+/* pronunciation */
+.syl { font: 600 14.5px/1.4 var(--sans); letter-spacing: .02em; color: var(--ink-2); }
+.syl b { color: var(--accent); font-weight: 700; } .syl i { font-style: normal; color: var(--muted); padding: 0 4px; }
+.pr-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 4px 0 2px; }
+.icon-btn.sm-i { width: 30px; height: 30px; } .icon-btn.sm-i svg { width: 15px; height: 15px; }
+.pr-card .lem { font: 500 56px/1.2 var(--serif); display: block; } .pr-card .lem.heb { font-family: var(--heb); font-size: 60px; }
+.pr-syl { margin: 14px 0 10px; } .pr-syl .syl { font-size: 22px; } .pr-syl .syl i { padding: 0 8px; }
+.pr-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 8px 0 16px; } .pr-btns .btn.on { border-color: var(--gold); box-shadow: 0 0 0 3px var(--accent-bg); }
+.pr-rec { border-top: 1px solid var(--line); padding-top: 14px; }
+.btn.rec { background: var(--bad); border-color: var(--bad); color: #fff; }
+.pron-w { border: 0; background: var(--accent-bg); color: inherit; font: inherit; padding: 0 4px; border-radius: 6px; cursor: pointer; border-bottom: 1px dashed var(--gold); }
+.pron-w:hover { background: rgba(184, 155, 96, .3); }
+.abc .abc-l { font: 500 26px/1.2 var(--serif); white-space: nowrap; } .heb-t .abc-l { font-family: var(--heb); font-size: 28px; direction: rtl; }
+.abc td { vertical-align: middle; }

@@ -336,6 +336,19 @@
     const addNote = async (kind, section, quote, body) => { const x = await sb.from('ac_notes').insert({ lesson_id: lid, kind, section, quote, body }).select().single(); if (x.error) return toast(friendly(x.error)); N.push(x.data); paint(); drawNotes(); toast(kind === 'highlight' ? 'Highlighted' : 'Note saved'); };
     const noteDlg = (section, quote) => { const d = dlg('Add a note', (quote ? '<blockquote class="note-item" style="border:0"><blockquote>' + esc(quote) + '</blockquote></blockquote>' : '') + '<form id="nf" class="grid">' + area('body', '', ' rows="5" maxlength="8000" placeholder="Write your thought, question or response"') + '</form>', '<button class="btn" data-c>Cancel</button><button class="btn primary" data-s>Save note</button>'); d.querySelector('[data-c]').onclick = () => d.close(); d.querySelector('[data-s]').onclick = async () => { const b = d.querySelector('textarea').value.trim(); if (!b && !quote) return; d.close(); await addNote(quote ? 'highlight' : 'note', section, quote, b || null); }; d.querySelector('textarea').focus(); };
     paint(); drawNotes();
+    // Greek and Hebrew words from the word list become tappable: tap to hear and practise them
+    sb.from('ac_vocab').select('lemma, language, translit, gloss, syll, pron_note, audio_url, verified').then(({ data }) => {
+      const W = (data || []).filter(w => w.lemma); if (!W.length) return;
+      const by = {}; W.forEach(w => { by[w.lemma.normalize('NFC')] = w; });
+      const pat = Object.keys(by).sort((a, b) => b.length - a.length).map(x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+      const test = new RegExp(pat), split = new RegExp('(' + pat + ')');
+      art.querySelectorAll('.txt').forEach(sec => {
+        const tw = document.createTreeWalker(sec, NodeFilter.SHOW_TEXT); const nodes = []; let t;
+        while ((t = tw.nextNode())) if (test.test(t.data.normalize('NFC')) && !t.parentElement.closest('.pron-w')) nodes.push(t);
+        nodes.forEach(n => { const frag = document.createDocumentFragment(); n.data.normalize('NFC').split(split).forEach((part, k) => { if (k % 2) { const b = document.createElement('button'); b.type = 'button'; b.className = 'pron-w'; b.dataset.w = part; b.title = 'Hear how to say ' + by[part].translit; b.textContent = part; frag.appendChild(b); } else if (part) frag.appendChild(document.createTextNode(part)); }); n.replaceWith(frag); });
+      });
+      art.addEventListener('click', e => { const b = e.target.closest('.pron-w'); if (b && by[b.dataset.w]) practise([by[b.dataset.w]]); });
+    });
     $('an').onclick = () => noteDlg(null, null);
     art.querySelectorAll('[data-note]').forEach(b => b.onclick = () => noteDlg(b.dataset.note, null));
     $('bm').onclick = async ev => busy(ev.target, async () => { const b = N.find(n => n.kind === 'bookmark'); if (b) { await sb.from('ac_notes').delete().eq('id', b.id); N.splice(N.indexOf(b), 1); ev.target.textContent = 'Bookmark'; toast('Bookmark removed'); } else { const x = await sb.from('ac_notes').insert({ lesson_id: lid, kind: 'bookmark' }).select().single(); if (!x.error) { N.push(x.data); ev.target.textContent = 'Bookmarked'; toast('Bookmarked'); } } });
@@ -393,29 +406,111 @@
     if (matchMedia('(max-width: 900px)').matches) $('ng').style.gridTemplateColumns = '1fr';
   }
 
+  /* ---------------- pronunciation ----------------
+     The written syllable guide is the teaching standard (Erasmian Greek, Israeli-based Hebrew). The audio is the device's own
+     speech voice reading that guide, so it is a helper, not an authority. A recorded human file (audio_url) is preferred when present.
+     "Record yourself" keeps the recording in this browser only; nothing is uploaded. */
+  const PR = {
+    ok: typeof window.speechSynthesis !== 'undefined' && typeof window.SpeechSynthesisUtterance !== 'undefined',
+    voices: [],
+    load() { if (!this.ok) return; const set = () => { this.voices = speechSynthesis.getVoices() || []; }; set(); try { speechSynthesis.addEventListener('voiceschanged', set); } catch (e) {} },
+    guide() { return this.voices.find(v => /^en[-_](ZA|GB)/i.test(v.lang)) || this.voices.find(v => /^en/i.test(v.lang)) || null; },
+    native(lang) { const p = lang === 'greek' ? /^el/i : /^(he|iw)/i; return this.voices.find(v => p.test(v.lang)) || null; },
+    say(text, o) { o = o || {}; return new Promise(res => { if (!this.ok) return res(); const u = new SpeechSynthesisUtterance(text); const v = o.voice || this.guide(); if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-GB'; u.rate = o.rate || 0.85; u.pitch = o.pitch || 1; u.volume = o.volume == null ? 1 : o.volume; let done = false; const fin = () => { if (!done) { done = true; res(); } }; u.onend = fin; u.onerror = fin; setTimeout(fin, 8000); speechSynthesis.speak(u); }); },
+    stop() { if (this.ok) speechSynthesis.cancel(); if (this.audio) { this.audio.pause(); this.audio = null; } },
+    stressed: s => /[A-Z]/.test(s) && s === s.toUpperCase(),
+    async play(w, mode) {
+      this.stop(); const syl = w.syll || [];
+      if (mode === 'normal' && w.audio_url) { this.audio = new Audio(w.audio_url); return this.audio.play().catch(() => {}); }
+      if (mode === 'native') { const v = this.native(w.language); return v ? this.say(w.lemma, { voice: v, rate: 0.7 }) : null; }
+      if (!syl.length) return this.say(w.translit, { rate: 0.8 });
+      if (mode === 'syll') { for (const s of syl) { const st = this.stressed(s); await this.say(s.toLowerCase(), { rate: 0.55, pitch: st ? 1.3 : 0.9, volume: st ? 1 : 0.75 }); await new Promise(r => setTimeout(r, 260)); } return; }
+      return this.say(syl.map(s => s.toLowerCase()).join(mode === 'slow' ? ' ' : '-'), { rate: mode === 'slow' ? 0.5 : 0.85 });
+    }
+  };
+  PR.load();
+  const sylHtml = w => (w.syll && w.syll.length) ? '<span class="syl" aria-label="Say it: ' + esc(w.syll.join('-')) + '">' + w.syll.map(s => PR.stressed(s) ? '<b>' + esc(s) + '</b>' : esc(s)).join('<i>&middot;</i>') + '</span>' : '';
+  const lmHtml = (w, cls) => '<span class="' + (cls || 'lm') + (w.language !== 'greek' ? ' heb' : '') + '"' + (w.language !== 'greek' ? ' dir="rtl" lang="he"' : ' lang="grc"') + '>' + esc(w.lemma) + '</span>';
+  const SPK = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+  // practice card for one word (or a run of words when list is given)
+  function practise(list, start) {
+    let i = start || 0, rec = null, mine = null, chunks = [], stopT;
+    const nat = w => PR.native(w.language);
+    const draw = () => {
+      const w = list[i]; PR.stop();
+      const body = '<div class="pr-card"><div class="center">' + lmHtml(w, 'lem') + '<div class="small muted" style="margin-top:6px">' + esc(w.translit) + ' &middot; ' + esc(w.gloss) + '</div><div class="pr-syl">' + (sylHtml(w) || '<span class="muted small">No guide yet</span>') + '</div>' + (w.pron_note ? '<p class="small" style="max-width:420px;margin:0 auto 12px">' + esc(w.pron_note) + '</p>' : '') + '</div>' +
+        (PR.ok ? '<div class="pr-btns"><button class="btn primary" data-p="normal">' + SPK + ' Listen</button><button class="btn" data-p="slow">Slowly</button><button class="btn" data-p="syll">Syllable by syllable</button>' + (nat(w) ? '<button class="btn" data-p="native" title="' + esc(nat(w).name) + '">' + (w.language === 'greek' ? 'Modern Greek voice' : 'Hebrew voice') + '</button>' : '') + '</div>' : '<div class="notice warn small">This browser cannot speak aloud. Follow the syllable guide: the part in capitals is stressed.</div>') +
+        '<div class="pr-rec"><b class="small">Your turn</b><p class="tiny muted" style="margin:2px 0 8px">Say the word aloud, slowly, then at normal speed. Record yourself to compare. Your recording stays on this device and is never uploaded.</p><div class="row"><button class="btn" id="rc">Record myself</button><button class="btn" id="pm" disabled>Play mine</button><button class="btn" id="cmp2" disabled>Guide, then mine</button></div><p class="err" id="re"></p></div>' +
+        '<p class="tiny muted" style="margin-top:12px">The computer voice reads the syllable guide; where they differ, trust the written guide.' + (nat(w) ? ' The ' + (w.language === 'greek' ? 'modern Greek' : 'modern Hebrew') + ' voice uses today\'s pronunciation, which differs in places from the academic system taught here.' : '') + (w.verified ? '' : ' This entry is still under review by the Academy.') + '</p></div>';
+      const d = dlg(list.length > 1 ? 'Pronunciation ' + (i + 1) + ' of ' + list.length : 'Pronunciation', body, (list.length > 1 ? '<button class="btn" data-prev' + (i === 0 ? ' disabled' : '') + '>Previous</button><button class="btn primary" data-next>' + (i === list.length - 1 ? 'Finish' : 'Next word') + '</button>' : '<button class="btn primary" data-done>Done</button>'));
+      d.querySelectorAll('[data-p]').forEach(b => b.onclick = async () => { d.querySelectorAll('[data-p]').forEach(x => x.classList.remove('on')); b.classList.add('on'); await PR.play(w, b.dataset.p); b.classList.remove('on'); });
+      const rc = d.querySelector('#rc'), pm = d.querySelector('#pm'), c2 = d.querySelector('#cmp2'), re = d.querySelector('#re');
+      const playMine = () => new Promise(res => { if (!mine) return res(); const a = new Audio(mine); a.onended = res; a.onerror = res; a.play().catch(res); });
+      if (mine) { pm.disabled = false; c2.disabled = false; }
+      rc.onclick = async () => {
+        if (rec && rec.state === 'recording') { rec.stop(); return; }
+        if (!navigator.mediaDevices || !window.MediaRecorder) { re.textContent = 'Recording is not supported in this browser.'; return; }
+        try {
+          PR.stop(); const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); chunks = []; rec = new MediaRecorder(stream);
+          rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+          rec.onstop = () => { stream.getTracks().forEach(t => t.stop()); clearTimeout(stopT); if (mine) URL.revokeObjectURL(mine); mine = URL.createObjectURL(new Blob(chunks, { type: rec.mimeType || 'audio/webm' })); rc.textContent = 'Record again'; rc.classList.remove('rec'); pm.disabled = false; c2.disabled = false; };
+          rec.start(); rc.textContent = 'Stop'; rc.classList.add('rec'); re.textContent = ''; stopT = setTimeout(() => { if (rec.state === 'recording') rec.stop(); }, 6000);
+        } catch (e) { re.textContent = 'Microphone access was not allowed, so recording is off. You can still practise aloud.'; }
+      };
+      pm.onclick = playMine;
+      c2.onclick = async () => { await PR.play(w, 'normal'); await new Promise(r => setTimeout(r, 400)); await playMine(); };
+      const clean = () => { PR.stop(); if (rec && rec.state === 'recording') rec.stop(); };
+      const nx = d.querySelector('[data-next]'), pv = d.querySelector('[data-prev]'), dn = d.querySelector('[data-done]');
+      if (nx) nx.onclick = () => { clean(); if (mine) { URL.revokeObjectURL(mine); mine = null; } if (i < list.length - 1) { i++; draw(); } else d.close(); };
+      if (pv) pv.onclick = () => { clean(); if (mine) { URL.revokeObjectURL(mine); mine = null; } i--; draw(); };
+      if (dn) dn.onclick = () => { clean(); d.close(); };
+      d.addEventListener('close', clean, { once: true });
+    };
+    draw();
+  }
+
   /* ---------------- language centre ---------------- */
+  const ABC_GRK = [['Α α', 'alpha', 'a as in "father"'], ['Β β', 'beta', 'b'], ['Γ γ', 'gamma', 'g as in "go"; before γ, κ, ξ, χ it is "ng"'], ['Δ δ', 'delta', 'd'], ['Ε ε', 'epsilon', 'e as in "bet"'], ['Ζ ζ', 'zeta', 'dz as in "adze"'], ['Η η', 'eta', 'ay as in "obey"'], ['Θ θ', 'theta', 'th as in "thin"'], ['Ι ι', 'iota', 'i as in "machine" (long) or "pit" (short)'], ['Κ κ', 'kappa', 'k'], ['Λ λ', 'lambda', 'l'], ['Μ μ', 'mu', 'm'], ['Ν ν', 'nu', 'n'], ['Ξ ξ', 'xi', 'x as in "box"'], ['Ο ο', 'omicron', 'o as in "lot"'], ['Π π', 'pi', 'p'], ['Ρ ρ', 'rho', 'r, lightly rolled'], ['Σ σ ς', 'sigma', 's (ς is used at the end of a word)'], ['Τ τ', 'tau', 't'], ['Υ υ', 'upsilon', 'French "u"; often simplified to "oo"'], ['Φ φ', 'phi', 'f'], ['Χ χ', 'chi', 'ch as in Scottish "loch"'], ['Ψ ψ', 'psi', 'ps as in "lips"'], ['Ω ω', 'omega', 'oh as in "tone"']];
+  const ABC_GRK2 = [['αι', 'ai as in "aisle"'], ['ει', 'ay as in "eight"'], ['οι', 'oi as in "oil"'], ['αυ', 'ow as in "how"'], ['ευ', 'eu as in "feud"'], ['ου', 'oo as in "soup"'], ['υι', 'wee'], ['῾ (rough breathing)', 'an h sound before the vowel'], ['᾿ (smooth breathing)', 'no sound'], ['´ ` ῀ (accents)', 'mark the stressed syllable']];
+  const ABC_HEB = [['א', 'aleph', 'silent; carries a vowel'], ['ב', 'bet', 'b with a dot (בּ), v without (ב)'], ['ג', 'gimel', 'g as in "go"'], ['ד', 'dalet', 'd'], ['ה', 'he', 'h; silent at the end of a word'], ['ו', 'vav', 'v; also a vowel letter (וֹ "o", וּ "u")'], ['ז', 'zayin', 'z'], ['ח', 'chet', 'ch as in Scottish "loch"'], ['ט', 'tet', 't'], ['י', 'yod', 'y'], ['כ ך', 'kaf', 'k with a dot (כּ), kh without; ך at the end of a word'], ['ל', 'lamed', 'l'], ['מ ם', 'mem', 'm; ם at the end of a word'], ['נ ן', 'nun', 'n; ן at the end of a word'], ['ס', 'samekh', 's'], ['ע', 'ayin', 'silent in the pronunciation taught here'], ['פ ף', 'pe', 'p with a dot (פּ), f without; ף at the end of a word'], ['צ ץ', 'tsade', 'ts as in "cats"; ץ at the end of a word'], ['ק', 'qof', 'k'], ['ר', 'resh', 'r'], ['שׁ שׂ', 'shin / sin', 'sh with the dot on the right (שׁ), s with the dot on the left (שׂ)'], ['ת', 'tav', 't']];
+  const ABC_HEB2 = [['בַ  בָ', 'patach, qamets', 'a as in "father"'], ['בֵ', 'tsere', 'ay as in "they"'], ['בֶ', 'segol', 'e as in "bet"'], ['בִ', 'hireq', 'i as in "machine"'], ['בֹ  בוֹ', 'holem', 'o as in "go"'], ['בֻ  בוּ', 'qibbuts, shureq', 'u as in "rule"'], ['בְ', 'shewa', 'a very short "e", or silent']];
   async function vWords(r) {
     loading('Language centre');
+    const tab = r.q.get('t') || 'words';
+    if (tab === 'abc') {
+      const row = (a, b, c) => '<tr><td class="abc-l">' + esc(a) + '</td><td>' + (b ? esc(b) + (PR.ok ? ' <button class="icon-btn sm-i" data-say="' + esc(b) + '" aria-label="Say ' + esc(b) + '">' + SPK + '</button>' : '') : '') + '</td><td>' + esc(c) + '</td></tr>';
+      shell('Language centre', wordsTabs('abc') + '<p class="muted small">How the letters sound in the academic pronunciation used in this course. The speaker button says the letter\'s name.</p><div class="grid g2" style="align-items:start"><div class="card"><h3>Greek</h3><div class="tbl-wrap"><table class="tbl abc"><thead><tr><th>Letter</th><th>Name</th><th>Sound</th></tr></thead><tbody>' + ABC_GRK.map(x => row(x[0], x[1], x[2])).join('') + '</tbody></table></div><h4 style="margin-top:18px">Vowel pairs and marks</h4><div class="tbl-wrap"><table class="tbl abc"><tbody>' + ABC_GRK2.map(x => row(x[0], '', x[1])).join('') + '</tbody></table></div></div>' +
+        '<div class="card"><h3>Hebrew</h3><p class="small muted">Hebrew reads from right to left. The vowels are small marks below, above or beside the letters, shown here on the letter ב.</p><div class="tbl-wrap"><table class="tbl abc heb-t"><thead><tr><th>Letter</th><th>Name</th><th>Sound</th></tr></thead><tbody>' + ABC_HEB.map(x => row(x[0], x[1], x[2])).join('') + '</tbody></table></div><h4 style="margin-top:18px">Vowels</h4><div class="tbl-wrap"><table class="tbl abc heb-t"><tbody>' + ABC_HEB2.map(x => '<tr><td class="abc-l">' + esc(x[0]) + '</td><td>' + esc(x[1]) + '</td><td>' + esc(x[2]) + '</td></tr>').join('') + '</tbody></table></div></div></div>');
+      wireWordsTabs(); document.querySelectorAll('[data-say]').forEach(b => b.onclick = () => { PR.stop(); PR.say(b.dataset.say, { rate: 0.8 }); });
+      return;
+    }
     const [v, f] = await Promise.all([sb.from('ac_vocab').select('*').order('sort'), sb.from('ac_flash').select('*').eq('user_id', S.user.id)]);
     const V = v.data || [], F = {}; (f.data || []).forEach(x => (F[x.vocab_id] = x));
     const lang = r.q.get('l') || '';
     const list = V.filter(w => !lang || w.language === lang);
     const due = V.filter(w => !F[w.id] || (!F[w.id].mastered && F[w.id].due_on <= today()));
     const mastered = V.filter(w => F[w.id] && F[w.id].mastered).length;
-    const lm = w => '<span class="lm' + (w.language !== 'greek' ? ' heb' : '') + '"' + (w.language !== 'greek' ? ' dir="rtl" lang="he"' : ' lang="grc"') + '>' + esc(w.lemma) + '</span>';
-    shell('Language centre', '<div class="grid g3" style="margin-bottom:16px"><div class="card kpi"><div class="l">Words</div><div class="v">' + V.length + '</div></div><div class="card kpi"><div class="l">Due for review</div><div class="v">' + due.length + '</div></div><div class="card kpi"><div class="l">Mastered</div><div class="v">' + mastered + '</div></div></div>' +
-      '<div class="row between" style="margin-bottom:12px"><div class="seg">' + [['', 'All'], ['hebrew', 'Hebrew'], ['aramaic', 'Aramaic'], ['greek', 'Greek']].map(([k, l]) => '<button data-l="' + k + '" class="' + (lang === k ? 'on' : '') + '">' + l + '</button>').join('') + '</div>' + (due.length ? '<button class="btn primary" id="rv">Review ' + due.length + ' card' + (due.length === 1 ? '' : 's') + '</button>' : '<span class="pill ok">All caught up</span>') + '</div>' +
-      '<div class="card">' + list.map(w => '<div class="vocab-row">' + lm(w) + '<div><b>' + esc(w.translit) + '</b>: ' + esc(w.gloss) + '<div class="small muted">' + esc(w.grammar || '') + (w.refs.length ? ' &middot; ' + w.refs.map(x => '<a href="#/bible?r=' + encodeURIComponent(x) + '">' + esc(x) + '</a>').join(', ') : '') + '</div>' + (w.notes ? '<div class="small" style="margin-top:4px">' + esc(w.notes) + '</div>' : '') + '</div><div>' + (F[w.id] && F[w.id].mastered ? '<span class="pill ok">Mastered</span>' : F[w.id] ? '<span class="pill">Box ' + F[w.id].box + ' of 5</span>' : '<span class="pill">New</span>') + (w.verified ? '' : ' <span class="pill warn" title="This entry has not yet been checked by the Academy">Under review</span>') + '</div></div>').join('') + '</div>');
+    shell('Language centre', wordsTabs('words') + '<div class="grid g3" style="margin-bottom:16px"><div class="card kpi"><div class="l">Words</div><div class="v">' + V.length + '</div></div><div class="card kpi"><div class="l">Due for review</div><div class="v">' + due.length + '</div></div><div class="card kpi"><div class="l">Mastered</div><div class="v">' + mastered + '</div></div></div>' +
+      '<div class="row between" style="margin-bottom:12px"><div class="seg">' + [['', 'All'], ['hebrew', 'Hebrew'], ['aramaic', 'Aramaic'], ['greek', 'Greek']].map(([k, l]) => '<button data-l="' + k + '" class="' + (lang === k ? 'on' : '') + '">' + l + '</button>').join('') + '</div><div class="row">' + (list.length ? '<button class="btn" id="dr">Practise pronunciation</button>' : '') + (due.length ? '<button class="btn primary" id="rv">Review ' + due.length + ' card' + (due.length === 1 ? '' : 's') + '</button>' : '<span class="pill ok">All caught up</span>') + '</div></div>' +
+      '<div class="card">' + list.map((w, k) => '<div class="vocab-row">' + lmHtml(w) + '<div><b>' + esc(w.translit) + '</b>: ' + esc(w.gloss) + '<div class="pr-line">' + sylHtml(w) + (PR.ok && (w.syll || []).length ? '<button class="icon-btn sm-i" data-hear="' + k + '" aria-label="Hear ' + esc(w.translit) + '">' + SPK + '</button>' : '') + '<button class="btn ghost sm" data-pr="' + k + '">Pronounce</button></div><div class="small muted">' + esc(w.grammar || '') + (w.refs.length ? ' &middot; ' + w.refs.map(x => '<a href="#/bible?r=' + encodeURIComponent(x) + '">' + esc(x) + '</a>').join(', ') : '') + '</div>' + (w.notes ? '<div class="small" style="margin-top:4px">' + esc(w.notes) + '</div>' : '') + '</div><div>' + (F[w.id] && F[w.id].mastered ? '<span class="pill ok">Mastered</span>' : F[w.id] ? '<span class="pill">Box ' + F[w.id].box + ' of 5</span>' : '<span class="pill">New</span>') + (w.verified ? '' : ' <span class="pill warn" title="This entry has not yet been checked by the Academy">Under review</span>') + '</div></div>').join('') + '</div>');
+    wireWordsTabs();
     document.querySelectorAll('[data-l]').forEach(b => b.onclick = () => go('#/words' + (b.dataset.l ? '?l=' + b.dataset.l : '')));
-    const rv = $('rv'); if (rv) rv.onclick = () => review(due.slice(), F, lm);
+    document.querySelectorAll('[data-hear]').forEach(b => b.onclick = () => PR.play(list[+b.dataset.hear], 'normal'));
+    document.querySelectorAll('[data-pr]').forEach(b => b.onclick = () => practise(list, +b.dataset.pr));
+    const dr = $('dr'); if (dr) dr.onclick = () => practise(list, 0);
+    const rv = $('rv'); if (rv) rv.onclick = () => review(due.slice(), F);
   }
-  function review(cards, F, lm) {
+  const wordsTabs = t => '<div class="seg" style="margin-bottom:16px"><button data-wt="words" class="' + (t === 'words' ? 'on' : '') + '">Words and flashcards</button><button data-wt="abc" class="' + (t === 'abc' ? 'on' : '') + '">Alphabets and sounds</button></div>';
+  const wireWordsTabs = () => document.querySelectorAll('[data-wt]').forEach(b => b.onclick = () => go('#/words' + (b.dataset.wt === 'abc' ? '?t=abc' : '')));
+  function review(cards, F) {
     const STEP = [0, 1, 2, 4, 8, 16]; let i = 0, shown = false, right = 0;
     const draw = () => {
+      PR.stop();
       if (i >= cards.length) { const d = dlg('Review finished', '<p>You reviewed ' + cards.length + ' card' + (cards.length === 1 ? '' : 's') + ' and knew ' + right + '.</p>', '<button class="btn primary" data-x2>Done</button>'); d.querySelector('[data-x2]').onclick = () => { d.close(); render(); }; return; }
       const w = cards[i];
-      const d = dlg('Card ' + (i + 1) + ' of ' + cards.length, '<div class="flash"><div class="face" id="fc">' + (shown ? '<div>' + lm(w).replace('class="lm', 'class="lem') + '<h3 style="margin:14px 0 4px">' + esc(w.translit) + '</h3><p style="font-size:18px;margin:0">' + esc(w.gloss) + '</p><p class="small muted">' + esc(w.grammar || '') + '</p></div>' : '<div>' + lm(w).replace('class="lm', 'class="lem') + '<p class="small muted" style="margin-top:16px">Say the meaning, then tap to check</p></div>') + '</div></div>', shown ? '<button class="btn" data-a>Again</button><button class="btn primary" data-k>I knew it</button>' : '<button class="btn primary" data-s>Show answer</button>');
-      const flip = () => { shown = true; draw(); }; d.querySelector('#fc').onclick = () => { if (!shown) flip(); }; const s = d.querySelector('[data-s]'); if (s) s.onclick = flip;
+      const d = dlg('Card ' + (i + 1) + ' of ' + cards.length, '<div class="flash"><div class="face" id="fc">' + (shown ? '<div>' + lmHtml(w, 'lem') + '<h3 style="margin:14px 0 4px">' + esc(w.translit) + '</h3><div class="pr-syl" style="margin:4px 0 10px">' + sylHtml(w) + (PR.ok && (w.syll || []).length ? ' <button class="icon-btn sm-i" id="fh" aria-label="Hear it">' + SPK + '</button>' : '') + '</div><p style="font-size:18px;margin:0">' + esc(w.gloss) + '</p><p class="small muted">' + esc(w.grammar || '') + '</p></div>' : '<div>' + lmHtml(w, 'lem') + '<p class="small muted" style="margin-top:16px">Say the word aloud and give its meaning, then tap to check</p></div>') + '</div></div>', shown ? '<button class="btn" data-a>Again</button><button class="btn primary" data-k>I knew it</button>' : '<button class="btn primary" data-s>Show answer</button>');
+      const flip = () => { shown = true; draw(); if (PR.ok && (w.syll || []).length) PR.play(w, 'normal'); }; d.querySelector('#fc').onclick = e => { if (!shown) flip(); }; const s = d.querySelector('[data-s]'); if (s) s.onclick = flip;
+      const fh = d.querySelector('#fh'); if (fh) fh.onclick = e => { e.stopPropagation(); PR.play(w, 'normal'); };
       const grade = async ok => { const cur = F[w.id] || { box: 1 }; const box = ok ? Math.min(5, cur.box + (F[w.id] ? 1 : 0)) : 1; const row = { user_id: S.user.id, vocab_id: w.id, box, due_on: addDays(today(), ok ? STEP[box] : 0), mastered: ok && cur.box === 5, reviewed_at: new Date().toISOString() }; if (ok) right++; const x = await sb.from('ac_flash').upsert(row); if (x.error) toast(friendly(x.error)); F[w.id] = row; i++; shown = false; draw(); };
       const a = d.querySelector('[data-a]'), k = d.querySelector('[data-k]'); if (a) a.onclick = () => grade(false); if (k) k.onclick = () => grade(true);
     };
@@ -566,11 +661,21 @@
     document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (!(await confirmDlg('Delete this announcement?', 'Students will no longer see it. This cannot be undone.', 'Delete', true))) return; const x = await sb.from('ac_announcements').delete().eq('id', b.dataset.del); if (x.error) return toast(friendly(x.error)); aAnnouncements(); });
   }
   async function aWords() {
-    loading('Words'); const { data } = await sb.from('ac_vocab').select('*').order('sort');
-    shell('Words', atabs('words') + '<p class="small muted">Starter vocabulary for the language centre. Check each entry against a standard lexicon, then mark it as checked. Students see unchecked entries labelled "Under review".</p><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Word</th><th>Meaning</th><th>References</th><th></th></tr></thead><tbody>' + (data || []).map(w => '<tr><td><span style="font:500 24px/1.2 var(--' + (w.language === 'greek' ? 'serif' : 'heb') + ')">' + esc(w.lemma) + '</span><div class="tiny muted">' + esc(w.translit) + ' &middot; ' + esc(w.language) + '</div></td><td>' + esc(w.gloss) + '<div class="tiny muted">' + esc(w.grammar || '') + '</div></td><td class="small">' + esc(w.refs.join(', ')) + '</td><td>' + (w.verified ? '<span class="pill ok">Checked</span> <button class="btn sm" data-v="' + w.id + '" data-on="0">Undo</button>' : '<button class="btn sm primary" data-v="' + w.id + '" data-on="1">Mark checked</button>') + '</td></tr>').join('') + '</tbody></table></div>');
+    loading('Words'); const { data } = await sb.from('ac_vocab').select('*').order('sort'); const D = data || [];
+    shell('Words', atabs('words') + '<p class="small muted">Starter vocabulary for the language centre. Check each entry, including its pronunciation guide, against a standard lexicon and grammar, then mark it as checked. Students see unchecked entries labelled "Under review".</p><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Word</th><th>Meaning</th><th>Pronunciation</th><th></th></tr></thead><tbody>' + D.map((w, k) => '<tr><td>' + lmHtml(w, 'lm') + '<div class="tiny muted">' + esc(w.translit) + ' &middot; ' + esc(w.language) + '</div></td><td>' + esc(w.gloss) + '<div class="tiny muted">' + esc(w.grammar || '') + ' &middot; ' + esc(w.refs.join(', ')) + '</div></td><td>' + (sylHtml(w) || '<span class="muted small">none</span>') + (PR.ok ? ' <button class="icon-btn sm-i" data-hear="' + k + '" aria-label="Hear it">' + SPK + '</button>' : '') + '<div><button class="btn ghost sm" data-ed="' + k + '">Edit pronunciation</button></div></td><td>' + (w.verified ? '<span class="pill ok">Checked</span> <button class="btn sm" data-v="' + w.id + '" data-on="0">Undo</button>' : '<button class="btn sm primary" data-v="' + w.id + '" data-on="1">Mark checked</button>') + '</td></tr>').join('') + '</tbody></table></div>');
     wireTabs();
+    document.querySelectorAll('[data-hear]').forEach(b => b.onclick = () => PR.play(D[+b.dataset.hear], 'normal'));
     document.querySelectorAll('[data-v]').forEach(b => b.onclick = async () => { const x = await sb.from('ac_vocab').update({ verified: b.dataset.on === '1' }).eq('id', b.dataset.v); if (x.error) return toast(friendly(x.error)); aWords(); });
+    document.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => {
+      const w = D[+b.dataset.ed];
+      const d = dlg('Pronunciation: ' + w.translit, '<div class="center" style="margin-bottom:10px">' + lmHtml(w, 'lem') + '</div><form class="grid">' + field('Syllables <span class="hint">separated by hyphens; write the stressed syllable in capitals, for example kah-NOHN</span>', inp('syll', (w.syll || []).join('-'), ' maxlength="80"')) + field('Note for students', area('pron_note', w.pron_note, ' rows="3" maxlength="400"')) + field('Recorded audio <span class="hint">optional https link to a human recording; played instead of the computer voice</span>', inp('audio_url', w.audio_url, ' maxlength="500" placeholder="https://"')) + '<p class="err"></p></form>', '<button class="btn" data-t>Try it</button><button class="btn" data-c>Cancel</button><button class="btn primary" data-s>Save</button>');
+      const read = () => { const f = d.querySelector('form'); const sy = f.syll.value.split(/[-\s·]+/).map(x => x.trim()).filter(Boolean); return { syll: sy, pron_note: f.pron_note.value.trim() || null, audio_url: f.audio_url.value.trim() || null }; };
+      d.querySelector('[data-t]').onclick = () => PR.play(Object.assign({}, w, read()), 'normal');
+      d.querySelector('[data-c]').onclick = () => d.close();
+      d.querySelector('[data-s]').onclick = async () => { const v = read(); if (v.audio_url && !/^https:\/\//.test(v.audio_url)) return (d.querySelector('.err').textContent = 'The audio link must start with https://'); if (v.syll.length && !v.syll.some(PR.stressed)) return (d.querySelector('.err').textContent = 'Write the stressed syllable in capitals.'); const x = await sb.from('ac_vocab').update(Object.assign(v, { verified: false })).eq('id', w.id); if (x.error) return (d.querySelector('.err').textContent = friendly(x.error)); d.close(); toast('Saved. Mark it as checked when you are happy with it.'); aWords(); };
+    });
   }
+
 
   boot();
 })();
