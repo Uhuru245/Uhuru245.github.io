@@ -295,6 +295,7 @@
       '<aside class="panel no-print"><div class="card"><h4>Today\'s readings</h4>' + (L.readings.length ? L.readings.map(x => '<label class="chk"><input type="checkbox" data-rd="' + esc(x) + '"' + (P.readings_done.includes(x) ? ' checked' : '') + '> <span>' + esc(x) + '</span><button class="btn ghost sm" data-show="' + esc(x) + '">Read</button></label>').join('') : '<p class="small muted">No set readings today.</p>') +
       (L.memory_verse ? '<div style="margin-top:12px" class="small"><b>Memory verse:</b> <a href="#" data-show="' + esc(L.memory_verse) + '">' + esc(L.memory_verse) + '</a></div>' : '') + '</div>' +
       '<div class="card scripture" id="scr"><p class="small muted" style="font-family:var(--sans)">Loading Scripture...</p></div>' +
+      '<div class="card" id="pwc"><h4>Pronounce a word</h4><form id="pwf" class="row" style="flex-wrap:nowrap;gap:6px"><input class="inp" name="w" id="pwi" placeholder="Type or paste a word" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Word to pronounce" maxlength="60"><button class="btn primary">Pronounce</button></form><div id="pwr"></div><p class="tiny muted" style="margin:10px 0 0">Greek, Hebrew or an English spelling, such as a name. Tip: select a word in the lesson and choose Pronounce.</p></div>' +
       '<div class="card"><div class="row between"><h4 style="margin:0">Your notes</h4><div class="row" style="gap:4px"><button class="btn sm" id="bm">' + (bm ? 'Bookmarked' : 'Bookmark') + '</button><button class="btn sm" id="an">Add note</button></div></div><div id="nl"></div><p class="tiny muted" style="margin-top:10px">Select any text in the lesson to highlight it. Only you can see your notes and highlights.</p></div>' +
       '<div class="card row between"><span class="small">Text size</span><div class="row" style="gap:4px"><button class="btn sm" data-fs="-1" aria-label="Smaller text">A-</button><button class="btn sm" data-fs="1" aria-label="Larger text">A+</button><button class="btn sm" onclick="window.print()">Print</button></div></div></aside></div>';
     shell('Lesson ' + L.seq, body);
@@ -337,7 +338,21 @@
     const noteDlg = (section, quote) => { const d = dlg('Add a note', (quote ? '<blockquote class="note-item" style="border:0"><blockquote>' + esc(quote) + '</blockquote></blockquote>' : '') + '<form id="nf" class="grid">' + area('body', '', ' rows="5" maxlength="8000" placeholder="Write your thought, question or response"') + '</form>', '<button class="btn" data-c>Cancel</button><button class="btn primary" data-s>Save note</button>'); d.querySelector('[data-c]').onclick = () => d.close(); d.querySelector('[data-s]').onclick = async () => { const b = d.querySelector('textarea').value.trim(); if (!b && !quote) return; d.close(); await addNote(quote ? 'highlight' : 'note', section, quote, b || null); }; d.querySelector('textarea').focus(); };
     paint(); drawNotes();
     // Greek and Hebrew words from the word list become tappable: tap to hear and practise them
-    sb.from('ac_vocab').select('lemma, language, translit, gloss, syll, pron_note, audio_url, verified').then(({ data }) => {
+    const vocP = sb.from('ac_vocab').select('lemma, language, translit, gloss, syll, pron_note, audio_url, verified').then(r => r.data || []);
+    const showPron = async (text, speak) => {
+      const w = pronLookup(text, await vocP); const box = $('pwr'); if (!box) return;
+      if (!w) { box.innerHTML = '<p class="small muted" style="margin:10px 0 0">Type a word to hear it.</p>'; return; }
+      const nat = w.language !== 'english' && PR.native(w.language);
+      box.innerHTML = '<div class="pw-res">' + (w.language !== 'english' ? lmHtml(w, 'pw-lem') : '<div class="pw-lem">' + esc(w.lemma) + '</div>') +
+        '<div class="row" style="gap:6px;margin:6px 0">' + (w.source === 'list' ? '<span class="pill ok">From the word list</span>' + (w.verified ? '' : '<span class="pill warn">Under review</span>') : w.source === 'auto' ? '<span class="pill warn">Automatic guide</span>' : '<span class="pill">English voice</span>') + '</div>' +
+        (w.source === 'list' ? '<div class="small"><b>' + esc(w.translit) + '</b>: ' + esc(w.gloss) + '</div>' : '') + ((w.syll || []).length ? '<div class="pr-syl" style="margin:8px 0">' + sylHtml(w) + '</div>' : '') +
+        (PR.ok ? '<div class="row" style="gap:6px;flex-wrap:wrap">' + (w.unpointed ? '' : '<button class="btn sm primary" data-pw="normal">' + SPK + ' Listen</button><button class="btn sm" data-pw="slow">Slowly</button>') + ((w.syll || []).length ? '<button class="btn sm" data-pw="syll">Syllables</button>' : '') + (nat ? '<button class="btn sm" data-pw="native">' + (w.language === 'greek' ? 'Modern Greek voice' : 'Hebrew voice') + '</button>' : '') + (w.language !== 'english' && !w.unpointed ? '<button class="btn sm ghost" data-pw="practise">Practise</button>' : '') + '</div>' : '<p class="tiny muted">This browser cannot speak aloud; follow the written guide.</p>') +
+        (w.pron_note && w.source !== 'list' ? '<p class="tiny muted" style="margin:8px 0 0">' + esc(w.pron_note) + '</p>' : '') + '</div>';
+      box.querySelectorAll('[data-pw]').forEach(b => b.onclick = () => b.dataset.pw === 'practise' ? practise([w]) : PR.play(w, b.dataset.pw));
+      if (speak && PR.ok && !w.unpointed) PR.play(w, 'normal');
+    };
+    $('pwf').onsubmit = e => { e.preventDefault(); showPron($('pwi').value, true); };
+    vocP.then(data => {
       const W = (data || []).filter(w => w.lemma); if (!W.length) return;
       const by = {}; W.forEach(w => { by[w.lemma.normalize('NFC')] = w; });
       const pat = Object.keys(by).sort((a, b) => b.length - a.length).map(x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
@@ -352,16 +367,18 @@
     $('an').onclick = () => noteDlg(null, null);
     art.querySelectorAll('[data-note]').forEach(b => b.onclick = () => noteDlg(b.dataset.note, null));
     $('bm').onclick = async ev => busy(ev.target, async () => { const b = N.find(n => n.kind === 'bookmark'); if (b) { await sb.from('ac_notes').delete().eq('id', b.id); N.splice(N.indexOf(b), 1); ev.target.textContent = 'Bookmark'; toast('Bookmark removed'); } else { const x = await sb.from('ac_notes').insert({ lesson_id: lid, kind: 'bookmark' }).select().single(); if (!x.error) { N.push(x.data); ev.target.textContent = 'Bookmarked'; toast('Bookmarked'); } } });
-    const pop = document.createElement('div'); pop.className = 'hl-pop card'; pop.style.cssText = 'position:fixed;z-index:50;padding:6px;display:none;gap:4px;border-radius:999px'; pop.innerHTML = '<button class="btn sm gold" data-h>Highlight</button><button class="btn sm" data-n>Note</button>'; document.body.appendChild(pop);
+    const pop = document.createElement('div'); pop.className = 'hl-pop card'; pop.style.cssText = 'position:fixed;z-index:50;padding:6px;display:none;gap:4px;border-radius:999px'; pop.innerHTML = '<button class="btn sm gold" data-h>Highlight</button><button class="btn sm" data-n>Note</button><button class="btn sm" data-sp>Pronounce</button>'; document.body.appendChild(pop);
     let pick = null;
     const onSel = () => setTimeout(() => {
-      const s = getSelection(); const q = s && String(s).trim(); if (!q || q.length < 3 || q.length > 1500) { pop.style.display = 'none'; return; }
+      const s = getSelection(); const q = s && String(s).trim(); if (!q || q.length > 1500 || (q.length < 3 && !/[\u0370-\u03ff\u1f00-\u1fff\u0590-\u05ff]/.test(q))) { pop.style.display = 'none'; return; }
       const a = s.anchorNode && s.anchorNode.parentElement && s.anchorNode.parentElement.closest('[data-sec]'), f = s.focusNode && s.focusNode.parentElement && s.focusNode.parentElement.closest('[data-sec]');
       if (!a || a !== f || s.anchorNode !== s.focusNode) { pop.style.display = 'none'; return; }
-      pick = { section: a.dataset.sec, quote: q }; const rc = s.getRangeAt(0).getBoundingClientRect(); pop.style.display = 'flex'; pop.style.top = Math.max(8, rc.top - 52) + 'px'; pop.style.left = Math.min(innerWidth - 200, Math.max(8, rc.left + rc.width / 2 - 90)) + 'px';
+      pick = { section: a.dataset.sec, quote: q }; pop.querySelector('[data-sp]').style.display = /^\S{1,40}$/.test(q.replace(/[.,;:!?"'()\[\]“”‘’]/g, '')) ? '' : 'none'; const rc = s.getRangeAt(0).getBoundingClientRect(); pop.style.display = 'flex'; pop.style.top = Math.max(8, rc.top - 52) + 'px'; pop.style.left = Math.min(innerWidth - 200, Math.max(8, rc.left + rc.width / 2 - 90)) + 'px';
     }, 10);
+    document.addEventListener('pointerdown', e => { if (!pop.contains(e.target)) pop.style.display = 'none'; });
     art.addEventListener('mouseup', onSel); art.addEventListener('touchend', onSel); addEventListener('scroll', () => { pop.style.display = 'none'; }, { passive: true });
     pop.querySelector('[data-h]').onclick = async () => { pop.style.display = 'none'; if (pick) { getSelection().removeAllRanges(); await addNote('highlight', pick.section, pick.quote, null); } };
+    pop.querySelector('[data-sp]').onclick = () => { pop.style.display = 'none'; if (!pick) return; getSelection().removeAllRanges(); $('pwi').value = pick.quote.replace(/[.,;:!?"'()\[\]“”‘’]/g, ''); showPron(pick.quote, true); $('pwc').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); };
     pop.querySelector('[data-n]').onclick = () => { pop.style.display = 'none'; if (pick) { getSelection().removeAllRanges(); noteDlg(pick.section, pick.quote); } };
   }
 
@@ -423,7 +440,7 @@
       this.stop(); const syl = w.syll || [];
       if (mode === 'normal' && w.audio_url) { this.audio = new Audio(w.audio_url); return this.audio.play().catch(() => {}); }
       if (mode === 'native') { const v = this.native(w.language); return v ? this.say(w.lemma, { voice: v, rate: 0.7 }) : null; }
-      if (!syl.length) return this.say(w.translit, { rate: 0.8 });
+      if (!syl.length) return this.say(w.translit, { rate: mode === 'slow' ? 0.5 : 0.85 });
       if (mode === 'syll') { for (const s of syl) { const st = this.stressed(s); await this.say(s.toLowerCase(), { rate: 0.55, pitch: st ? 1.3 : 0.9, volume: st ? 1 : 0.75 }); await new Promise(r => setTimeout(r, 260)); } return; }
       return this.say(syl.map(s => s.toLowerCase()).join(mode === 'slow' ? ' ' : '-'), { rate: mode === 'slow' ? 0.5 : 0.85 });
     }
@@ -438,10 +455,10 @@
     const nat = w => PR.native(w.language);
     const draw = () => {
       const w = list[i]; PR.stop();
-      const body = '<div class="pr-card"><div class="center">' + lmHtml(w, 'lem') + '<div class="small muted" style="margin-top:6px">' + esc(w.translit) + ' &middot; ' + esc(w.gloss) + '</div><div class="pr-syl">' + (sylHtml(w) || '<span class="muted small">No guide yet</span>') + '</div>' + (w.pron_note ? '<p class="small" style="max-width:420px;margin:0 auto 12px">' + esc(w.pron_note) + '</p>' : '') + '</div>' +
-        (PR.ok ? '<div class="pr-btns"><button class="btn primary" data-p="normal">' + SPK + ' Listen</button><button class="btn" data-p="slow">Slowly</button><button class="btn" data-p="syll">Syllable by syllable</button>' + (nat(w) ? '<button class="btn" data-p="native" title="' + esc(nat(w).name) + '">' + (w.language === 'greek' ? 'Modern Greek voice' : 'Hebrew voice') + '</button>' : '') + '</div>' : '<div class="notice warn small">This browser cannot speak aloud. Follow the syllable guide: the part in capitals is stressed.</div>') +
+      const body = '<div class="pr-card"><div class="center">' + lmHtml(w, 'lem') + '<div class="small muted" style="margin-top:6px">' + esc(w.translit) + (w.gloss ? ' &middot; ' + esc(w.gloss) : '') + '</div><div class="pr-syl">' + (sylHtml(w) || '<span class="muted small">No guide yet</span>') + '</div>' + (w.pron_note ? '<p class="small" style="max-width:420px;margin:0 auto 12px">' + esc(w.pron_note) + '</p>' : '') + '</div>' +
+        (PR.ok ? '<div class="pr-btns"><button class="btn primary" data-p="normal">' + SPK + ' Listen</button><button class="btn" data-p="slow">Slowly</button>' + ((w.syll || []).length ? '<button class="btn" data-p="syll">Syllable by syllable</button>' : '') + (nat(w) ? '<button class="btn" data-p="native" title="' + esc(nat(w).name) + '">' + (w.language === 'greek' ? 'Modern Greek voice' : 'Hebrew voice') + '</button>' : '') + '</div>' : '<div class="notice warn small">This browser cannot speak aloud. Follow the syllable guide: the part in capitals is stressed.</div>') +
         '<div class="pr-rec"><b class="small">Your turn</b><p class="tiny muted" style="margin:2px 0 8px">Say the word aloud, slowly, then at normal speed. Record yourself to compare. Your recording stays on this device and is never uploaded.</p><div class="row"><button class="btn" id="rc">Record myself</button><button class="btn" id="pm" disabled>Play mine</button><button class="btn" id="cmp2" disabled>Guide, then mine</button></div><p class="err" id="re"></p></div>' +
-        '<p class="tiny muted" style="margin-top:12px">The computer voice reads the syllable guide; where they differ, trust the written guide.' + (nat(w) ? ' The ' + (w.language === 'greek' ? 'modern Greek' : 'modern Hebrew') + ' voice uses today\'s pronunciation, which differs in places from the academic system taught here.' : '') + (w.verified ? '' : ' This entry is still under review by the Academy.') + '</p></div>';
+        '<p class="tiny muted" style="margin-top:12px">The computer voice reads the syllable guide; where they differ, trust the written guide.' + (nat(w) ? ' The ' + (w.language === 'greek' ? 'modern Greek' : 'modern Hebrew') + ' voice uses today\'s pronunciation, which differs in places from the academic system taught here.' : '') + (w.verified || w.auto ? '' : ' This entry is still under review by the Academy.') + '</p></div>';
       const d = dlg(list.length > 1 ? 'Pronunciation ' + (i + 1) + ' of ' + list.length : 'Pronunciation', body, (list.length > 1 ? '<button class="btn" data-prev' + (i === 0 ? ' disabled' : '') + '>Previous</button><button class="btn primary" data-next>' + (i === list.length - 1 ? 'Finish' : 'Next word') + '</button>' : '<button class="btn primary" data-done>Done</button>'));
       d.querySelectorAll('[data-p]').forEach(b => b.onclick = async () => { d.querySelectorAll('[data-p]').forEach(x => x.classList.remove('on')); b.classList.add('on'); await PR.play(w, b.dataset.p); b.classList.remove('on'); });
       const rc = d.querySelector('#rc'), pm = d.querySelector('#pm'), c2 = d.querySelector('#cmp2'), re = d.querySelector('#re');
@@ -468,6 +485,101 @@
     };
     draw();
   }
+
+  /* automatic pronunciation guides for words not in the word list, worked out from the spelling.
+     Greek: Erasmian values; stress from the accent mark. Hebrew: needs vowel points; stress is usually on the last syllable,
+     on the one before when the word ends in a segol syllable or a furtive patach. Always labelled as automatic. */
+  const GK_ONSET = new Set(['βδ', 'βλ', 'βρ', 'γλ', 'γν', 'γρ', 'δρ', 'θλ', 'θν', 'θρ', 'κλ', 'κν', 'κρ', 'κτ', 'μν', 'πλ', 'πν', 'πρ', 'πτ', 'σβ', 'σθ', 'σκ', 'σμ', 'σπ', 'στ', 'σφ', 'σχ', 'τμ', 'τρ', 'φθ', 'φλ', 'φρ', 'χθ', 'χλ', 'χρ', 'στρ', 'σκλ', 'σπλ']);
+  const GK_C = { β: 'b', γ: 'g', δ: 'd', ζ: 'dz', θ: 'th', κ: 'k', λ: 'l', μ: 'm', ν: 'n', ξ: 'x', π: 'p', ρ: 'r', σ: 's', ς: 's', τ: 't', φ: 'f', χ: 'kh', ψ: 'ps' };
+  const GK_V = { α: 'ah', ε: 'eh', η: 'ay', ι: 'ee', ο: 'oh', υ: 'oo', ω: 'oh', αι: 'eye', ει: 'ay', οι: 'oy', αυ: 'ow', ευ: 'yoo', ηυ: 'ayoo', ου: 'oo', υι: 'wee' };
+  function autoGreek(word) {
+    const d = word.normalize('NFD').toLowerCase(); const L = []; // letters with their marks
+    for (const ch of d) { if (/[̀-ͯ]/.test(ch)) { if (L.length) L[L.length - 1].m += ch; } else if (/[α-ως]/.test(ch)) L.push({ c: ch, m: '' }); }
+    if (!L.length) return null;
+    const units = []; // {v:true, s, stress, rough} or {v:false, c}
+    for (let i = 0; i < L.length; i++) {
+      const a = L[i], b = L[i + 1];
+      if ('αεηιουω'.includes(a.c)) {
+        const pair = b && GK_V[a.c + b.c] && !/̈/.test(b.m) ? a.c + b.c : null;
+        const marks = a.m + (pair ? b.m : '');
+        units.push({ v: true, long: !!pair || a.c === 'ω' || a.c === 'η', s: GK_V[pair || a.c], stress: /[́̀͂]/.test(marks), rough: /̔/.test(marks) });
+        if (pair) i++;
+      } else if ((a.c === 'ξ' || a.c === 'ψ') && units.some(u => u.v) && b && 'αεηιουω'.includes(b.c)) { units.push({ v: false, c: a.c === 'ξ' ? 'κ' : 'π' }, { v: false, c: 'σ' }); }
+      else units.push({ v: false, c: a.c });
+    }
+    const nuc = units.map((u, i) => u.v ? i : -1).filter(i => i >= 0); if (!nuc.length) return null;
+    const syl = nuc.map(() => ({ on: [], v: null, coda: [] }));
+    units.slice(0, nuc[0]).forEach(u => syl[0].on.push(u.c));
+    nuc.forEach((n, k) => {
+      syl[k].v = units[n];
+      const next = nuc[k + 1], cl = units.slice(n + 1, next == null ? units.length : next).map(u => u.c);
+      if (next == null) { syl[k].coda = cl; return; }
+      let split = cl.length ? cl.length - 1 : 0; // keep the longest cluster that can begin a word with the next syllable
+      for (let j = 0; j < cl.length - 1; j++) if (GK_ONSET.has(cl.slice(j).join(''))) { split = j; break; }
+      syl[k].coda = cl.slice(0, split); syl[k + 1].on = cl.slice(split);
+    });
+    let stressed = syl.findIndex(s => s.v.stress); if (stressed < 0) stressed = Math.max(0, syl.length - 2);
+    const conS = (c, nextC) => c === 'γ' && /[γκξχ]/.test(nextC || '') ? 'n' : GK_C[c] || '';
+    return syl.map((s, k) => {
+      let out = (s.v.rough && !s.on.length && k === 0 ? 'h' : '') + s.on.map((c, j) => conS(c, s.on[j + 1])).join('');
+      let v = s.v.s; if (s.coda.length && !s.v.long) v = ({ ah: 'a', eh: 'e', ee: 'i', oh: 'o' })[v] || v; // short vowel in a closed syllable
+      out += v + s.coda.map((c, j) => conS(c, s.coda[j + 1] || ((syl[k + 1] && syl[k + 1].on[0]) || ''))).join('');
+      if (k === syl.length - 1 && /os$/i.test(out)) out += 's'; // "-oss", so it is not read as "-ose"
+      return k === stressed ? out.toUpperCase() : out;
+    });
+  }
+  function autoHebrew(word) {
+    const d = word.normalize('NFD'); const L = [];
+    for (const ch of d) { if (/[א-ת]/.test(ch)) L.push({ c: ch, m: '' }); else if (/[֑-ׇ]/.test(ch) && L.length) L[L.length - 1].m += ch; }
+    if (!L.length) return null;
+    const has = (x, re) => re.test(x.m);
+    const V = m => /ַ|ָ|ֲ/.test(m) ? 'ah' : /ֳ/.test(m) ? 'oh' : /ֵ/.test(m) ? 'ay' : /ֶ|ֱ/.test(m) ? 'eh' : /ִ/.test(m) ? 'ee' : /ֻ/.test(m) ? 'oo' : /ֹ/.test(m) ? 'oh' : null;
+    const C = (x, last) => {
+      const dg = has(x, /ּ/); const c = x.c;
+      if ('אע'.includes(c)) return ''; if (c === 'ה') return last && !dg ? '' : 'h';
+      if (c === 'ש') return has(x, /ׂ/) ? 's' : 'sh';
+      return ({ ב: dg ? 'b' : 'v', ג: 'g', ד: 'd', ו: 'v', ז: 'z', ח: 'kh', ט: 't', י: 'y', כ: dg ? 'k' : 'kh', ך: 'kh', ל: 'l', מ: 'm', ם: 'm', נ: 'n', ן: 'n', ס: 's', פ: dg ? 'p' : 'f', ף: 'f', צ: 'ts', ץ: 'ts', ק: 'k', ר: 'r', ת: 't' })[c] || '';
+    };
+    const syl = []; let cur = null, furtive = false, segolEnd = false;
+    for (let i = 0; i < L.length; i++) {
+      const x = L[i], last = i === L.length - 1, prev = L[i - 1];
+      // vav as a vowel letter: holem or shureq
+      if (x.c === 'ו' && !V(x.m.replace(/ֹ/, '')) && (has(x, /ֹ/) || (has(x, /ּ/) && (!prev || !V(prev.m))))) {
+        const vv = has(x, /ֹ/) ? 'oh' : 'oo';
+        if (cur && !cur.v && cur.on !== null) cur.v = vv; else if (cur && !cur.v) cur.v = vv; else { cur = { on: '', v: vv, coda: '' }; syl.push(cur); }
+        continue;
+      }
+      // yod after hireq, tsere or segol with no vowel of its own is a silent vowel letter
+      if (x.c === 'י' && !V(x.m) && prev && /ִ|ֵ|ֶ/.test(prev.m)) continue;
+      const v = V(x.m);
+      if (last && v === 'ah' && /[חעה]/.test(x.c) && /ַ/.test(x.m) && syl.length) { furtive = true; syl.push({ on: '', v: 'a', coda: C(x, false) }); continue; }
+      const vocalShewa = /ְ/.test(x.m) && (i === 0 || (prev && /ְ/.test(prev.m)));
+      if (v || vocalShewa) { cur = { on: C(x, false), v: v || 'eh', coda: '' }; syl.push(cur); if (last && /ֶ/.test(x.m)) segolEnd = true; }
+      else {
+        const nx = L[i + 1];
+        if (nx && nx.c === 'ו' && !V(nx.m.replace(/\u05b9/, '')) && /\u05b9|\u05bc/.test(nx.m)) { cur = { on: C(x, false), v: /\u05b9/.test(nx.m) ? 'oh' : 'oo', coda: '' }; syl.push(cur); i++; continue; }
+        if (cur) cur.coda += C(x, last); else { cur = { on: C(x, last), v: null, coda: '' }; syl.push(cur); }
+      }
+    }
+    const S = syl.filter(s => s.v).map(s => s.on + (s.coda && s.v === 'eh' ? 'e' : s.v) + s.coda); if (!S.length) return null;
+    const segolate = S.length > 1 && syl.filter(s => s.v).slice(-1)[0].v === 'eh' && syl.filter(s => s.v).slice(-2)[0].v === 'eh';
+    const st = S.length > 1 && (furtive || segolate || segolEnd) ? S.length - 2 : S.length - 1;
+    return S.map((s, k) => k === st ? s.toUpperCase() : s);
+  }
+  const plain = s => String(s || '').normalize('NFD').replace(/[̀-֑ͯ-ׇ]/g, '').toLowerCase().trim();
+  // find a word: the checked word list first, then an automatic guide
+  function pronLookup(input, vocab) {
+    const q = String(input || '').trim().split(/\s+/)[0].replace(/[.,;:!?"'()\[\]“”‘’]/g, ''); if (!q) return null;
+    const hit = (vocab || []).find(w => w.lemma.normalize('NFC') === q.normalize('NFC') || plain(w.lemma) === plain(q) || plain(w.translit) === plain(q));
+    if (hit) return Object.assign({ source: 'list' }, hit);
+    if (/[Ͱ-Ͽἀ-῿]/.test(q)) { const s = autoGreek(q); return s && { lemma: q, language: 'greek', translit: s.join('-').toLowerCase(), gloss: '', syll: s, auto: true, source: 'auto', pron_note: 'Worked out from the spelling (Erasmian pronunciation). Check it against your grammar or lexicon.' }; }
+    if (/[֐-׿]/.test(q)) {
+      const pointed = /[ְ-ּ]/.test(q); const s = pointed ? autoHebrew(q) : [];
+      return s && { lemma: q, language: 'hebrew', translit: pointed ? s.join('-').toLowerCase() : '', gloss: '', syll: s, auto: true, source: 'auto', unpointed: !pointed, pron_note: pointed ? 'Worked out from the spelling and vowel points. Hebrew stress varies, so check it against your grammar or lexicon.' : 'This word has no vowel points, so the vowels cannot be known from the spelling. Paste it with its vowel points for a reliable guide.' };
+    }
+    return { lemma: q, language: 'english', translit: q, gloss: '', syll: [], auto: true, source: 'english', pron_note: 'Read by your device\'s English voice. Syllable guides are worked out for Greek and Hebrew words.' };
+  }
+  window.__academy.pron = { autoGreek, autoHebrew, pronLookup };
 
   /* ---------------- language centre ---------------- */
   const ABC_GRK = [['Α α', 'alpha', 'a as in "father"'], ['Β β', 'beta', 'b'], ['Γ γ', 'gamma', 'g as in "go"; before γ, κ, ξ, χ it is "ng"'], ['Δ δ', 'delta', 'd'], ['Ε ε', 'epsilon', 'e as in "bet"'], ['Ζ ζ', 'zeta', 'dz as in "adze"'], ['Η η', 'eta', 'ay as in "obey"'], ['Θ θ', 'theta', 'th as in "thin"'], ['Ι ι', 'iota', 'i as in "machine" (long) or "pit" (short)'], ['Κ κ', 'kappa', 'k'], ['Λ λ', 'lambda', 'l'], ['Μ μ', 'mu', 'm'], ['Ν ν', 'nu', 'n'], ['Ξ ξ', 'xi', 'x as in "box"'], ['Ο ο', 'omicron', 'o as in "lot"'], ['Π π', 'pi', 'p'], ['Ρ ρ', 'rho', 'r, lightly rolled'], ['Σ σ ς', 'sigma', 's (ς is used at the end of a word)'], ['Τ τ', 'tau', 't'], ['Υ υ', 'upsilon', 'French "u"; often simplified to "oo"'], ['Φ φ', 'phi', 'f'], ['Χ χ', 'chi', 'ch as in Scottish "loch"'], ['Ψ ψ', 'psi', 'ps as in "lips"'], ['Ω ω', 'omega', 'oh as in "tone"']];

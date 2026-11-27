@@ -231,3 +231,7 @@ mark.hl { background: rgba(184, 155, 96, .35); color: inherit; padding: 0 2px; b
 .pron-w:hover { background: rgba(184, 155, 96, .3); }
 .abc .abc-l { font: 500 26px/1.2 var(--serif); white-space: nowrap; } .heb-t .abc-l { font-family: var(--heb); font-size: 28px; direction: rtl; }
 .abc td { vertical-align: middle; }
+
+.pw-res { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.pw-lem { font: 500 34px/1.2 var(--serif); display: block; } .pw-lem.heb { font-family: var(--heb); font-size: 36px; }
+#pwf .inp { min-width: 0; }
